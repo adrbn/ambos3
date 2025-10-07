@@ -48,17 +48,23 @@ const MapModule = ({ articles }: MapModuleProps) => {
         mapRef.current = map;
         setIsMapReady(true);
         
-        // Force resize after a short delay to ensure proper rendering
+        // Force resize multiple times to ensure proper rendering on mobile
         setTimeout(() => {
           map.invalidateSize();
-        }, 250);
+        }, 100);
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 300);
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 500);
       } catch (error) {
         console.error('Error initializing map:', error);
       }
     };
 
     // Initialize after a short delay to ensure container is rendered
-    const timer = setTimeout(initMap, 150);
+    const timer = setTimeout(initMap, 200);
 
     // Cleanup
     return () => {

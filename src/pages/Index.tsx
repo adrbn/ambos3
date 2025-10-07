@@ -183,14 +183,14 @@ const Index = () => {
             items={layout.moduleOrder}
             strategy={rectSortingStrategy}
           >
-            <div className="flex flex-col lg:flex-row lg:flex-wrap gap-2">
+            <div className="flex flex-col lg:flex-row lg:flex-wrap gap-3 lg:gap-2">
               {layout.moduleOrder.map((moduleId) => {
                 const savedSize = moduleSizes[moduleId];
                 const hasContent = articles.length > 0;
                 return (
                   <div 
                     key={moduleId} 
-                    className={`w-full lg:w-auto transition-all ${!hasContent ? 'lg:min-h-0' : ''}`}
+                    className="w-full lg:w-auto"
                   >
                     <ResizableDraggableModule
                       id={moduleId}
