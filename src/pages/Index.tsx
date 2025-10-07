@@ -79,52 +79,51 @@ const Index = () => {
   const getModuleComponent = (moduleId: ModuleId) => {
     switch (moduleId) {
       case 'map':
-        return (
-          <DraggableModule id="map" className="h-[500px]">
-            <MapModule articles={articles} />
-          </DraggableModule>
-        );
+        return <MapModule articles={articles} />;
       case 'timeline':
-        return (
-          <DraggableModule id="timeline" className="h-[240px]">
-            <TimelineModule articles={articles} />
-          </DraggableModule>
-        );
+        return <TimelineModule articles={articles} />;
       case 'network-graph':
-        return (
-          <DraggableModule id="network-graph" className="h-[360px]">
-            <NetworkGraph3D articles={articles} />
-          </DraggableModule>
-        );
+        return <NetworkGraph3D articles={articles} />;
       case 'entities':
-        return (
-          <DraggableModule id="entities" className="h-[380px]">
-            <GraphModule entities={analysis?.entities || []} />
-          </DraggableModule>
-        );
+        return <GraphModule entities={analysis?.entities || []} />;
       case 'summary':
-        return (
-          <DraggableModule id="summary" className="h-[340px]">
-            <SummaryModule summary={analysis?.summary || ""} />
-          </DraggableModule>
-        );
+        return <SummaryModule summary={analysis?.summary || ""} />;
       case 'predictions':
-        return (
-          <DraggableModule id="predictions" className="h-[280px]">
-            <PredictionsModule
-              predictions={analysis?.predictions || []}
-              sentiment={analysis?.sentiment || null}
-            />
-          </DraggableModule>
-        );
+        return <PredictionsModule predictions={analysis?.predictions || []} sentiment={analysis?.sentiment || null} />;
       case 'datafeed':
-        return (
-          <DraggableModule id="datafeed" className="h-[220px]">
-            <DataFeedModule articles={articles} />
-          </DraggableModule>
-        );
+        return <DataFeedModule articles={articles} />;
       default:
         return null;
+    }
+  };
+
+  const getModuleHeight = (moduleId: ModuleId) => {
+    switch (moduleId) {
+      case 'map': return 'h-[340px]';
+      case 'timeline': return 'h-[180px]';
+      case 'network-graph': return 'h-[280px]';
+      case 'entities': return 'h-[240px]';
+      case 'summary': return 'h-[200px]';
+      case 'predictions': return 'h-[200px]';
+      case 'datafeed': return 'h-[180px]';
+      default: return 'h-auto';
+    }
+  };
+
+  const getModuleColumns = (moduleId: ModuleId) => {
+    switch (moduleId) {
+      case 'map':
+      case 'timeline':
+        return 'lg:col-span-5';
+      case 'network-graph':
+      case 'entities':
+        return 'lg:col-span-4';
+      case 'summary':
+      case 'predictions':
+      case 'datafeed':
+        return 'lg:col-span-3';
+      default:
+        return 'lg:col-span-12';
     }
   };
 
@@ -168,8 +167,8 @@ const Index = () => {
         <SearchBar onSearch={handleSearch} language={language} currentQuery={currentQuery} searchTrigger={searchTrigger} />
       </div>
 
-      {/* Main Grid - Draggable Layout */}
-      <main className="flex-1 px-4 pb-4">
+      {/* Main Grid - Compact Draggable Layout */}
+      <main className="flex-1 px-4 pb-3 overflow-hidden">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -179,19 +178,15 @@ const Index = () => {
             items={layout.moduleOrder}
             strategy={rectSortingStrategy}
           >
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 h-[calc(100vh-140px)]">
               {layout.moduleOrder.map((moduleId) => (
                 <div
                   key={moduleId}
-                  className={
-                    moduleId === 'map' || moduleId === 'timeline'
-                      ? 'lg:col-span-5'
-                      : moduleId === 'network-graph' || moduleId === 'entities'
-                      ? 'lg:col-span-4'
-                      : 'lg:col-span-3'
-                  }
+                  className={getModuleColumns(moduleId)}
                 >
-                  {getModuleComponent(moduleId)}
+                  <DraggableModule id={moduleId} className={`${getModuleHeight(moduleId)} w-full`}>
+                    {getModuleComponent(moduleId)}
+                  </DraggableModule>
                 </div>
               ))}
             </div>
