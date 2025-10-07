@@ -217,7 +217,6 @@ const Index = () => {
         </div>
         {/* Mobile layout controls */}
         <div className="lg:hidden flex items-center gap-2 mt-2">
-          <SettingsDialog selectedApi={selectedApi} onApiChange={setSelectedApi} />
           <LayoutManager
             savedLayouts={savedLayouts}
             onSave={handleSaveLayout}
