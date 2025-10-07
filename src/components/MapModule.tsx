@@ -27,10 +27,10 @@ const MapModule = ({ articles }: MapModuleProps) => {
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current || !isEnabled) return;
 
-    try {
-      setTimeout(() => {
-        if (!mapContainerRef.current || mapRef.current) return;
-        
+    const initMap = () => {
+      if (!mapContainerRef.current || mapRef.current) return;
+      
+      try {
         const map = L.map(mapContainerRef.current, {
           center: [20, 0],
           zoom: 2,
@@ -47,18 +47,28 @@ const MapModule = ({ articles }: MapModuleProps) => {
 
         mapRef.current = map;
         setIsMapReady(true);
-      }, 100);
+        
+        // Force resize after a short delay to ensure proper rendering
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 250);
+      } catch (error) {
+        console.error('Error initializing map:', error);
+      }
+    };
 
-      // Cleanup
-      return () => {
-        if (mapRef.current) {
-          mapRef.current.remove();
-          mapRef.current = null;
-        }
-      };
-    } catch (error) {
-      console.error('Error initializing map:', error);
-    }
+    // Initialize after a short delay to ensure container is rendered
+    const timer = setTimeout(initMap, 150);
+
+    // Cleanup
+    return () => {
+      clearTimeout(timer);
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        setIsMapReady(false);
+      }
+    };
   }, [isEnabled]);
 
   // Extract and update markers when articles change
@@ -152,7 +162,7 @@ const MapModule = ({ articles }: MapModuleProps) => {
   }
 
   return (
-    <div className="hud-panel h-full">
+    <div className="hud-panel h-full flex flex-col">
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-xs font-bold text-primary uppercase tracking-wider">
           CARTE GÉOGRAPHIQUE
@@ -171,13 +181,13 @@ const MapModule = ({ articles }: MapModuleProps) => {
       </div>
       
       {articles.length === 0 ? (
-        <div className="h-[calc(100%-2rem)] rounded border border-primary/20 overflow-hidden flex items-center justify-center bg-card/20">
+        <div className="flex-1 rounded border border-primary/20 overflow-hidden flex items-center justify-center bg-card/20">
           <p className="text-xs text-muted-foreground">Aucune donnée disponible</p>
         </div>
       ) : (
         <div 
           ref={mapContainerRef}
-          className="h-[calc(100%-2rem)] rounded border border-primary/30 overflow-hidden"
+          className="flex-1 rounded border border-primary/30 overflow-hidden"
         />
       )}
     </div>
