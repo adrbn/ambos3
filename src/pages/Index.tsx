@@ -1,5 +1,20 @@
 import { useState, useEffect, useRef } from "react";
-import { Shield, Activity } from "lucide-react";
+import { Shield, Activity, RotateCcw } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
 import SearchBar from "@/components/SearchBar";
 import MapModule from "@/components/MapModule";
 import GraphModule from "@/components/GraphModule";
@@ -10,6 +25,9 @@ import TimelineModule from "@/components/TimelineModule";
 import DataFeedModule from "@/components/DataFeedModule";
 import StatusBar from "@/components/StatusBar";
 import LanguageSelector from "@/components/LanguageSelector";
+import DraggableModule from "@/components/DraggableModule";
+import { useLayoutConfig, ModuleId } from "@/hooks/useLayoutConfig";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -18,23 +36,31 @@ const Index = () => {
   const [analysis, setAnalysis] = useState<any>(null);
   const [language, setLanguage] = useState<string>("en");
   const [searchTrigger, setSearchTrigger] = useState(0);
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [isMapCollapsed, setIsMapCollapsed] = useState(false);
+  const { layout, updateLayout, resetLayout } = useLayoutConfig();
 
-  // Observer pour détecter quand la carte est réduite
-  useEffect(() => {
-    if (!mapRef.current) return;
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const height = entry.contentRect.height;
-        setIsMapCollapsed(height < 100);
-      }
-    });
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
 
-    observer.observe(mapRef.current);
-    return () => observer.disconnect();
-  }, []);
+    if (over && active.id !== over.id) {
+      const oldIndex = layout.moduleOrder.indexOf(active.id as ModuleId);
+      const newIndex = layout.moduleOrder.indexOf(over.id as ModuleId);
+      const newOrder = arrayMove(layout.moduleOrder, oldIndex, newIndex);
+      updateLayout(newOrder);
+      toast.success('Layout mis à jour');
+    }
+  };
+
+  const handleResetLayout = () => {
+    resetLayout();
+    toast.success('Layout réinitialisé');
+  };
 
   const handleSearch = (query: string, fetchedArticles: any[], analysisData: any) => {
     setCurrentQuery(query);
@@ -46,8 +72,59 @@ const Index = () => {
     setLanguage(newLang);
     if (currentQuery) {
       toast.info(`Language changed to ${newLang.toUpperCase()}. Searching again...`);
-      // Trigger a new search with the same query but different language
       setSearchTrigger(prev => prev + 1);
+    }
+  };
+
+  const getModuleComponent = (moduleId: ModuleId) => {
+    switch (moduleId) {
+      case 'map':
+        return (
+          <DraggableModule id="map" className="h-[500px]">
+            <MapModule articles={articles} />
+          </DraggableModule>
+        );
+      case 'timeline':
+        return (
+          <DraggableModule id="timeline" className="h-[240px]">
+            <TimelineModule articles={articles} />
+          </DraggableModule>
+        );
+      case 'network-graph':
+        return (
+          <DraggableModule id="network-graph" className="h-[360px]">
+            <NetworkGraph3D articles={articles} />
+          </DraggableModule>
+        );
+      case 'entities':
+        return (
+          <DraggableModule id="entities" className="h-[380px]">
+            <GraphModule entities={analysis?.entities || []} />
+          </DraggableModule>
+        );
+      case 'summary':
+        return (
+          <DraggableModule id="summary" className="h-[340px]">
+            <SummaryModule summary={analysis?.summary || ""} />
+          </DraggableModule>
+        );
+      case 'predictions':
+        return (
+          <DraggableModule id="predictions" className="h-[280px]">
+            <PredictionsModule
+              predictions={analysis?.predictions || []}
+              sentiment={analysis?.sentiment || null}
+            />
+          </DraggableModule>
+        );
+      case 'datafeed':
+        return (
+          <DraggableModule id="datafeed" className="h-[220px]">
+            <DataFeedModule articles={articles} />
+          </DraggableModule>
+        );
+      default:
+        return null;
     }
   };
 
@@ -68,6 +145,15 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResetLayout}
+              className="text-xs"
+            >
+              <RotateCcw className="w-3 h-3 mr-1" />
+              Reset Layout
+            </Button>
             <LanguageSelector language={language} onLanguageChange={handleLanguageChange} />
             <div className="flex items-center gap-2 px-3 py-1 bg-secondary/20 border border-secondary/40 rounded">
               <Activity className="w-3 h-3 text-secondary animate-pulse" />
@@ -82,50 +168,35 @@ const Index = () => {
         <SearchBar onSearch={handleSearch} language={language} currentQuery={currentQuery} searchTrigger={searchTrigger} />
       </div>
 
-      {/* Main Grid - Layout dynamique selon l'état de la carte */}
-      <main className="flex-1 px-4 pb-4 grid grid-cols-1 lg:grid-cols-12 gap-3">
-        {/* Left Column - Map & Timeline */}
-        <div className={`${isMapCollapsed ? 'lg:col-span-2' : 'lg:col-span-5'} space-y-3 transition-all duration-300`}>
-          <div ref={mapRef} className={isMapCollapsed ? 'h-auto' : 'h-[500px]'}>
-            <MapModule articles={articles} />
-          </div>
-          {!isMapCollapsed && (
-            <div className="h-[240px]">
-              <TimelineModule articles={articles} />
+      {/* Main Grid - Draggable Layout */}
+      <main className="flex-1 px-4 pb-4">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={layout.moduleOrder}
+            strategy={rectSortingStrategy}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+              {layout.moduleOrder.map((moduleId) => (
+                <div
+                  key={moduleId}
+                  className={
+                    moduleId === 'map' || moduleId === 'timeline'
+                      ? 'lg:col-span-5'
+                      : moduleId === 'network-graph' || moduleId === 'entities'
+                      ? 'lg:col-span-4'
+                      : 'lg:col-span-3'
+                  }
+                >
+                  {getModuleComponent(moduleId)}
+                </div>
+              ))}
             </div>
-          )}
-        </div>
-
-        {/* Middle Column - Graphs & Analysis */}
-        <div className={`${isMapCollapsed ? 'lg:col-span-7' : 'lg:col-span-4'} space-y-3 transition-all duration-300`}>
-          <div className="h-[360px]">
-            <NetworkGraph3D articles={articles} />
-          </div>
-          <div className="h-[380px]">
-            <GraphModule entities={analysis?.entities || []} />
-          </div>
-        </div>
-
-        {/* Right Column - Data Feed & Analysis */}
-        <div className="lg:col-span-3 space-y-3">
-          {isMapCollapsed && (
-            <div className="h-[240px]">
-              <TimelineModule articles={articles} />
-            </div>
-          )}
-          <div className={isMapCollapsed ? 'h-[240px]' : 'h-[340px]'}>
-            <SummaryModule summary={analysis?.summary || ""} />
-          </div>
-          <div className={isMapCollapsed ? 'h-[280px]' : 'h-[220px]'}>
-            <PredictionsModule
-              predictions={analysis?.predictions || []}
-              sentiment={analysis?.sentiment || null}
-            />
-          </div>
-          <div className={isMapCollapsed ? 'h-[220px]' : 'h-[220px]'}>
-            <DataFeedModule articles={articles} />
-          </div>
-        </div>
+          </SortableContext>
+        </DndContext>
       </main>
 
       {/* Status Bar */}
