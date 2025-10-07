@@ -3,7 +3,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
 import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ResizableDraggableModuleProps {
   id: string;
@@ -30,6 +30,16 @@ const ResizableDraggableModule = ({
   } = useSortable({ id });
 
   const [size, setSize] = useState({ width: initialWidth, height: initialHeight });
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -42,6 +52,30 @@ const ResizableDraggableModule = ({
     onResize?.(newSize.width, newSize.height);
   };
 
+  // Sur mobile, pas de redimensionnement - juste un conteneur simple
+  if (isMobile) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="relative group"
+      >
+        <div
+          {...attributes}
+          {...listeners}
+          className="absolute top-1 left-1 z-20 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity bg-primary/10 hover:bg-primary/20 rounded p-0.5 backdrop-blur-sm border border-primary/30"
+          title="Drag to reorder"
+        >
+          <GripVertical className="w-3 h-3 text-primary" />
+        </div>
+        <div className="w-full h-auto min-h-[250px]">
+          {children}
+        </div>
+      </div>
+    );
+  }
+
+  // Sur desktop, avec redimensionnement
   return (
     <div
       ref={setNodeRef}
