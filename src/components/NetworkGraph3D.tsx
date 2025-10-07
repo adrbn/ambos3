@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import ForceGraph3D from 'react-force-graph-3d';
+import ForceGraph2D from 'react-force-graph-2d';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
@@ -23,10 +23,11 @@ interface NetworkGraph3DProps {
 }
 
 const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
-  const [isEnabled, setIsEnabled] = useState(false);
+  const [isEnabled, setIsEnabled] = useState(true);
   const [graphData, setGraphData] = useState<{ nodes: Node[]; links: Link[] }>({ nodes: [], links: [] });
   const [isLoading, setIsLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const graphRef = useRef<any>(null);
 
   useEffect(() => {
     if (!isEnabled || articles.length === 0) return;
@@ -75,10 +76,10 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
   if (!isEnabled) {
     return (
       <div className="hud-panel p-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold text-primary uppercase tracking-wider">
-            GRAPHE RELATIONNEL 3D
-          </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs font-bold text-primary uppercase tracking-wider">
+          GRAPHE RELATIONNEL
+        </h2>
           <div className="flex items-center gap-2">
             <Label htmlFor="graph-toggle" className="text-[10px] text-muted-foreground cursor-pointer">
               OFF
@@ -99,7 +100,7 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
     <div className="hud-panel h-full flex flex-col">
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-xs font-bold text-primary uppercase tracking-wider">
-          GRAPHE RELATIONNEL 3D
+          GRAPHE RELATIONNEL
         </h2>
         <div className="flex items-center gap-2">
           <Label htmlFor="graph-toggle" className="text-[10px] text-muted-foreground cursor-pointer">
@@ -114,7 +115,7 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
         </div>
       </div>
 
-      <div ref={containerRef} className="flex-1 rounded border border-primary/30 overflow-hidden bg-black/40">
+      <div ref={containerRef} className="flex-1 rounded border border-primary/30 overflow-hidden" style={{ background: 'radial-gradient(circle at center, rgba(0, 217, 255, 0.05) 0%, rgba(0, 0, 0, 0.8) 100%)' }}>
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
@@ -127,25 +128,58 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
             <p className="text-xs text-muted-foreground">Aucune donnée disponible</p>
           </div>
         ) : (
-          <ForceGraph3D
+          <ForceGraph2D
+            ref={graphRef}
             graphData={graphData}
-            nodeLabel={(node: any) => `
-              <div style="background: rgba(0,0,0,0.9); padding: 8px; border-radius: 4px; border: 1px solid ${getNodeColor(node.type)};">
-                <strong style="color: ${getNodeColor(node.type)};">${node.name}</strong><br/>
-                <span style="color: #888; font-size: 10px; text-transform: uppercase;">${node.type}</span><br/>
-                ${node.description ? `<span style="color: #ccc; font-size: 11px;">${node.description}</span>` : ''}
-              </div>
-            `}
-            nodeColor={(node: any) => getNodeColor(node.type)}
-            nodeRelSize={6}
-            nodeVal={(node: any) => node.importance}
+            width={containerRef.current?.offsetWidth || 600}
+            height={containerRef.current?.offsetHeight || 340}
+            nodeLabel={(node: any) => `${node.name} (${node.type})`}
+            nodeCanvasObject={(node: any, ctx, globalScale) => {
+              const label = node.name;
+              const fontSize = 12 / globalScale;
+              const nodeRadius = Math.sqrt(node.importance) * 3;
+              
+              // Draw node circle
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
+              ctx.fillStyle = getNodeColor(node.type);
+              ctx.fill();
+              
+              // Draw glow
+              ctx.shadowBlur = 10;
+              ctx.shadowColor = getNodeColor(node.type);
+              ctx.fill();
+              ctx.shadowBlur = 0;
+              
+              // Draw label
+              ctx.font = `${fontSize}px Orbitron, sans-serif`;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillText(label, node.x, node.y + nodeRadius + fontSize);
+            }}
+            nodePointerAreaPaint={(node: any, color, ctx) => {
+              const nodeRadius = Math.sqrt(node.importance) * 3;
+              ctx.fillStyle = color;
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
+              ctx.fill();
+            }}
             linkLabel={(link: any) => link.relationship}
-            linkColor={() => 'rgba(0, 217, 255, 0.3)'}
+            linkColor={() => 'rgba(0, 217, 255, 0.4)'}
             linkWidth={(link: any) => link.strength / 2}
             linkDirectionalParticles={2}
             linkDirectionalParticleWidth={2}
-            backgroundColor="rgba(0,0,0,0)"
-            showNavInfo={false}
+            linkDirectionalParticleColor={() => '#00D9FF'}
+            backgroundColor="transparent"
+            enableZoomInteraction={true}
+            enablePanInteraction={true}
+            cooldownTime={3000}
+            onEngineStop={() => {
+              if (graphRef.current) {
+                graphRef.current.zoomToFit(400, 50);
+              }
+            }}
           />
         )}
       </div>
