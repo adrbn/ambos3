@@ -15,13 +15,13 @@ interface LayoutConfig {
 
 const DEFAULT_LAYOUT: LayoutConfig = {
   moduleOrder: [
+    'predictions',
     'map',
     'timeline',
-    'network-graph',
-    'entities',
-    'summary',
-    'predictions',
     'datafeed',
+    'entities',
+    'network-graph',
+    'summary',
   ],
 };
 
