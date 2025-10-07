@@ -208,9 +208,6 @@ const Index = () => {
                 const savedSize = moduleSizes[moduleId];
                 const hasContent = articles.length > 0;
                 
-                // Skip rendering if no content
-                if (!hasContent) return null;
-                
                 return (
                   <div 
                     key={moduleId} 
@@ -218,8 +215,8 @@ const Index = () => {
                   >
                     <ResizableDraggableModule
                       id={moduleId}
-                      initialWidth={savedSize?.width || 400}
-                      initialHeight={savedSize?.height || 300}
+                      initialWidth={savedSize?.width || 460}
+                      initialHeight={hasContent ? (savedSize?.height || 345) : 92}
                       onResize={(w, h) => handleModuleResize(moduleId, w, h)}
                     >
                       {getModuleComponent(moduleId)}

@@ -63,7 +63,9 @@ const MapModule = ({ articles }: MapModuleProps) => {
       try {
         const map = L.map(mapContainerRef.current, {
           center: [20, 0],
-          zoom: 2,
+          zoom: 1.5,
+          minZoom: 1,
+          maxZoom: 19,
           scrollWheelZoom: false,
           zoomControl: true,
         });
