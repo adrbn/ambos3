@@ -1,0 +1,251 @@
+export const translations = {
+  fr: {
+    // Header
+    appName: "AmbOS",
+    appSubtitle: "OSINT Command Center v2.0",
+    status: "Standby",
+    saveLayout: "Save Layout",
+    loadLayout: "Load Layout",
+    reset: "Reset",
+    settings: "Paramètres",
+    
+    // Tabs
+    classicSearch: "Recherche classique",
+    sectorWatches: "Veilles sectorielles",
+    search: "Recherche",
+    watches: "Veilles",
+    
+    // Search
+    searchPlaceholder: "Entrez votre requête (ex: 'guerre Ukraine', 'changement climatique')...",
+    searchButton: "RECHERCHER",
+    searching: "Recherche en cours...",
+    
+    // Sector Watches
+    newWatch: "Nouvelle",
+    editWatch: "Modifier la veille",
+    createWatch: "Nouvelle veille sectorielle",
+    watchName: "Nom de la veille",
+    sector: "Secteur",
+    searchQuery: "Requêtes de recherche",
+    description: "Description",
+    defaultLanguage: "Langue par défaut",
+    api: "API",
+    cancel: "Annuler",
+    save: "Sauvegarder",
+    create: "Créer",
+    update: "Mettre à jour",
+    launch: "Lancer",
+    edit: "Modifier",
+    delete: "Supprimer",
+    noWatches: "Aucune veille sectorielle",
+    createFirstWatch: "Créez votre première veille",
+    launchingWatch: "Lancement de la veille",
+    languageChanged: "Langue changée",
+    newSearch: "Nouvelle recherche...",
+    settingsSaved: "Paramètres sauvegardés",
+    watchCreated: "Veille créée",
+    watchUpdated: "Veille mise à jour",
+    watchDeleted: "Veille supprimée",
+    fillAllFields: "Veuillez remplir tous les champs obligatoires",
+    
+    // Modules
+    dataFeed: "FLUX DE DONNÉES",
+    summary: "SYNTHÈSE",
+    predictions: "PRÉDICTIONS",
+    timeline: "CHRONOLOGIE",
+    map: "CARTE",
+    entities: "ENTITÉS",
+    networkGraph: "RÉSEAU",
+    allFeeds: "TOUS LES FLUX",
+    recent: "RÉCENT",
+    trending: "TENDANCE",
+    noFeedData: "Aucune donnée de flux disponible",
+    noArticles: "Aucun article trouvé",
+    
+    // Settings Dialog
+    settingsTitle: "Paramètres",
+    settingsDescription: "Configurez vos préférences de recherche",
+    searchApiLabel: "API de recherche",
+    searchApiDescription: "Choisissez l'API à utiliser pour les recherches d'articles",
+    
+    // Languages
+    french: "Français",
+    english: "English",
+    italian: "Italiano",
+    
+    // Placeholders
+    watchNamePlaceholder: "Ex: Défense France-Italie",
+    sectorPlaceholder: "Ex: Défense, Économie, Culture...",
+    queryPlaceholderFr: "Ex: défense France Italie OR militaire France Italie",
+    queryPlaceholderEn: "Ex: defense France Italy OR military France Italy",
+    queryPlaceholderIt: "Ex: difesa Francia Italia OR militare Francia Italia",
+    descriptionPlaceholder: "Description de la veille...",
+  },
+  en: {
+    // Header
+    appName: "AmbOS",
+    appSubtitle: "OSINT Command Center v2.0",
+    status: "Standby",
+    saveLayout: "Save Layout",
+    loadLayout: "Load Layout",
+    reset: "Reset",
+    settings: "Settings",
+    
+    // Tabs
+    classicSearch: "Classic Search",
+    sectorWatches: "Sector Watches",
+    search: "Search",
+    watches: "Watches",
+    
+    // Search
+    searchPlaceholder: "Enter your query (e.g., 'Ukraine war', 'climate change')...",
+    searchButton: "SEARCH",
+    searching: "Searching...",
+    
+    // Sector Watches
+    newWatch: "New",
+    editWatch: "Edit Watch",
+    createWatch: "New Sector Watch",
+    watchName: "Watch Name",
+    sector: "Sector",
+    searchQuery: "Search Queries",
+    description: "Description",
+    defaultLanguage: "Default Language",
+    api: "API",
+    cancel: "Cancel",
+    save: "Save",
+    create: "Create",
+    update: "Update",
+    launch: "Launch",
+    edit: "Edit",
+    delete: "Delete",
+    noWatches: "No sector watches",
+    createFirstWatch: "Create your first watch",
+    launchingWatch: "Launching watch",
+    languageChanged: "Language changed",
+    newSearch: "New search...",
+    settingsSaved: "Settings saved",
+    watchCreated: "Watch created",
+    watchUpdated: "Watch updated",
+    watchDeleted: "Watch deleted",
+    fillAllFields: "Please fill in all required fields",
+    
+    // Modules
+    dataFeed: "DATA FEED",
+    summary: "SUMMARY",
+    predictions: "PREDICTIONS",
+    timeline: "TIMELINE",
+    map: "MAP",
+    entities: "ENTITIES",
+    networkGraph: "NETWORK",
+    allFeeds: "ALL FEEDS",
+    recent: "RECENT",
+    trending: "TRENDING",
+    noFeedData: "No feed data available",
+    noArticles: "No articles found",
+    
+    // Settings Dialog
+    settingsTitle: "Settings",
+    settingsDescription: "Configure your search preferences",
+    searchApiLabel: "Search API",
+    searchApiDescription: "Choose the API to use for article searches",
+    
+    // Languages
+    french: "Français",
+    english: "English",
+    italian: "Italiano",
+    
+    // Placeholders
+    watchNamePlaceholder: "Ex: France-Italy Defense",
+    sectorPlaceholder: "Ex: Defense, Economy, Culture...",
+    queryPlaceholderFr: "Ex: défense France Italie OR militaire France Italie",
+    queryPlaceholderEn: "Ex: defense France Italy OR military France Italy",
+    queryPlaceholderIt: "Ex: difesa Francia Italia OR militare Francia Italia",
+    descriptionPlaceholder: "Watch description...",
+  },
+  it: {
+    // Header
+    appName: "AmbOS",
+    appSubtitle: "Centro di Comando OSINT v2.0",
+    status: "In attesa",
+    saveLayout: "Salva Layout",
+    loadLayout: "Carica Layout",
+    reset: "Ripristina",
+    settings: "Impostazioni",
+    
+    // Tabs
+    classicSearch: "Ricerca Classica",
+    sectorWatches: "Monitoraggi Settoriali",
+    search: "Ricerca",
+    watches: "Monitoraggi",
+    
+    // Search
+    searchPlaceholder: "Inserisci la tua query (es: 'guerra Ucraina', 'cambiamento climatico')...",
+    searchButton: "CERCA",
+    searching: "Ricerca in corso...",
+    
+    // Sector Watches
+    newWatch: "Nuovo",
+    editWatch: "Modifica Monitoraggio",
+    createWatch: "Nuovo Monitoraggio Settoriale",
+    watchName: "Nome del Monitoraggio",
+    sector: "Settore",
+    searchQuery: "Query di Ricerca",
+    description: "Descrizione",
+    defaultLanguage: "Lingua Predefinita",
+    api: "API",
+    cancel: "Annulla",
+    save: "Salva",
+    create: "Crea",
+    update: "Aggiorna",
+    launch: "Avvia",
+    edit: "Modifica",
+    delete: "Elimina",
+    noWatches: "Nessun monitoraggio settoriale",
+    createFirstWatch: "Crea il tuo primo monitoraggio",
+    launchingWatch: "Avvio monitoraggio",
+    languageChanged: "Lingua cambiata",
+    newSearch: "Nuova ricerca...",
+    settingsSaved: "Impostazioni salvate",
+    watchCreated: "Monitoraggio creato",
+    watchUpdated: "Monitoraggio aggiornato",
+    watchDeleted: "Monitoraggio eliminato",
+    fillAllFields: "Si prega di compilare tutti i campi obbligatori",
+    
+    // Modules
+    dataFeed: "FLUSSO DATI",
+    summary: "SINTESI",
+    predictions: "PREVISIONI",
+    timeline: "CRONOLOGIA",
+    map: "MAPPA",
+    entities: "ENTITÀ",
+    networkGraph: "RETE",
+    allFeeds: "TUTTI I FLUSSI",
+    recent: "RECENTE",
+    trending: "TENDENZA",
+    noFeedData: "Nessun dato disponibile",
+    noArticles: "Nessun articolo trovato",
+    
+    // Settings Dialog
+    settingsTitle: "Impostazioni",
+    settingsDescription: "Configura le tue preferenze di ricerca",
+    searchApiLabel: "API di ricerca",
+    searchApiDescription: "Scegli l'API da utilizzare per la ricerca di articoli",
+    
+    // Languages
+    french: "Français",
+    english: "English",
+    italian: "Italiano",
+    
+    // Placeholders
+    watchNamePlaceholder: "Es: Difesa Francia-Italia",
+    sectorPlaceholder: "Es: Difesa, Economia, Cultura...",
+    queryPlaceholderFr: "Es: défense France Italie OR militaire France Italie",
+    queryPlaceholderEn: "Es: defense France Italy OR military France Italy",
+    queryPlaceholderIt: "Es: difesa Francia Italia OR militare Francia Italia",
+    descriptionPlaceholder: "Descrizione del monitoraggio...",
+  }
+};
+
+export type TranslationKey = keyof typeof translations.fr;
+export type Language = 'fr' | 'en' | 'it';

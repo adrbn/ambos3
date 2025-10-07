@@ -31,6 +31,8 @@ import ResizableDraggableModule from "@/components/ResizableDraggableModule";
 import LayoutManager from "@/components/LayoutManager";
 import { useLayoutConfig, ModuleId } from "@/hooks/useLayoutConfig";
 import { useSavedLayouts } from "@/hooks/useSavedLayouts";
+import { useTranslation } from "@/hooks/useTranslation";
+import { Language } from "@/i18n/translations";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -39,11 +41,12 @@ const Index = () => {
   const [currentQuery, setCurrentQuery] = useState<string>("");
   const [articles, setArticles] = useState<any[]>([]);
   const [analysis, setAnalysis] = useState<any>(null);
-  const [language, setLanguage] = useState<string>("fr");
+  const [language, setLanguage] = useState<Language>("fr");
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [selectedApi, setSelectedApi] = useState<'gnews' | 'newsapi'>('newsapi');
   const [activeTab, setActiveTab] = useState<string>("search");
   const [currentWatch, setCurrentWatch] = useState<any>(null);
+  const { t } = useTranslation(language);
   const { layout, updateLayout, resetLayout } = useLayoutConfig();
   const [moduleSizes, setModuleSizes] = useState<Record<string, { width: number; height: number }>>({});
   const {
@@ -87,7 +90,7 @@ const Index = () => {
 
   const handleSaveLayout = (name: string) => {
     saveLayout(name, layout.moduleOrder, moduleSizes);
-    toast.success(`Layout "${name}" saved`);
+    toast.success(`${t('saveLayout')} "${name}"`);
   };
 
   const handleLoadLayout = (name: string) => {
@@ -95,7 +98,7 @@ const Index = () => {
     if (savedLayout) {
       updateLayout(savedLayout.moduleOrder);
       setModuleSizes(savedLayout.moduleSizes);
-      toast.success(`Layout "${name}" loaded`);
+      toast.success(`${t('loadLayout')} "${name}"`);
     }
   };
 
@@ -109,7 +112,7 @@ const Index = () => {
     }
   };
 
-  const handleLanguageChange = (newLang: string) => {
+  const handleLanguageChange = (newLang: Language) => {
     setLanguage(newLang);
     if (currentQuery) {
       // If we have a current watch, use its translated query
@@ -122,7 +125,7 @@ const Index = () => {
         }
         setCurrentQuery(queryToUse);
       }
-      toast.info(`Langue changée: ${newLang.toUpperCase()}. Nouvelle recherche...`);
+      toast.info(`${t('languageChanged')}: ${newLang.toUpperCase()}. ${t('newSearch')}`);
       setSearchTrigger(prev => prev + 1);
     }
   };
@@ -142,7 +145,7 @@ const Index = () => {
     
     setCurrentQuery(queryToUse);
     setActiveTab("search"); // Switch to search tab
-    toast.info(`Lancement de la veille: ${watch.name} (${targetLanguage.toUpperCase()})`);
+    toast.info(`${t('launchingWatch')}: ${watch.name} (${targetLanguage.toUpperCase()})`);
     
     // Trigger search with the watch parameters
     setTimeout(() => {
@@ -183,10 +186,10 @@ const Index = () => {
             <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
             <div>
               <h1 className="text-base sm:text-xl font-black text-primary text-glow tracking-wider uppercase">
-                AmbOS
+                {t('appName')}
               </h1>
               <p className="text-[8px] sm:text-[10px] text-muted-foreground uppercase tracking-widest">
-                OSINT Command Center v2.0
+                {t('appSubtitle')}
               </p>
             </div>
           </div>
@@ -204,14 +207,14 @@ const Index = () => {
                 className="text-xs"
               >
                 <RotateCcw className="w-3 h-3 mr-1" />
-                Reset
+                {t('reset')}
               </Button>
             </div>
-            <SettingsDialog selectedApi={selectedApi} onApiChange={setSelectedApi} />
+            <SettingsDialog selectedApi={selectedApi} onApiChange={setSelectedApi} language={language} />
             <LanguageSelector language={language} onLanguageChange={handleLanguageChange} />
             <div className="hidden sm:flex items-center gap-2 px-2 sm:px-3 py-1 bg-secondary/20 border border-secondary/40 rounded">
               <Activity className="w-3 h-3 text-secondary animate-pulse" />
-              <span className="text-[10px] sm:text-xs text-secondary font-bold uppercase">Standby</span>
+              <span className="text-[10px] sm:text-xs text-secondary font-bold uppercase">{t('status')}</span>
             </div>
           </div>
         </div>
@@ -226,12 +229,12 @@ const Index = () => {
             variant="outline"
             size="sm"
             onClick={handleResetLayout}
-            className="text-xs"
-          >
-            <RotateCcw className="w-3 h-3 mr-1" />
-            Reset
-          </Button>
-        </div>
+                className="text-xs"
+              >
+                <RotateCcw className="w-3 h-3 mr-1" />
+                {t('reset')}
+              </Button>
+            </div>
       </header>
 
       {/* Tabs: Search and Sector Watches */}
@@ -240,13 +243,13 @@ const Index = () => {
           <TabsList className="grid w-full grid-cols-2 mb-3">
             <TabsTrigger value="search" className="flex items-center gap-2">
               <Search className="w-4 h-4" />
-              <span className="hidden sm:inline">Recherche classique</span>
-              <span className="sm:hidden">Recherche</span>
+              <span className="hidden sm:inline">{t('classicSearch')}</span>
+              <span className="sm:hidden">{t('search')}</span>
             </TabsTrigger>
             <TabsTrigger value="watches" className="flex items-center gap-2">
               <BookmarkPlus className="w-4 h-4" />
-              <span className="hidden sm:inline">Veilles sectorielles</span>
-              <span className="sm:hidden">Veilles</span>
+              <span className="hidden sm:inline">{t('sectorWatches')}</span>
+              <span className="sm:hidden">{t('watches')}</span>
             </TabsTrigger>
           </TabsList>
           <TabsContent value="search" className="mt-0">
@@ -260,7 +263,7 @@ const Index = () => {
           </TabsContent>
           <TabsContent value="watches" className="mt-0">
             <div className="h-[400px] sm:h-[500px]">
-              <SectorWatchesModule onLaunchWatch={handleLaunchWatch} />
+              <SectorWatchesModule onLaunchWatch={handleLaunchWatch} language={language} />
             </div>
           </TabsContent>
         </Tabs>

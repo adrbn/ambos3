@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
-import { Search, Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from "@/hooks/useTranslation";
+import { Language } from "@/i18n/translations";
 
 interface SearchBarProps {
   onSearch: (query: string, articles: any[], analysis: any) => void;
-  language: string;
+  language: Language;
   currentQuery: string;
   searchTrigger: number;
   selectedApi: 'gnews' | 'newsapi';
@@ -17,6 +18,7 @@ interface SearchBarProps {
 const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi }: SearchBarProps) => {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { t } = useTranslation(language);
 
   // Sync query with currentQuery prop
   useEffect(() => {
@@ -97,7 +99,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
       <div className="relative">
         <Input
           type="text"
-          placeholder="Enter intelligence query (e.g., 'Ukraine war', 'climate change')..."
+          placeholder={t('searchPlaceholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -115,10 +117,10 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
         {isLoading ? (
           <>
             <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-            RECHERCHER
+            {t('searching')}
           </>
         ) : (
-          'RECHERCHER'
+          t('searchButton')
         )}
       </Button>
     </div>

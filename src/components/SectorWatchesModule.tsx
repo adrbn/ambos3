@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from "@/hooks/useTranslation";
+import { Language } from "@/i18n/translations";
 
 interface SectorWatch {
   id: string;
@@ -24,13 +26,15 @@ interface SectorWatch {
 
 interface SectorWatchesModuleProps {
   onLaunchWatch: (watch: SectorWatch) => void;
+  language: Language;
 }
 
-const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
+const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModuleProps) => {
   const [watches, setWatches] = useState<SectorWatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingWatch, setEditingWatch] = useState<SectorWatch | null>(null);
+  const { t } = useTranslation(language);
   const [formData, setFormData] = useState({
     name: "",
     sector: "",
@@ -66,7 +70,7 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
 
   const handleSaveWatch = async () => {
     if (!formData.name || !formData.sector || !formData.query) {
-      toast.error("Veuillez remplir tous les champs obligatoires");
+      toast.error(t('fillAllFields'));
       return;
     }
 
@@ -78,14 +82,14 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
           .eq('id', editingWatch.id);
 
         if (error) throw error;
-        toast.success("Veille mise à jour");
+        toast.success(t('watchUpdated'));
       } else {
         const { error } = await supabase
           .from('sector_watches')
           .insert([formData]);
 
         if (error) throw error;
-        toast.success("Veille créée");
+        toast.success(t('watchCreated'));
       }
 
       fetchWatches();
@@ -105,7 +109,7 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
         .eq('id', id);
 
       if (error) throw error;
-      toast.success("Veille supprimée");
+      toast.success(t('watchDeleted'));
       fetchWatches();
     } catch (error: any) {
       console.error('Error deleting watch:', error);
@@ -157,7 +161,7 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
           <BookmarkPlus className="w-4 h-4" />
-          VEILLES SECTORIELLES
+          {t('sectorWatches').toUpperCase()}
         </h2>
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
@@ -166,48 +170,48 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
           <DialogTrigger asChild>
             <Button variant="outline" size="sm" className="text-xs">
               <Plus className="w-3 h-3 mr-1" />
-              Nouvelle
+              {t('newWatch')}
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-primary/30 max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-primary">
-                {editingWatch ? "Modifier la veille" : "Nouvelle veille sectorielle"}
+                {editingWatch ? t('editWatch') : t('createWatch')}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Nom de la veille *</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t('watchName')} *</label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Ex: Défense France-Italie"
+                  placeholder={t('watchNamePlaceholder')}
                   className="bg-card/50 border-primary/30"
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Secteur *</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t('sector')} *</label>
                 <Input
                   value={formData.sector}
                   onChange={(e) => setFormData({ ...formData, sector: e.target.value })}
-                  placeholder="Ex: Défense, Économie, Culture..."
+                  placeholder={t('sectorPlaceholder')}
                   className="bg-card/50 border-primary/30"
                 />
               </div>
               
               <div>
-                <label className="text-xs text-muted-foreground mb-2 block">Requêtes de recherche *</label>
+                <label className="text-xs text-muted-foreground mb-2 block">{t('searchQuery')} *</label>
                 <Tabs defaultValue="fr" className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="fr">Français</TabsTrigger>
-                    <TabsTrigger value="en">English</TabsTrigger>
-                    <TabsTrigger value="it">Italiano</TabsTrigger>
+                    <TabsTrigger value="fr">{t('french')}</TabsTrigger>
+                    <TabsTrigger value="en">{t('english')}</TabsTrigger>
+                    <TabsTrigger value="it">{t('italian')}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="fr" className="mt-2">
                     <Textarea
                       value={formData.query}
                       onChange={(e) => setFormData({ ...formData, query: e.target.value })}
-                      placeholder="Ex: défense France Italie OR militaire France Italie"
+                      placeholder={t('queryPlaceholderFr')}
                       className="bg-card/50 border-primary/30"
                       rows={3}
                     />
@@ -216,7 +220,7 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
                     <Textarea
                       value={formData.query_en}
                       onChange={(e) => setFormData({ ...formData, query_en: e.target.value })}
-                      placeholder="Ex: defense France Italy OR military France Italy"
+                      placeholder={t('queryPlaceholderEn')}
                       className="bg-card/50 border-primary/30"
                       rows={3}
                     />
@@ -225,7 +229,7 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
                     <Textarea
                       value={formData.query_it}
                       onChange={(e) => setFormData({ ...formData, query_it: e.target.value })}
-                      placeholder="Ex: difesa Francia Italia OR militare Francia Italia"
+                      placeholder={t('queryPlaceholderIt')}
                       className="bg-card/50 border-primary/30"
                       rows={3}
                     />
@@ -234,31 +238,31 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
               </div>
 
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Description</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t('description')}</label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Description de la veille..."
+                  placeholder={t('descriptionPlaceholder')}
                   className="bg-card/50 border-primary/30"
                   rows={2}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Langue par défaut</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">{t('defaultLanguage')}</label>
                   <Select value={formData.language} onValueChange={(value) => setFormData({ ...formData, language: value })}>
                     <SelectTrigger className="bg-card/50 border-primary/30">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="fr">Français</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="it">Italiano</SelectItem>
+                      <SelectItem value="fr">{t('french')}</SelectItem>
+                      <SelectItem value="en">{t('english')}</SelectItem>
+                      <SelectItem value="it">{t('italian')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">API</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">{t('api')}</label>
                   <Select value={formData.api} onValueChange={(value) => setFormData({ ...formData, api: value })}>
                     <SelectTrigger className="bg-card/50 border-primary/30">
                       <SelectValue />
@@ -272,10 +276,10 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(false)}>
-                  Annuler
+                  {t('cancel')}
                 </Button>
                 <Button size="sm" onClick={handleSaveWatch} className="hud-button">
-                  {editingWatch ? "Mettre à jour" : "Créer"}
+                  {editingWatch ? t('update') : t('create')}
                 </Button>
               </div>
             </div>
@@ -286,13 +290,13 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
       <div className="flex-1 overflow-auto space-y-2">
         {isLoading ? (
           <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
-            Chargement...
+            {t('searching')}
           </div>
         ) : watches.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-muted-foreground text-sm">
             <BookmarkPlus className="w-8 h-8 mb-2 opacity-50" />
-            <p>Aucune veille sectorielle</p>
-            <p className="text-xs">Créez votre première veille</p>
+            <p>{t('noWatches')}</p>
+            <p className="text-xs">{t('createFirstWatch')}</p>
           </div>
         ) : (
           watches.map((watch) => (
@@ -336,7 +340,7 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
                     className="h-7 px-2 text-xs hud-button"
                   >
                     <Play className="w-3 h-3 mr-1" />
-                    Lancer
+                    {t('launch')}
                   </Button>
                   <Button
                     variant="ghost"
