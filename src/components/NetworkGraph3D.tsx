@@ -235,7 +235,7 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
       
       {/* Node Info Card */}
       {selectedNode && (
-        <Card className="absolute top-4 right-4 p-4 max-w-xs bg-card/95 border-primary/50 shadow-lg">
+        <Card className="absolute top-4 right-4 p-4 max-w-sm bg-card/95 border-primary/50 shadow-lg overflow-y-auto max-h-[80vh]">
           <div className="flex items-start justify-between mb-2">
             <h3 className="text-sm font-bold text-primary uppercase">{selectedNode.name}</h3>
             <button
@@ -245,21 +245,82 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="space-y-2 text-xs">
-            <div>
+          <div className="space-y-3 text-xs">
+            <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Type:</span>
-              <span className="ml-2 text-foreground capitalize">{selectedNode.type}</span>
+              <span className="ml-2 px-2 py-0.5 rounded" style={{ 
+                backgroundColor: `${getNodeColor(selectedNode.type)}20`,
+                color: getNodeColor(selectedNode.type),
+                border: `1px solid ${getNodeColor(selectedNode.type)}40`
+              }}>
+                {selectedNode.type}
+              </span>
             </div>
             <div>
               <span className="text-muted-foreground">Importance:</span>
-              <span className="ml-2 text-foreground">{selectedNode.importance}/10</span>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1 h-2 bg-card rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary transition-all" 
+                    style={{ width: `${selectedNode.importance * 10}%` }}
+                  />
+                </div>
+                <span className="text-foreground font-bold">{selectedNode.importance}/10</span>
+              </div>
             </div>
             {selectedNode.description && (
               <div>
                 <span className="text-muted-foreground">Description:</span>
-                <p className="mt-1 text-foreground/80">{selectedNode.description}</p>
+                <p className="mt-1 text-foreground/80 leading-relaxed">{selectedNode.description}</p>
               </div>
             )}
+            
+            {/* Connected Entities */}
+            {(() => {
+              const connections = graphData.links.filter(
+                link => link.source === selectedNode.id || link.target === selectedNode.id
+              );
+              
+              if (connections.length === 0) return null;
+              
+              return (
+                <div className="pt-2 border-t border-primary/20">
+                  <span className="text-muted-foreground font-semibold">
+                    Connexions ({connections.length})
+                  </span>
+                  <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
+                    {connections.map((link, idx) => {
+                      const isSource = link.source === selectedNode.id;
+                      const otherId = isSource ? link.target : link.source;
+                      const otherNode = graphData.nodes.find(n => n.id === otherId);
+                      
+                      if (!otherNode) return null;
+                      
+                      return (
+                        <div 
+                          key={idx}
+                          className="p-2 rounded bg-card/50 border border-primary/20 hover:border-primary/40 transition-all cursor-pointer"
+                          onClick={() => setSelectedNode(otherNode)}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <div className="font-semibold text-foreground">{otherNode.name}</div>
+                              <div className="text-[10px] text-muted-foreground capitalize">{otherNode.type}</div>
+                            </div>
+                            <div className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary">
+                              {link.strength}/10
+                            </div>
+                          </div>
+                          <div className="mt-1 text-[10px] italic text-primary/70">
+                            {isSource ? '→' : '←'} {link.relationship}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </Card>
       )}
