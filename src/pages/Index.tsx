@@ -121,8 +121,6 @@ const Index = () => {
         return <SummaryModule summary={analysis?.summary || ""} />;
       case 'predictions':
         return <PredictionsModule predictions={analysis?.predictions || []} sentiment={analysis?.sentiment || null} />;
-      case 'datafeed':
-        return <DataFeedModule articles={articles} />;
       default:
         return null;
     }
