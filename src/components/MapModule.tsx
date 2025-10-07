@@ -1,40 +1,97 @@
-import { useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { Icon } from 'leaflet';
+import { useEffect, useRef, useState } from 'react';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 interface MapModuleProps {
   articles: any[];
 }
 
-// Fix Leaflet default marker icon issue - create once outside component
-const customIcon = new Icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+// Fix Leaflet default marker icon
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
 });
 
 const MapModule = ({ articles }: MapModuleProps) => {
-  // Memoize locations to prevent re-creation
-  const locations = useMemo(() => {
-    return articles
+  const mapRef = useRef<L.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const markersRef = useRef<L.Marker[]>([]);
+  const [isMapReady, setIsMapReady] = useState(false);
+
+  // Initialize map once
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    try {
+      const map = L.map(mapContainerRef.current, {
+        center: [20, 0],
+        zoom: 2,
+        scrollWheelZoom: false,
+        zoomControl: true,
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+      }).addTo(map);
+
+      mapRef.current = map;
+      setIsMapReady(true);
+
+      // Cleanup
+      return () => {
+        map.remove();
+        mapRef.current = null;
+      };
+    } catch (error) {
+      console.error('Error initializing map:', error);
+    }
+  }, []);
+
+  // Update markers when articles change
+  useEffect(() => {
+    if (!mapRef.current || !isMapReady) return;
+
+    // Clear existing markers
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
+
+    if (articles.length === 0) return;
+
+    // Add new markers
+    const locations = articles
       .filter(article => article.source?.name)
       .slice(0, 10)
       .map((article, index) => ({
-        id: `marker-${index}`,
         title: article.title,
         source: article.source.name,
-        lat: 51.505 + (Math.random() - 0.5) * 20,
-        lng: -0.09 + (Math.random() - 0.5) * 40,
+        lat: 20 + (Math.random() - 0.5) * 40,
+        lng: 0 + (Math.random() - 0.5) * 80,
         url: article.url
       }));
-  }, [articles]);
 
-  // If no articles, show empty state
+    locations.forEach((location) => {
+      try {
+        const marker = L.marker([location.lat, location.lng])
+          .bindPopup(`
+            <div style="font-size: 12px; max-width: 200px;">
+              <h3 style="font-weight: bold; color: #00D9FF; margin-bottom: 4px;">${location.source}</h3>
+              <p style="margin-bottom: 8px;">${location.title}</p>
+              <a href="${location.url}" target="_blank" rel="noopener noreferrer" style="color: #00D9FF; text-decoration: underline;">
+                Read Article
+              </a>
+            </div>
+          `)
+          .addTo(mapRef.current!);
+        
+        markersRef.current.push(marker);
+      } catch (error) {
+        console.error('Error adding marker:', error);
+      }
+    });
+  }, [articles, isMapReady]);
+
   if (articles.length === 0) {
     return (
       <div className="hud-panel h-full">
@@ -53,43 +110,13 @@ const MapModule = ({ articles }: MapModuleProps) => {
       <h2 className="text-xs font-bold text-primary mb-2 uppercase tracking-wider">
         CARTE GÉOGRAPHIQUE
       </h2>
-      <div className="h-[calc(100%-2rem)] rounded border border-primary/20 overflow-hidden">
-        <MapContainer
-          key="main-map"
-          center={[51.505, -0.09]}
-          zoom={2}
-          style={{ height: '100%', width: '100%' }}
-          className="z-0"
-          scrollWheelZoom={false}
-        >
-          <TileLayer
-            attribution='&copy; OpenStreetMap'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          {locations.map((location) => (
-            <Marker
-              key={location.id}
-              position={[location.lat, location.lng]}
-              icon={customIcon}
-            >
-              <Popup>
-                <div className="text-xs">
-                  <h3 className="font-bold text-primary mb-1">{location.source}</h3>
-                  <p className="text-foreground mb-2">{location.title}</p>
-                  <a 
-                    href={location.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary hover:text-secondary underline"
-                  >
-                    Read Article
-                  </a>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
-      </div>
+      <div 
+        ref={mapContainerRef}
+        className="h-[calc(100%-2rem)] rounded border border-primary/20 overflow-hidden bg-black"
+        style={{ 
+          filter: 'brightness(0.7) contrast(1.2) saturate(0.8) hue-rotate(180deg) invert(1)'
+        }}
+      />
     </div>
   );
 };
