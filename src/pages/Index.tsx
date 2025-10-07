@@ -201,7 +201,7 @@ const Index = () => {
             items={layout.moduleOrder}
             strategy={rectSortingStrategy}
           >
-            <div className="flex flex-col lg:flex-row lg:flex-wrap gap-3 lg:gap-2">
+            <div className="grid grid-rows-2 gap-2 lg:flex lg:flex-row lg:flex-wrap lg:gap-2">
               {layout.moduleOrder.map((moduleId) => {
                 const savedSize = moduleSizes[moduleId];
                 const hasContent = articles.length > 0;
