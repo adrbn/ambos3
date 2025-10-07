@@ -181,7 +181,7 @@ const Index = () => {
       </div>
 
       {/* Main Grid - Resizable & Draggable Layout */}
-      <main className="flex-1 px-2 sm:px-4 pb-2 sm:pb-3 overflow-hidden">
+      <main className="flex-1 px-2 sm:px-4 pb-2 sm:pb-3 overflow-hidden flex flex-col">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -191,7 +191,7 @@ const Index = () => {
             items={layout.moduleOrder}
             strategy={rectSortingStrategy}
           >
-            <div className="h-full grid grid-cols-1 lg:grid-cols-3 gap-2 auto-rows-fr">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-2 grid-rows-2">
               {layout.moduleOrder.map((moduleId) => {
                 const hasContent = articles.length > 0;
                 
