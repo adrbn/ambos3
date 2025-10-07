@@ -7,41 +7,41 @@
 /* AmbOS Intelligence HUD Theme */
 @layer base {
   :root {
-    /* Core Colors - Cyan Primary, Amber Secondary, Dark Navy Base */
-    --background: 220 65% 8%;        /* #0A0E27 */
-    --foreground: 180 100% 85%;      /* Cyan-tinted white */
+    /* Core Colors - Pure Black Background, Bright Cyan */
+    --background: 0 0% 3%;           /* Almost pure black */
+    --foreground: 180 100% 90%;      /* Bright cyan-tinted white */
     
-    --card: 220 60% 10%;
-    --card-foreground: 180 100% 85%;
+    --card: 0 0% 5%;                 /* Very dark card */
+    --card-foreground: 180 100% 90%;
     
-    --popover: 220 65% 8%;
-    --popover-foreground: 180 100% 85%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 180 100% 90%;
     
-    --primary: 188 100% 56%;         /* #00D9FF - Cyan */
-    --primary-foreground: 220 65% 8%;
+    --primary: 188 100% 56%;         /* #00D9FF - Bright Cyan */
+    --primary-foreground: 0 0% 3%;
     
-    --secondary: 41 100% 56%;        /* #FFB800 - Amber */
-    --secondary-foreground: 220 65% 8%;
+    --secondary: 41 100% 60%;        /* #FFB800 - Bright Amber */
+    --secondary-foreground: 0 0% 3%;
     
-    --muted: 220 50% 15%;
-    --muted-foreground: 180 30% 65%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 180 20% 50%;
     
     --accent: 188 100% 56%;
-    --accent-foreground: 220 65% 8%;
+    --accent-foreground: 0 0% 3%;
     
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
     
-    --border: 188 80% 30%;
-    --input: 220 50% 15%;
+    --border: 188 80% 25%;
+    --input: 0 0% 8%;
     --ring: 188 100% 56%;
     
-    --radius: 0.3rem;
+    --radius: 0.2rem;
     
     /* HUD Specific Colors */
     --hud-glow: 188 100% 56%;        /* Cyan glow */
-    --hud-warning: 41 100% 56%;      /* Amber alerts */
-    --hud-grid: 188 80% 20%;         /* Grid lines */
+    --hud-warning: 41 100% 60%;      /* Amber alerts */
+    --hud-grid: 188 60% 15%;         /* Subtle grid lines */
     --hud-scanline: 188 100% 56%;    /* Scanline overlay */
   }
 }
@@ -55,9 +55,9 @@
     @apply bg-background text-foreground;
     font-family: 'Roboto Mono', monospace;
     background-image: 
-      linear-gradient(rgba(0, 217, 255, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 217, 255, 0.03) 1px, transparent 1px);
-    background-size: 50px 50px;
+      linear-gradient(rgba(0, 217, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 217, 255, 0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
     position: relative;
     overflow-x: hidden;
   }
@@ -116,10 +116,10 @@
 @layer components {
   /* HUD Panel */
   .hud-panel {
-    @apply bg-card border border-primary/30 rounded-sm p-4 backdrop-blur-sm;
+    @apply bg-card/80 border border-primary/30 rounded-sm p-3 backdrop-blur-sm;
     box-shadow: 
-      0 0 20px hsl(var(--hud-glow) / 0.2),
-      inset 0 0 20px hsl(var(--hud-glow) / 0.05);
+      0 0 15px hsl(var(--hud-glow) / 0.15),
+      inset 0 0 15px hsl(var(--hud-glow) / 0.03);
   }
   
   /* HUD Button */
@@ -159,8 +159,8 @@
 
 /* Leaflet Map Dark Theme */
 .leaflet-container {
-  @apply bg-background border border-primary/30;
-  filter: brightness(0.9) contrast(1.1) hue-rotate(180deg) invert(1);
+  @apply bg-black border border-primary/20;
+  filter: brightness(0.7) contrast(1.2) saturate(0.8) hue-rotate(180deg) invert(1);
 }
 
 .leaflet-popup-content-wrapper {
@@ -169,4 +169,12 @@
 
 .leaflet-popup-tip {
   @apply bg-card;
+}
+
+.leaflet-control-zoom a {
+  @apply bg-card/90 border-primary/30 text-primary;
+}
+
+.leaflet-control-zoom a:hover {
+  @apply bg-primary/20;
 }

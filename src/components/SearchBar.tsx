@@ -60,7 +60,7 @@ const SearchBar = ({ onSearch, language }: SearchBarProps) => {
   };
 
   return (
-    <div className="w-full max-w-3xl">
+    <div className="w-full">
       <div className="relative">
         <Input
           type="text"
@@ -69,21 +69,21 @@ const SearchBar = ({ onSearch, language }: SearchBarProps) => {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           disabled={isLoading}
-          className="w-full h-12 pl-12 pr-32 bg-card/50 border-primary/30 text-foreground placeholder:text-muted-foreground focus:border-primary focus:border-glow font-mono"
+          className="w-full h-10 pl-10 pr-36 bg-card/50 border-primary/30 text-foreground placeholder:text-muted-foreground focus:border-primary focus:border-glow font-mono text-sm"
         />
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/70" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
         <Button
           onClick={handleSearch}
           disabled={isLoading}
-          className="absolute right-2 top-1/2 -translate-y-1/2 hud-button h-8"
+          className="absolute right-2 top-1/2 -translate-y-1/2 hud-button h-7 text-xs px-4"
         >
           {isLoading ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ANALYZING
+              <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+              RECHERCHER
             </>
           ) : (
-            'SEARCH'
+            'RECHERCHER'
           )}
         </Button>
       </div>

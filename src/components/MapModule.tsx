@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -6,7 +7,7 @@ interface MapModuleProps {
   articles: any[];
 }
 
-// Fix Leaflet default marker icon issue
+// Fix Leaflet default marker icon issue - create once outside component
 const customIcon = new Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -18,34 +19,51 @@ const customIcon = new Icon({
 });
 
 const MapModule = ({ articles }: MapModuleProps) => {
-  // Extract locations with coordinates (if available in articles)
-  const locations = articles
-    .filter(article => article.source?.name)
-    .slice(0, 10) // Limit to 10 markers
-    .map((article, index) => ({
-      id: index,
-      title: article.title,
-      source: article.source.name,
-      lat: 51.505 + (Math.random() - 0.5) * 20, // Random coordinates for demo
-      lng: -0.09 + (Math.random() - 0.5) * 40,
-      url: article.url
-    }));
+  // Memoize locations to prevent re-creation
+  const locations = useMemo(() => {
+    return articles
+      .filter(article => article.source?.name)
+      .slice(0, 10)
+      .map((article, index) => ({
+        id: `marker-${index}`,
+        title: article.title,
+        source: article.source.name,
+        lat: 51.505 + (Math.random() - 0.5) * 20,
+        lng: -0.09 + (Math.random() - 0.5) * 40,
+        url: article.url
+      }));
+  }, [articles]);
+
+  // If no articles, show empty state
+  if (articles.length === 0) {
+    return (
+      <div className="hud-panel h-full">
+        <h2 className="text-xs font-bold text-primary mb-2 uppercase tracking-wider">
+          CARTE GÉOGRAPHIQUE
+        </h2>
+        <div className="h-[calc(100%-2rem)] rounded border border-primary/20 overflow-hidden flex items-center justify-center bg-card/20">
+          <p className="text-xs text-muted-foreground">No data available</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="hud-panel h-full">
-      <h2 className="text-sm font-bold text-primary mb-3 text-glow flex items-center gap-2">
-        <span className="alert-indicator"></span>
-        GEOLOCATION MAP
+      <h2 className="text-xs font-bold text-primary mb-2 uppercase tracking-wider">
+        CARTE GÉOGRAPHIQUE
       </h2>
-      <div className="h-[calc(100%-2rem)] rounded border border-primary/30 overflow-hidden">
+      <div className="h-[calc(100%-2rem)] rounded border border-primary/20 overflow-hidden">
         <MapContainer
+          key="main-map"
           center={[51.505, -0.09]}
           zoom={2}
           style={{ height: '100%', width: '100%' }}
           className="z-0"
+          scrollWheelZoom={false}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            attribution='&copy; OpenStreetMap'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           {locations.map((location) => (

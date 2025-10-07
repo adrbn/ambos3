@@ -28,12 +28,12 @@ const DataFeedModule = ({ articles }: DataFeedModuleProps) => {
 
   return (
     <div className="hud-panel h-full flex flex-col">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-bold text-primary text-glow flex items-center gap-2">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
           <span className="alert-indicator"></span>
-          LIVE INTELLIGENCE FEED
+          FLUX DE DONNÉES
         </h2>
-        <Filter className="w-4 h-4 text-primary/70" />
+        <Filter className="w-3 h-3 text-primary/70" />
       </div>
 
       <div className="flex gap-2 mb-3">

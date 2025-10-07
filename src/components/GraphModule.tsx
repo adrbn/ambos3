@@ -32,9 +32,9 @@ const GraphModule = ({ entities }: GraphModuleProps) => {
 
   return (
     <div className="hud-panel h-full overflow-auto">
-      <h2 className="text-sm font-bold text-primary mb-3 text-glow flex items-center gap-2">
+      <h2 className="text-xs font-bold text-primary mb-2 uppercase tracking-wider flex items-center gap-2">
         <span className="alert-indicator"></span>
-        ENTITY NETWORK
+        GRAPHE RELATIONNEL
       </h2>
       
       {entities && entities.length > 0 ? (

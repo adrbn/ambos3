@@ -23,9 +23,9 @@ const TimelineModule = ({ articles }: TimelineModuleProps) => {
 
   return (
     <div className="hud-panel h-full overflow-auto">
-      <h2 className="text-sm font-bold text-primary mb-3 text-glow flex items-center gap-2">
+      <h2 className="text-xs font-bold text-primary mb-2 uppercase tracking-wider flex items-center gap-2">
         <span className="alert-indicator"></span>
-        INTELLIGENCE TIMELINE
+        TIMELINE TEMPORELLE
       </h2>
 
       {articles.length > 0 ? (
