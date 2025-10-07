@@ -21,7 +21,7 @@ const MapModule = ({ articles }: MapModuleProps) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const [isMapReady, setIsMapReady] = useState(false);
-  const [isEnabled, setIsEnabled] = useState(false);
+  const [isEnabled, setIsEnabled] = useState(true);
 
   // Initialize map once when enabled
   useEffect(() => {
