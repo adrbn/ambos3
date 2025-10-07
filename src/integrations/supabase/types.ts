@@ -51,6 +51,8 @@ export type Database = {
           language: string
           name: string
           query: string
+          query_en: string | null
+          query_it: string | null
           sector: string
           updated_at: string
         }
@@ -63,6 +65,8 @@ export type Database = {
           language?: string
           name: string
           query: string
+          query_en?: string | null
+          query_it?: string | null
           sector: string
           updated_at?: string
         }
@@ -75,6 +79,8 @@ export type Database = {
           language?: string
           name?: string
           query?: string
+          query_en?: string | null
+          query_it?: string | null
           sector?: string
           updated_at?: string
         }

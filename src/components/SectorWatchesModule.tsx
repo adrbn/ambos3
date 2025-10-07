@@ -13,6 +13,8 @@ interface SectorWatch {
   name: string;
   sector: string;
   query: string;
+  query_en: string | null;
+  query_it: string | null;
   language: string;
   api: string;
   description: string | null;
@@ -32,8 +34,10 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
     name: "",
     sector: "",
     query: "",
+    query_en: "",
+    query_it: "",
     language: "fr",
-    api: "gnews",
+    api: "newsapi",
     description: "",
     color: "#0ea5e9"
   });
@@ -114,6 +118,8 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
       name: watch.name,
       sector: watch.sector,
       query: watch.query,
+      query_en: watch.query_en || "",
+      query_it: watch.query_it || "",
       language: watch.language,
       api: watch.api,
       description: watch.description || "",
@@ -128,8 +134,10 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
       name: "",
       sector: "",
       query: "",
+      query_en: "",
+      query_it: "",
       language: "fr",
-      api: "gnews",
+      api: "newsapi",
       description: "",
       color: "#0ea5e9"
     });
@@ -186,13 +194,33 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Requête de recherche *</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Requête FR *</label>
                 <Textarea
                   value={formData.query}
                   onChange={(e) => setFormData({ ...formData, query: e.target.value })}
                   placeholder="Ex: défense France Italie OR militaire France Italie"
                   className="bg-card/50 border-primary/30"
-                  rows={3}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Requête EN</label>
+                <Textarea
+                  value={formData.query_en}
+                  onChange={(e) => setFormData({ ...formData, query_en: e.target.value })}
+                  placeholder="Ex: defense France Italy OR military France Italy"
+                  className="bg-card/50 border-primary/30"
+                  rows={2}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Requête IT</label>
+                <Textarea
+                  value={formData.query_it}
+                  onChange={(e) => setFormData({ ...formData, query_it: e.target.value })}
+                  placeholder="Ex: difesa Francia Italia OR militare Francia Italia"
+                  className="bg-card/50 border-primary/30"
+                  rows={2}
                 />
               </div>
               <div>

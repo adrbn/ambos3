@@ -110,10 +110,20 @@ const Index = () => {
   };
 
   const handleLaunchWatch = (watch: any) => {
-    setLanguage(watch.language);
+    const targetLanguage = language; // Use current language selection
     setSelectedApi(watch.api);
-    setCurrentQuery(watch.query);
-    toast.info(`Lancement de la veille: ${watch.name}`);
+    
+    // Select the appropriate query based on the current language
+    let queryToUse = watch.query; // Default to FR
+    if (targetLanguage === 'en' && watch.query_en) {
+      queryToUse = watch.query_en;
+    } else if (targetLanguage === 'it' && watch.query_it) {
+      queryToUse = watch.query_it;
+    }
+    
+    setCurrentQuery(queryToUse);
+    toast.info(`Lancement de la veille: ${watch.name} (${targetLanguage.toUpperCase()})`);
+    
     // Trigger search with the watch parameters
     setTimeout(() => {
       const searchButton = document.querySelector('[data-search-button]') as HTMLButtonElement;
