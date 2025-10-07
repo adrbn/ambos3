@@ -34,6 +34,7 @@ const MapModule = ({ articles }: MapModuleProps) => {
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap',
+        className: 'map-tiles-dark',
       }).addTo(map);
 
       mapRef.current = map;
@@ -112,9 +113,9 @@ const MapModule = ({ articles }: MapModuleProps) => {
       </h2>
       <div 
         ref={mapContainerRef}
-        className="h-[calc(100%-2rem)] rounded border border-primary/20 overflow-hidden bg-black"
+        className="h-[calc(100%-2rem)] rounded border border-primary/20 overflow-hidden"
         style={{ 
-          filter: 'brightness(0.7) contrast(1.2) saturate(0.8) hue-rotate(180deg) invert(1)'
+          backgroundColor: '#000'
         }}
       />
     </div>

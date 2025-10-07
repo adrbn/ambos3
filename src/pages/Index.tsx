@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Shield, Activity } from "lucide-react";
 import SearchBar from "@/components/SearchBar";
 import MapModule from "@/components/MapModule";
@@ -8,17 +8,28 @@ import TimelineModule from "@/components/TimelineModule";
 import DataFeedModule from "@/components/DataFeedModule";
 import StatusBar from "@/components/StatusBar";
 import LanguageSelector from "@/components/LanguageSelector";
+import { toast } from "sonner";
 
 const Index = () => {
   const [currentQuery, setCurrentQuery] = useState<string>("");
   const [articles, setArticles] = useState<any[]>([]);
   const [analysis, setAnalysis] = useState<any>(null);
   const [language, setLanguage] = useState<string>("en");
+  const [searchTrigger, setSearchTrigger] = useState(0);
 
   const handleSearch = (query: string, fetchedArticles: any[], analysisData: any) => {
     setCurrentQuery(query);
     setArticles(fetchedArticles);
     setAnalysis(analysisData);
+  };
+
+  const handleLanguageChange = (newLang: string) => {
+    setLanguage(newLang);
+    if (currentQuery) {
+      toast.info(`Language changed to ${newLang.toUpperCase()}. Searching again...`);
+      // Trigger a new search with the same query but different language
+      setSearchTrigger(prev => prev + 1);
+    }
   };
 
   return (
@@ -38,7 +49,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <LanguageSelector language={language} onLanguageChange={setLanguage} />
+            <LanguageSelector language={language} onLanguageChange={handleLanguageChange} />
             <div className="flex items-center gap-2 px-3 py-1 bg-secondary/20 border border-secondary/40 rounded">
               <Activity className="w-3 h-3 text-secondary animate-pulse" />
               <span className="text-xs text-secondary font-bold uppercase">Standby</span>
@@ -49,7 +60,7 @@ const Index = () => {
 
       {/* Search Bar */}
       <div className="px-4 py-3">
-        <SearchBar onSearch={handleSearch} language={language} />
+        <SearchBar onSearch={handleSearch} language={language} currentQuery={currentQuery} searchTrigger={searchTrigger} />
       </div>
 
       {/* Main Grid - More compact layout like reference */}

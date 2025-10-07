@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,14 +8,25 @@ import { supabase } from "@/integrations/supabase/client";
 interface SearchBarProps {
   onSearch: (query: string, articles: any[], analysis: any) => void;
   language: string;
+  currentQuery: string;
+  searchTrigger: number;
 }
 
-const SearchBar = ({ onSearch, language }: SearchBarProps) => {
+const SearchBar = ({ onSearch, language, currentQuery, searchTrigger }: SearchBarProps) => {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSearch = async () => {
-    if (!query.trim()) {
+  // Auto-search when language changes and we have a query
+  useEffect(() => {
+    if (searchTrigger > 0 && currentQuery) {
+      setQuery(currentQuery);
+      handleSearch(currentQuery);
+    }
+  }, [searchTrigger]);
+
+  const handleSearch = async (searchQuery?: string) => {
+    const queryToUse = searchQuery || query;
+    if (!queryToUse.trim()) {
       toast.error("Please enter a search query");
       return;
     }
@@ -25,7 +36,7 @@ const SearchBar = ({ onSearch, language }: SearchBarProps) => {
     try {
       // Fetch news articles
       const { data: newsData, error: newsError } = await supabase.functions.invoke('fetch-news', {
-        body: { query, language }
+        body: { query: queryToUse, language }
       });
 
       if (newsError) throw newsError;
@@ -45,16 +56,16 @@ const SearchBar = ({ onSearch, language }: SearchBarProps) => {
 
       // Analyze articles with AI
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-news', {
-        body: { articles: newsData.articles, query, language }
+        body: { articles: newsData.articles, query: queryToUse, language }
       });
 
       if (analysisError) {
         console.error('Analysis error:', analysisError);
         toast.error("Failed to analyze articles");
-        onSearch(query, newsData.articles, null);
+        onSearch(queryToUse, newsData.articles, null);
       } else {
         toast.success("AI analysis complete");
-        onSearch(query, newsData.articles, analysisData);
+        onSearch(queryToUse, newsData.articles, analysisData);
       }
     } catch (error: any) {
       console.error('Search error:', error);
@@ -78,7 +89,7 @@ const SearchBar = ({ onSearch, language }: SearchBarProps) => {
         />
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
         <Button
-          onClick={handleSearch}
+          onClick={() => handleSearch()}
           disabled={isLoading}
           className="absolute right-2 top-1/2 -translate-y-1/2 hud-button h-7 text-xs px-4"
         >

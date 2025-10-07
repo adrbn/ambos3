@@ -159,22 +159,37 @@
 
 /* Leaflet Map Dark Theme */
 .leaflet-container {
-  @apply bg-black border border-primary/20;
-  filter: brightness(0.7) contrast(1.2) saturate(0.8) hue-rotate(180deg) invert(1);
+  @apply bg-black;
+  background: #000 !important;
+}
+
+.map-tiles-dark {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
 }
 
 .leaflet-popup-content-wrapper {
   @apply bg-card border border-primary/50 text-foreground;
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
 }
 
 .leaflet-popup-tip {
   @apply bg-card;
+  background: hsl(var(--card)) !important;
 }
 
 .leaflet-control-zoom a {
   @apply bg-card/90 border-primary/30 text-primary;
+  background: hsl(var(--card) / 0.9) !important;
+  color: hsl(var(--primary)) !important;
+  border: 1px solid hsl(var(--primary) / 0.3) !important;
 }
 
 .leaflet-control-zoom a:hover {
   @apply bg-primary/20;
+  background: hsl(var(--primary) / 0.2) !important;
+}
+
+.leaflet-popup-close-button {
+  color: hsl(var(--primary)) !important;
 }
