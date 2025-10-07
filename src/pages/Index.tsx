@@ -4,7 +4,8 @@ import SearchBar from "@/components/SearchBar";
 import MapModule from "@/components/MapModule";
 import GraphModule from "@/components/GraphModule";
 import NetworkGraph3D from "@/components/NetworkGraph3D";
-import PredictiveAnalysis from "@/components/PredictiveAnalysis";
+import SummaryModule from "@/components/SummaryModule";
+import PredictionsModule from "@/components/PredictionsModule";
 import TimelineModule from "@/components/TimelineModule";
 import DataFeedModule from "@/components/DataFeedModule";
 import StatusBar from "@/components/StatusBar";
@@ -112,14 +113,16 @@ const Index = () => {
               <TimelineModule articles={articles} />
             </div>
           )}
-          <div className={isMapCollapsed ? 'h-[500px]' : 'h-[400px]'}>
-            <PredictiveAnalysis
+          <div className={isMapCollapsed ? 'h-[240px]' : 'h-[340px]'}>
+            <SummaryModule summary={analysis?.summary || ""} />
+          </div>
+          <div className={isMapCollapsed ? 'h-[280px]' : 'h-[220px]'}>
+            <PredictionsModule
               predictions={analysis?.predictions || []}
               sentiment={analysis?.sentiment || null}
-              summary={analysis?.summary || ""}
             />
           </div>
-          <div className={isMapCollapsed ? 'h-[240px]' : 'h-[340px]'}>
+          <div className={isMapCollapsed ? 'h-[220px]' : 'h-[220px]'}>
             <DataFeedModule articles={articles} />
           </div>
         </div>

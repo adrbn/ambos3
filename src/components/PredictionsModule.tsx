@@ -11,13 +11,12 @@ interface Sentiment {
   experts: string;
 }
 
-interface PredictiveAnalysisProps {
+interface PredictionsModuleProps {
   predictions: Prediction[];
   sentiment: Sentiment | null;
-  summary: string;
 }
 
-const PredictiveAnalysis = ({ predictions, sentiment, summary }: PredictiveAnalysisProps) => {
+const PredictionsModule = ({ predictions, sentiment }: PredictionsModuleProps) => {
   const getProbabilityColor = (prob: string) => {
     switch (prob) {
       case 'high': return 'text-destructive';
@@ -40,19 +39,11 @@ const PredictiveAnalysis = ({ predictions, sentiment, summary }: PredictiveAnaly
     <div className="hud-panel h-full overflow-auto">
       <h2 className="text-xs font-bold text-primary mb-2 uppercase tracking-wider flex items-center gap-2">
         <span className="alert-indicator"></span>
-        ANALYSE PRÉDICTIVE
+        PRÉDICTIONS
       </h2>
-
-      {summary && (
-        <div className="mb-4 p-3 bg-card/30 border border-primary/20 rounded">
-          <h3 className="text-xs font-bold text-secondary mb-2 uppercase">Summary</h3>
-          <p className="text-xs text-foreground leading-relaxed">{summary}</p>
-        </div>
-      )}
 
       {predictions && predictions.length > 0 && (
         <div className="mb-4">
-          <h3 className="text-xs font-bold text-secondary mb-2 uppercase">Predictions</h3>
           <div className="space-y-2">
             {predictions.map((pred, index) => (
               <div
@@ -95,13 +86,13 @@ const PredictiveAnalysis = ({ predictions, sentiment, summary }: PredictiveAnaly
         </div>
       )}
 
-      {!predictions && !sentiment && !summary && (
+      {!predictions && !sentiment && (
         <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
-          No analysis available yet
+          Aucune prédiction disponible
         </div>
       )}
     </div>
   );
 };
 
-export default PredictiveAnalysis;
+export default PredictionsModule;
