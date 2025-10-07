@@ -41,11 +41,20 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger }: SearchBa
 
       if (newsError) throw newsError;
       
+      // Check for API errors in the response
+      if (newsData?.error) {
+        toast.error(newsData.error, { 
+          duration: newsData.isRateLimitError ? 10000 : 6000 
+        });
+        console.error('API error:', newsData);
+        setIsLoading(false);
+        return;
+      }
+      
       if (!newsData?.articles || newsData.articles.length === 0) {
-        const errorMsg = newsData?.error || 
-          (newsData?.totalArticles > 0 
-            ? "Articles found but not available (30+ days old). Try recent news topics!" 
-            : "No articles found. Try different keywords.");
+        const errorMsg = newsData?.totalArticles > 0 
+          ? "Articles found but not available (30+ days old). Try recent news topics!" 
+          : "No articles found. Try different keywords.";
         toast.error(errorMsg, { duration: 6000 });
         console.error('No articles returned:', newsData);
         setIsLoading(false);

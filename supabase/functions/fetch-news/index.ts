@@ -29,6 +29,19 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('GNews API error:', response.status, errorText);
+      
+      // Handle rate limiting specifically
+      if (response.status === 403 && errorText.includes('request limit')) {
+        return new Response(JSON.stringify({ 
+          articles: [],
+          error: 'API rate limit reached. The news API resets daily at midnight UTC. Please try again later or upgrade your API plan.',
+          isRateLimitError: true
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 // Return 200 so the client can read the error details
+        });
+      }
+      
       throw new Error(`GNews API error: ${response.status} - ${errorText}`);
     }
 
