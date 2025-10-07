@@ -41,7 +41,7 @@ const Index = () => {
             <Shield className="w-6 h-6 text-primary" />
             <div>
               <h1 className="text-xl font-black text-primary text-glow tracking-wider uppercase">
-                News Intelligence
+                AmbOS
               </h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
                 OSINT Command Center v2.0
