@@ -163,13 +163,13 @@ const Index = () => {
   const getModuleComponent = (moduleId: ModuleId) => {
     switch (moduleId) {
       case 'map':
-        return <MapModule articles={articles} />;
+        return <MapModule articles={articles} language={language} />;
       case 'timeline':
-        return <TimelineModule articles={articles} />;
+        return <TimelineModule articles={articles} language={language} />;
       case 'network-graph':
         return <NetworkGraph3D articles={articles} />;
       case 'entities':
-        return <GraphModule entities={analysis?.entities || []} />;
+        return <GraphModule entities={analysis?.entities || []} language={language} />;
       case 'summary':
         return (
           <SummaryModule 
@@ -181,9 +181,9 @@ const Index = () => {
           />
         );
       case 'predictions':
-        return <PredictionsModule predictions={analysis?.predictions || []} sentiment={analysis?.sentiment || null} />;
+        return <PredictionsModule predictions={analysis?.predictions || []} sentiment={analysis?.sentiment || null} language={language} />;
       case 'datafeed':
-        return <DataFeedModule articles={articles} />;
+        return <DataFeedModule articles={articles} language={language} />;
       default:
         return null;
     }

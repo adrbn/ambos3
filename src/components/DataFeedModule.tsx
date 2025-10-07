@@ -1,18 +1,22 @@
 import { useState } from "react";
 import { Filter, ExternalLink, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/hooks/useTranslation";
+import { Language } from "@/i18n/translations";
 
 interface DataFeedModuleProps {
   articles: any[];
+  language: Language;
 }
 
-const DataFeedModule = ({ articles }: DataFeedModuleProps) => {
+const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
   const [filter, setFilter] = useState<string>('all');
+  const { t } = useTranslation(language);
 
   const filters = [
-    { id: 'all', label: 'ALL FEEDS' },
-    { id: 'recent', label: 'RECENT' },
-    { id: 'trending', label: 'TRENDING' },
+    { id: 'all', label: t('allFeeds') },
+    { id: 'recent', label: t('recent') },
+    { id: 'trending', label: t('trending') },
   ];
 
   const getFilteredArticles = () => {
@@ -31,7 +35,7 @@ const DataFeedModule = ({ articles }: DataFeedModuleProps) => {
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
           <span className="alert-indicator"></span>
-          FLUX DE DONNÉES
+          {t('dataFeed').toUpperCase()}
         </h2>
         <Filter className="w-3 h-3 text-primary/70" />
       </div>
@@ -95,7 +99,7 @@ const DataFeedModule = ({ articles }: DataFeedModuleProps) => {
           ))
         ) : (
           <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
-            No feed data available
+            {t('noFeedData')}
           </div>
         )}
       </div>

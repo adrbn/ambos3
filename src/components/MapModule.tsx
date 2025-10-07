@@ -3,9 +3,12 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { useTranslation } from "@/hooks/useTranslation";
+import { Language } from "@/i18n/translations";
 
 interface MapModuleProps {
   articles: any[];
+  language: Language;
 }
 
 // Fix Leaflet default marker icon - Custom cyber style
@@ -46,7 +49,8 @@ const customIcon = L.divIcon({
   popupAnchor: [0, -30]
 });
 
-const MapModule = ({ articles }: MapModuleProps) => {
+const MapModule = ({ articles, language }: MapModuleProps) => {
+  const { t } = useTranslation(language);
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.Marker[]>([]);
@@ -188,7 +192,7 @@ const MapModule = ({ articles }: MapModuleProps) => {
                     display: inline-block;
                     transition: all 0.2s;
                   " onmouseover="this.style.borderColor='#00D9FF'; this.style.backgroundColor='rgba(0, 217, 255, 0.1)'" onmouseout="this.style.borderColor='rgba(0, 217, 255, 0.3)'; this.style.backgroundColor='transparent'">
-                    Lire l'article →
+                    ${t('readArticle')} →
                   </a>
                 </div>
               `)
@@ -215,11 +219,11 @@ const MapModule = ({ articles }: MapModuleProps) => {
       <div className="hud-panel p-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold text-primary uppercase tracking-wider">
-            CARTE GÉOGRAPHIQUE
+            {t('map').toUpperCase()}
           </h2>
           <div className="flex items-center gap-2">
             <Label htmlFor="map-toggle" className="text-[10px] text-muted-foreground cursor-pointer">
-              OFF
+              {t('off').toUpperCase()}
             </Label>
             <Switch 
               id="map-toggle"
@@ -237,11 +241,11 @@ const MapModule = ({ articles }: MapModuleProps) => {
     <div className="hud-panel h-full flex flex-col">
       <div className="flex items-center justify-between mb-2 flex-shrink-0">
         <h2 className="text-xs font-bold text-primary uppercase tracking-wider">
-          CARTE GÉOGRAPHIQUE
+          {t('map').toUpperCase()}
         </h2>
         <div className="flex items-center gap-2">
           <Label htmlFor="map-toggle" className="text-[10px] text-muted-foreground cursor-pointer">
-            ON
+            {t('on').toUpperCase()}
           </Label>
           <Switch 
             id="map-toggle"
@@ -254,7 +258,7 @@ const MapModule = ({ articles }: MapModuleProps) => {
       
       {articles.length === 0 ? (
         <div className="flex-1 rounded border border-primary/20 overflow-hidden flex items-center justify-center bg-card/20">
-          <p className="text-xs text-muted-foreground">Aucune donnée disponible</p>
+          <p className="text-xs text-muted-foreground">{t('noMapData')}</p>
         </div>
       ) : (
         <div 

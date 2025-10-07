@@ -1,10 +1,15 @@
 import { Clock, ExternalLink } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
+import { Language } from "@/i18n/translations";
 
 interface TimelineModuleProps {
   articles: any[];
+  language: Language;
 }
 
-const TimelineModule = ({ articles }: TimelineModuleProps) => {
+const TimelineModule = ({ articles, language }: TimelineModuleProps) => {
+  const { t } = useTranslation(language);
+  
   // Group articles by date
   const groupedByDate = articles.reduce((acc: any, article: any) => {
     const date = new Date(article.publishedAt).toLocaleDateString('en-US', {
@@ -25,7 +30,7 @@ const TimelineModule = ({ articles }: TimelineModuleProps) => {
     <div className="hud-panel h-full overflow-auto">
       <h2 className="text-xs font-bold text-primary mb-2 uppercase tracking-wider flex items-center gap-2">
         <span className="alert-indicator"></span>
-        TIMELINE TEMPORELLE
+        {t('timeline').toUpperCase()}
       </h2>
 
       {articles.length > 0 ? (
@@ -64,7 +69,7 @@ const TimelineModule = ({ articles }: TimelineModuleProps) => {
         </div>
       ) : (
         <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
-          No timeline data yet
+          {t('noTimelineData')}
         </div>
       )}
     </div>

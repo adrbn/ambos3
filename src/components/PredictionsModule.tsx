@@ -1,4 +1,6 @@
 import { TrendingUp, AlertTriangle, Info } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
+import { Language } from "@/i18n/translations";
 
 interface Prediction {
   scenario: string;
@@ -14,9 +16,12 @@ interface Sentiment {
 interface PredictionsModuleProps {
   predictions: Prediction[];
   sentiment: Sentiment | null;
+  language: Language;
 }
 
-const PredictionsModule = ({ predictions, sentiment }: PredictionsModuleProps) => {
+const PredictionsModule = ({ predictions, sentiment, language }: PredictionsModuleProps) => {
+  const { t } = useTranslation(language);
+  
   const getProbabilityColor = (prob: string) => {
     switch (prob) {
       case 'high': return 'text-destructive';
@@ -39,7 +44,7 @@ const PredictionsModule = ({ predictions, sentiment }: PredictionsModuleProps) =
     <div className="hud-panel h-full overflow-auto">
       <h2 className="text-xs font-bold text-primary mb-2 uppercase tracking-wider flex items-center gap-2">
         <span className="alert-indicator"></span>
-        PRÉDICTIONS
+        {t('predictions').toUpperCase()}
       </h2>
 
       {predictions && predictions.length > 0 && (
@@ -58,7 +63,7 @@ const PredictionsModule = ({ predictions, sentiment }: PredictionsModuleProps) =
                     <p className="text-xs text-foreground">{pred.scenario}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`text-xs font-mono uppercase ${getProbabilityColor(pred.probability)}`}>
-                        {pred.probability} probability
+                        {t(`${pred.probability}Probability`)}
                       </span>
                       <span className="text-xs text-muted-foreground">• {pred.timeframe}</span>
                     </div>
@@ -72,14 +77,14 @@ const PredictionsModule = ({ predictions, sentiment }: PredictionsModuleProps) =
 
       {sentiment && (
         <div>
-          <h3 className="text-xs font-bold text-secondary mb-2 uppercase">Sentiment Analysis</h3>
+          <h3 className="text-xs font-bold text-secondary mb-2 uppercase">{t('sentimentAnalysis')}</h3>
           <div className="space-y-2">
             <div className="p-2 bg-card/30 border border-primary/20 rounded">
-              <p className="text-xs text-muted-foreground mb-1">Public Opinion</p>
+              <p className="text-xs text-muted-foreground mb-1">{t('publicOpinion')}</p>
               <p className="text-xs text-foreground">{sentiment.public}</p>
             </div>
             <div className="p-2 bg-card/30 border border-primary/20 rounded">
-              <p className="text-xs text-muted-foreground mb-1">Expert Views</p>
+              <p className="text-xs text-muted-foreground mb-1">{t('expertViews')}</p>
               <p className="text-xs text-foreground">{sentiment.experts}</p>
             </div>
           </div>
@@ -88,7 +93,7 @@ const PredictionsModule = ({ predictions, sentiment }: PredictionsModuleProps) =
 
       {!predictions && !sentiment && (
         <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
-          Aucune prédiction disponible
+          {t('noPredictions')}
         </div>
       )}
     </div>

@@ -1,4 +1,6 @@
 import { Users, Building2, MapPin } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
+import { Language } from "@/i18n/translations";
 
 interface Entity {
   name: string;
@@ -9,9 +11,12 @@ interface Entity {
 
 interface GraphModuleProps {
   entities: Entity[];
+  language: Language;
 }
 
-const GraphModule = ({ entities }: GraphModuleProps) => {
+const GraphModule = ({ entities, language }: GraphModuleProps) => {
+  const { t } = useTranslation(language);
+  
   const getIcon = (type: string) => {
     switch (type) {
       case 'person': return <Users className="w-4 h-4" />;
@@ -34,7 +39,7 @@ const GraphModule = ({ entities }: GraphModuleProps) => {
     <div className="hud-panel h-full overflow-auto">
       <h2 className="text-xs font-bold text-primary mb-2 uppercase tracking-wider flex items-center gap-2">
         <span className="alert-indicator"></span>
-        ENTITÉS CLÉS
+        {t('keyEntities').toUpperCase()}
       </h2>
       
       {entities && entities.length > 0 ? (
@@ -60,7 +65,7 @@ const GraphModule = ({ entities }: GraphModuleProps) => {
         </div>
       ) : (
         <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
-          No entities detected yet
+          {t('noEntities')}
         </div>
       )}
     </div>
