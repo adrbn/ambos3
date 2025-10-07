@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ModuleId } from './useLayoutConfig';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface SavedLayout {
   name: string;
@@ -8,46 +10,81 @@ interface SavedLayout {
   timestamp: number;
 }
 
-const STORAGE_KEY = 'ambos-saved-layouts';
-
 export const useSavedLayouts = () => {
-  const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>(() => {
+  const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch layouts from Supabase
+  const fetchLayouts = async () => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
+      const { data, error } = await supabase
+        .from('saved_layouts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const layouts: SavedLayout[] = (data || []).map((row: any) => ({
+        name: row.name,
+        moduleOrder: row.module_order as ModuleId[],
+        moduleSizes: row.module_sizes as Record<string, { width: number; height: number }>,
+        timestamp: new Date(row.created_at).getTime(),
+      }));
+
+      setSavedLayouts(layouts);
+    } catch (error) {
+      console.error('Failed to fetch layouts:', error);
+      toast.error('Failed to load saved layouts');
+    } finally {
+      setIsLoading(false);
     }
-  });
+  };
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedLayouts));
-    } catch (error) {
-      console.error('Failed to save layouts:', error);
-    }
-  }, [savedLayouts]);
+    fetchLayouts();
+  }, []);
 
-  const saveLayout = (
+  const saveLayout = async (
     name: string,
     moduleOrder: ModuleId[],
     moduleSizes: Record<string, { width: number; height: number }>
   ) => {
-    const newLayout: SavedLayout = {
-      name,
-      moduleOrder,
-      moduleSizes,
-      timestamp: Date.now(),
-    };
+    try {
+      const { error } = await supabase
+        .from('saved_layouts')
+        .upsert({
+          name,
+          module_order: moduleOrder,
+          module_sizes: moduleSizes,
+        }, {
+          onConflict: 'name'
+        });
 
-    setSavedLayouts(prev => {
-      const filtered = prev.filter(l => l.name !== name);
-      return [...filtered, newLayout];
-    });
+      if (error) throw error;
+
+      toast.success('Layout saved to cloud!');
+      await fetchLayouts();
+    } catch (error) {
+      console.error('Failed to save layout:', error);
+      toast.error('Failed to save layout');
+    }
   };
 
-  const deleteLayout = (name: string) => {
-    setSavedLayouts(prev => prev.filter(l => l.name !== name));
+  const deleteLayout = async (name: string) => {
+    try {
+      const { error } = await supabase
+        .from('saved_layouts')
+        .delete()
+        .eq('name', name);
+
+      if (error) throw error;
+
+      toast.success('Layout deleted');
+      await fetchLayouts();
+    } catch (error) {
+      console.error('Failed to delete layout:', error);
+      toast.error('Failed to delete layout');
+    }
   };
 
   const getLayout = (name: string): SavedLayout | undefined => {
@@ -59,5 +96,6 @@ export const useSavedLayouts = () => {
     saveLayout,
     deleteLayout,
     getLayout,
+    isLoading,
   };
 };

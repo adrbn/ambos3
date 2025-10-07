@@ -129,51 +129,71 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="bg-card/50 border-b border-primary/30 px-4 py-2 backdrop-blur-sm">
-        <div className="flex items-center justify-between">
+      <header className="bg-card/50 border-b border-primary/30 px-2 sm:px-4 py-2 backdrop-blur-sm">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Shield className="w-6 h-6 text-primary" />
+            <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
             <div>
-              <h1 className="text-xl font-black text-primary text-glow tracking-wider uppercase">
+              <h1 className="text-base sm:text-xl font-black text-primary text-glow tracking-wider uppercase">
                 AmbOS
               </h1>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+              <p className="text-[8px] sm:text-[10px] text-muted-foreground uppercase tracking-widest">
                 OSINT Command Center v2.0
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <LayoutManager
-              savedLayouts={savedLayouts}
-              onSave={handleSaveLayout}
-              onLoad={handleLoadLayout}
-              onDelete={handleDeleteLayout}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleResetLayout}
-              className="text-xs"
-            >
-              <RotateCcw className="w-3 h-3 mr-1" />
-              Reset
-            </Button>
+          <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
+            <div className="hidden lg:flex items-center gap-2">
+              <LayoutManager
+                savedLayouts={savedLayouts}
+                onSave={handleSaveLayout}
+                onLoad={handleLoadLayout}
+                onDelete={handleDeleteLayout}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetLayout}
+                className="text-xs"
+              >
+                <RotateCcw className="w-3 h-3 mr-1" />
+                Reset
+              </Button>
+            </div>
             <LanguageSelector language={language} onLanguageChange={handleLanguageChange} />
-            <div className="flex items-center gap-2 px-3 py-1 bg-secondary/20 border border-secondary/40 rounded">
+            <div className="hidden sm:flex items-center gap-2 px-2 sm:px-3 py-1 bg-secondary/20 border border-secondary/40 rounded">
               <Activity className="w-3 h-3 text-secondary animate-pulse" />
-              <span className="text-xs text-secondary font-bold uppercase">Standby</span>
+              <span className="text-[10px] sm:text-xs text-secondary font-bold uppercase">Standby</span>
             </div>
           </div>
+        </div>
+        {/* Mobile layout controls */}
+        <div className="lg:hidden flex items-center gap-2 mt-2">
+          <LayoutManager
+            savedLayouts={savedLayouts}
+            onSave={handleSaveLayout}
+            onLoad={handleLoadLayout}
+            onDelete={handleDeleteLayout}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleResetLayout}
+            className="text-xs"
+          >
+            <RotateCcw className="w-3 h-3 mr-1" />
+            Reset
+          </Button>
         </div>
       </header>
 
       {/* Search Bar */}
-      <div className="px-4 py-3">
+      <div className="px-2 sm:px-4 py-2 sm:py-3">
         <SearchBar onSearch={handleSearch} language={language} currentQuery={currentQuery} searchTrigger={searchTrigger} />
       </div>
 
       {/* Main Grid - Resizable & Draggable Layout */}
-      <main className="flex-1 px-4 pb-3 overflow-auto">
+      <main className="flex-1 px-2 sm:px-4 pb-2 sm:pb-3 overflow-auto">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -187,6 +207,10 @@ const Index = () => {
               {layout.moduleOrder.map((moduleId) => {
                 const savedSize = moduleSizes[moduleId];
                 const hasContent = articles.length > 0;
+                
+                // Skip rendering if no content
+                if (!hasContent) return null;
+                
                 return (
                   <div 
                     key={moduleId} 
@@ -195,7 +219,7 @@ const Index = () => {
                     <ResizableDraggableModule
                       id={moduleId}
                       initialWidth={savedSize?.width || 400}
-                      initialHeight={hasContent ? (savedSize?.height || 300) : 80}
+                      initialHeight={savedSize?.height || 300}
                       onResize={(w, h) => handleModuleResize(moduleId, w, h)}
                     >
                       {getModuleComponent(moduleId)}
