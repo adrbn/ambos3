@@ -56,14 +56,20 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
 
         const data = await response.json();
         
-        // Filter out weak links (keep only strength >= 3)
-        const filteredLinks = data.links.filter((link: Link) => link.strength >= 3);
+        // Filter out unimportant entities (keep only importance >= 6)
+        const filteredNodes = data.nodes.filter((node: Node) => node.importance >= 6);
+        const nodeIds = new Set(filteredNodes.map((n: Node) => n.id));
+        
+        // Filter out weak links and links with filtered nodes
+        const filteredLinks = data.links.filter((link: Link) => 
+          link.strength >= 3 && nodeIds.has(link.source) && nodeIds.has(link.target)
+        );
         
         setGraphData({
-          nodes: data.nodes,
+          nodes: filteredNodes,
           links: filteredLinks
         });
-        console.log(`Loaded ${data.nodes.length} entities with ${filteredLinks.length} strong relationships`);
+        console.log(`Loaded ${filteredNodes.length} important entities with ${filteredLinks.length} strong relationships`);
       } catch (error) {
         console.error('Error in entity extraction:', error);
       } finally {

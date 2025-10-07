@@ -44,11 +44,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert in entity extraction and relationship mapping for news analysis. Extract people, organizations, locations, and events, then identify meaningful relationships between them.'
+            content: 'You are an expert in entity extraction and relationship mapping for news analysis. ONLY extract the MOST IMPORTANT entities that are mentioned MULTIPLE TIMES or are CENTRAL to the articles. Ignore entities mentioned only once or in passing. Focus on key people, organizations, locations, and events that are truly significant.'
           },
           {
             role: 'user',
-            content: `Extract entities (people, organizations, locations, events) and their relationships from these articles:\n\n${articlesText}`
+            content: `Extract ONLY the most important and frequently mentioned entities (people, organizations, locations, events) and their relationships from these articles. Ignore entities mentioned only once:\n\n${articlesText}`
           }
         ],
         tools: [
