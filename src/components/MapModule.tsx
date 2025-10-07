@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface MapModuleProps {
   articles: any[];
@@ -19,10 +21,11 @@ const MapModule = ({ articles }: MapModuleProps) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [isEnabled, setIsEnabled] = useState(false);
 
-  // Initialize map once
+  // Initialize map once when enabled
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+    if (!mapContainerRef.current || mapRef.current || !isEnabled) return;
 
     try {
       const map = L.map(mapContainerRef.current, {
@@ -49,11 +52,11 @@ const MapModule = ({ articles }: MapModuleProps) => {
     } catch (error) {
       console.error('Error initializing map:', error);
     }
-  }, []);
+  }, [isEnabled]);
 
   // Update markers when articles change
   useEffect(() => {
-    if (!mapRef.current || !isMapReady) return;
+    if (!mapRef.current || !isMapReady || !isEnabled) return;
 
     // Clear existing markers
     markersRef.current.forEach(marker => marker.remove());
@@ -92,30 +95,41 @@ const MapModule = ({ articles }: MapModuleProps) => {
         console.error('Error adding marker:', error);
       }
     });
-  }, [articles, isMapReady]);
-
-  if (articles.length === 0) {
-    return (
-      <div className="hud-panel h-full">
-        <h2 className="text-xs font-bold text-primary mb-2 uppercase tracking-wider">
-          CARTE GÉOGRAPHIQUE
-        </h2>
-        <div className="h-[calc(100%-2rem)] rounded border border-primary/20 overflow-hidden flex items-center justify-center bg-card/20">
-          <p className="text-xs text-muted-foreground">No data available</p>
-        </div>
-      </div>
-    );
-  }
+  }, [articles, isMapReady, isEnabled]);
 
   return (
     <div className="hud-panel h-full">
-      <h2 className="text-xs font-bold text-primary mb-2 uppercase tracking-wider">
-        CARTE GÉOGRAPHIQUE
-      </h2>
-      <div 
-        ref={mapContainerRef}
-        className="h-[calc(100%-2rem)] rounded border border-primary/30 overflow-hidden"
-      />
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-xs font-bold text-primary uppercase tracking-wider">
+          CARTE GÉOGRAPHIQUE
+        </h2>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="map-toggle" className="text-[10px] text-muted-foreground cursor-pointer">
+            {isEnabled ? 'ON' : 'OFF'}
+          </Label>
+          <Switch 
+            id="map-toggle"
+            checked={isEnabled}
+            onCheckedChange={setIsEnabled}
+            className="data-[state=checked]:bg-primary"
+          />
+        </div>
+      </div>
+      
+      {!isEnabled ? (
+        <div className="h-[calc(100%-2rem)] rounded border border-primary/20 overflow-hidden flex items-center justify-center bg-card/20">
+          <p className="text-xs text-muted-foreground">Carte désactivée</p>
+        </div>
+      ) : articles.length === 0 ? (
+        <div className="h-[calc(100%-2rem)] rounded border border-primary/20 overflow-hidden flex items-center justify-center bg-card/20">
+          <p className="text-xs text-muted-foreground">Aucune donnée disponible</p>
+        </div>
+      ) : (
+        <div 
+          ref={mapContainerRef}
+          className="h-[calc(100%-2rem)] rounded border border-primary/30 overflow-hidden"
+        />
+      )}
     </div>
   );
 };
