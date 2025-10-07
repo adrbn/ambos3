@@ -1,21 +1,23 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Maximize2, Minimize2 } from 'lucide-react';
-import { ModuleSize } from '@/hooks/useModuleSizes';
+import { GripVertical } from 'lucide-react';
+import { ResizableBox } from 'react-resizable';
+import 'react-resizable/css/styles.css';
+import { useState } from 'react';
 
 interface ResizableDraggableModuleProps {
   id: string;
   children: React.ReactNode;
-  className?: string;
-  currentSize: ModuleSize;
-  onResize: (size: ModuleSize) => void;
+  initialWidth?: number;
+  initialHeight?: number;
+  onResize?: (width: number, height: number) => void;
 }
 
 const ResizableDraggableModule = ({ 
   id, 
-  children, 
-  className,
-  currentSize,
+  children,
+  initialWidth = 400,
+  initialHeight = 300,
   onResize
 }: ResizableDraggableModuleProps) => {
   const {
@@ -27,47 +29,52 @@ const ResizableDraggableModule = ({
     isDragging,
   } = useSortable({ id });
 
+  const [size, setSize] = useState({ width: initialWidth, height: initialHeight });
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const cycleSize = () => {
-    const sizes: ModuleSize[] = ['small', 'medium', 'large'];
-    const currentIndex = sizes.indexOf(currentSize);
-    const nextIndex = (currentIndex + 1) % sizes.length;
-    onResize(sizes[nextIndex]);
+  const handleResize = (event: any, { size: newSize }: any) => {
+    setSize(newSize);
+    onResize?.(newSize.width, newSize.height);
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative group ${className || ''}`}
+      className="relative group"
     >
-      <div className="absolute top-1 left-1 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <div
-          {...attributes}
-          {...listeners}
-          className="cursor-grab active:cursor-grabbing bg-primary/10 hover:bg-primary/20 rounded p-0.5 backdrop-blur-sm border border-primary/30"
-          title="Drag to reorder"
-        >
-          <GripVertical className="w-3 h-3 text-primary" />
-        </div>
-        <button
-          onClick={cycleSize}
-          className="bg-primary/10 hover:bg-primary/20 rounded p-0.5 backdrop-blur-sm border border-primary/30"
-          title={`Resize (current: ${currentSize})`}
-        >
-          {currentSize === 'small' ? (
-            <Maximize2 className="w-3 h-3 text-primary" />
-          ) : (
-            <Minimize2 className="w-3 h-3 text-primary" />
-          )}
-        </button>
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-1 left-1 z-20 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity bg-primary/10 hover:bg-primary/20 rounded p-0.5 backdrop-blur-sm border border-primary/30"
+        title="Drag to reorder"
+      >
+        <GripVertical className="w-3 h-3 text-primary" />
       </div>
-      {children}
+      
+      <ResizableBox
+        width={size.width}
+        height={size.height}
+        onResize={handleResize}
+        minConstraints={[200, 150]}
+        maxConstraints={[1200, 800]}
+        resizeHandles={['se', 's', 'e']}
+        className="w-full h-full"
+        handle={
+          <div className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute bottom-1 right-1 w-3 h-3 border-r-2 border-b-2 border-primary/50" />
+          </div>
+        }
+      >
+        <div className="w-full h-full overflow-hidden">
+          {children}
+        </div>
+      </ResizableBox>
     </div>
   );
 };

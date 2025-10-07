@@ -27,7 +27,6 @@ import StatusBar from "@/components/StatusBar";
 import LanguageSelector from "@/components/LanguageSelector";
 import ResizableDraggableModule from "@/components/ResizableDraggableModule";
 import { useLayoutConfig, ModuleId } from "@/hooks/useLayoutConfig";
-import { useModuleSizes } from "@/hooks/useModuleSizes";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -38,7 +37,7 @@ const Index = () => {
   const [language, setLanguage] = useState<string>("en");
   const [searchTrigger, setSearchTrigger] = useState(0);
   const { layout, updateLayout, resetLayout } = useLayoutConfig();
-  const { updateSize, getSizeClasses } = useModuleSizes();
+  const [moduleSizes, setModuleSizes] = useState<Record<string, { width: number; height: number }>>({});
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -61,7 +60,15 @@ const Index = () => {
 
   const handleResetLayout = () => {
     resetLayout();
+    setModuleSizes({});
     toast.success('Layout réinitialisé');
+  };
+
+  const handleModuleResize = (moduleId: string, width: number, height: number) => {
+    setModuleSizes(prev => ({
+      ...prev,
+      [moduleId]: { width, height }
+    }));
   };
 
   const handleSearch = (query: string, fetchedArticles: any[], analysisData: any) => {
@@ -150,23 +157,19 @@ const Index = () => {
             items={layout.moduleOrder}
             strategy={rectSortingStrategy}
           >
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2" style={{ gridAutoFlow: 'dense' }}>
+            <div className="flex flex-wrap gap-2">
               {layout.moduleOrder.map((moduleId) => {
-                const sizeClasses = getSizeClasses(moduleId);
+                const savedSize = moduleSizes[moduleId];
                 return (
-                  <div
+                  <ResizableDraggableModule
                     key={moduleId}
-                    className={`${sizeClasses.cols} ${sizeClasses.height}`}
+                    id={moduleId}
+                    initialWidth={savedSize?.width || 400}
+                    initialHeight={savedSize?.height || 300}
+                    onResize={(w, h) => handleModuleResize(moduleId, w, h)}
                   >
-                    <ResizableDraggableModule
-                      id={moduleId}
-                      className="w-full h-full"
-                      currentSize={sizeClasses.height.includes('180') ? 'small' : sizeClasses.height.includes('280') ? 'medium' : 'large'}
-                      onResize={(size) => updateSize(moduleId, size)}
-                    >
-                      {getModuleComponent(moduleId)}
-                    </ResizableDraggableModule>
-                  </div>
+                    {getModuleComponent(moduleId)}
+                  </ResizableDraggableModule>
                 );
               })}
             </div>
