@@ -33,9 +33,10 @@ const DraggableModule = ({ id, children, className }: DraggableModuleProps) => {
       <div
         {...attributes}
         {...listeners}
-        className="absolute top-2 right-2 z-10 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity bg-primary/20 hover:bg-primary/30 rounded p-1 backdrop-blur-sm"
+        className="absolute top-1 left-1 z-10 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity bg-primary/10 hover:bg-primary/20 rounded p-0.5 backdrop-blur-sm border border-primary/30"
+        title="Drag to reorder"
       >
-        <GripVertical className="w-4 h-4 text-primary" />
+        <GripVertical className="w-3 h-3 text-primary" />
       </div>
       {children}
     </div>

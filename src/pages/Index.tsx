@@ -25,8 +25,9 @@ import TimelineModule from "@/components/TimelineModule";
 import DataFeedModule from "@/components/DataFeedModule";
 import StatusBar from "@/components/StatusBar";
 import LanguageSelector from "@/components/LanguageSelector";
-import DraggableModule from "@/components/DraggableModule";
+import ResizableDraggableModule from "@/components/ResizableDraggableModule";
 import { useLayoutConfig, ModuleId } from "@/hooks/useLayoutConfig";
+import { useModuleSizes } from "@/hooks/useModuleSizes";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -37,6 +38,7 @@ const Index = () => {
   const [language, setLanguage] = useState<string>("en");
   const [searchTrigger, setSearchTrigger] = useState(0);
   const { layout, updateLayout, resetLayout } = useLayoutConfig();
+  const { updateSize, getSizeClasses } = useModuleSizes();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -97,40 +99,6 @@ const Index = () => {
     }
   };
 
-  const getModuleHeight = (moduleId: ModuleId) => {
-    switch (moduleId) {
-      case 'map': return 'h-[380px]';
-      case 'timeline': return 'h-[180px]';
-      case 'network-graph': return 'h-[380px]';
-      case 'entities': return 'h-[380px]';
-      case 'summary': return 'h-[180px]';
-      case 'predictions': return 'h-[180px]';
-      case 'datafeed': return 'h-[200px]';
-      default: return 'h-auto';
-    }
-  };
-
-  const getModuleColumns = (moduleId: ModuleId) => {
-    switch (moduleId) {
-      case 'map':
-        return 'lg:col-span-5';
-      case 'timeline':
-        return 'lg:col-span-7';
-      case 'network-graph':
-        return 'lg:col-span-4';
-      case 'entities':
-        return 'lg:col-span-4';
-      case 'summary':
-        return 'lg:col-span-4';
-      case 'predictions':
-        return 'lg:col-span-4';
-      case 'datafeed':
-        return 'lg:col-span-4';
-      default:
-        return 'lg:col-span-12';
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -171,7 +139,7 @@ const Index = () => {
         <SearchBar onSearch={handleSearch} language={language} currentQuery={currentQuery} searchTrigger={searchTrigger} />
       </div>
 
-      {/* Main Grid - Compact Dense Layout */}
+      {/* Main Grid - Resizable & Draggable Layout */}
       <main className="flex-1 px-4 pb-3">
         <DndContext
           sensors={sensors}
@@ -184,16 +152,20 @@ const Index = () => {
           >
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-2" style={{ gridAutoFlow: 'dense' }}>
               {layout.moduleOrder.map((moduleId) => {
-                const cols = getModuleColumns(moduleId);
-                const height = getModuleHeight(moduleId);
+                const sizeClasses = getSizeClasses(moduleId);
                 return (
                   <div
                     key={moduleId}
-                    className={`${cols} ${height}`}
+                    className={`${sizeClasses.cols} ${sizeClasses.height}`}
                   >
-                    <DraggableModule id={moduleId} className="w-full h-full">
+                    <ResizableDraggableModule
+                      id={moduleId}
+                      className="w-full h-full"
+                      currentSize={sizeClasses.height.includes('180') ? 'small' : sizeClasses.height.includes('280') ? 'medium' : 'large'}
+                      onResize={(size) => updateSize(moduleId, size)}
+                    >
                       {getModuleComponent(moduleId)}
-                    </DraggableModule>
+                    </ResizableDraggableModule>
                   </div>
                 );
               })}
