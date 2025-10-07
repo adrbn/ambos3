@@ -32,10 +32,9 @@ const MapModule = ({ articles }: MapModuleProps) => {
         zoomControl: true,
       });
 
-      // Use CartoDB Dark Matter tiles - already dark themed
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap © CartoDB',
-        subdomains: 'abcd',
+      // Use OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
         maxZoom: 19
       }).addTo(map);
 
