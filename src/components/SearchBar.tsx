@@ -31,7 +31,9 @@ const SearchBar = ({ onSearch, language }: SearchBarProps) => {
       if (newsError) throw newsError;
       
       if (!newsData?.articles || newsData.articles.length === 0) {
-        toast.error("No articles found for this query");
+        const errorMsg = newsData?.error || "No articles found for this query. Try a different search term or check your GNews API key.";
+        toast.error(errorMsg, { duration: 5000 });
+        console.error('No articles returned:', newsData);
         setIsLoading(false);
         return;
       }

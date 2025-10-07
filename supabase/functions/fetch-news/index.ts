@@ -21,18 +21,26 @@ serve(async (req) => {
 
     console.log('Fetching news for query:', query, 'language:', language);
 
-    const response = await fetch(
-      `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=${language}&max=20&apikey=${GNEWS_API_KEY}`
-    );
+    const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=${language}&max=20&apikey=${GNEWS_API_KEY}`;
+    console.log('Calling GNews API:', url.replace(GNEWS_API_KEY, 'HIDDEN'));
+    
+    const response = await fetch(url);
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('GNews API error:', response.status, errorText);
-      throw new Error(`GNews API error: ${response.status}`);
+      throw new Error(`GNews API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('GNews API Response:', JSON.stringify(data, null, 2));
     console.log('Fetched articles count:', data.articles?.length || 0);
+    
+    // Check for API-level errors
+    if (data.errors && data.errors.length > 0) {
+      console.error('GNews API errors:', data.errors);
+      throw new Error(`GNews API error: ${data.errors.join(', ')}`);
+    }
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
