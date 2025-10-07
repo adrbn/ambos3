@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Shield, Activity } from "lucide-react";
 import SearchBar from "@/components/SearchBar";
 import MapModule from "@/components/MapModule";
 import GraphModule from "@/components/GraphModule";
+import NetworkGraph3D from "@/components/NetworkGraph3D";
 import PredictiveAnalysis from "@/components/PredictiveAnalysis";
 import TimelineModule from "@/components/TimelineModule";
 import DataFeedModule from "@/components/DataFeedModule";
@@ -16,6 +17,23 @@ const Index = () => {
   const [analysis, setAnalysis] = useState<any>(null);
   const [language, setLanguage] = useState<string>("en");
   const [searchTrigger, setSearchTrigger] = useState(0);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [isMapCollapsed, setIsMapCollapsed] = useState(false);
+
+  // Observer pour détecter quand la carte est réduite
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const height = entry.contentRect.height;
+        setIsMapCollapsed(height < 100);
+      }
+    });
+
+    observer.observe(mapRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const handleSearch = (query: string, fetchedArticles: any[], analysisData: any) => {
     setCurrentQuery(query);
@@ -63,35 +81,45 @@ const Index = () => {
         <SearchBar onSearch={handleSearch} language={language} currentQuery={currentQuery} searchTrigger={searchTrigger} />
       </div>
 
-      {/* Main Grid - More compact layout like reference */}
+      {/* Main Grid - Layout dynamique selon l'état de la carte */}
       <main className="flex-1 px-4 pb-4 grid grid-cols-1 lg:grid-cols-12 gap-3">
-        {/* Left Column - Map (takes more space) */}
-        <div className="lg:col-span-5 space-y-3">
-          <div className="h-[500px]">
+        {/* Left Column - Map & Timeline */}
+        <div className={`${isMapCollapsed ? 'lg:col-span-2' : 'lg:col-span-5'} space-y-3 transition-all duration-300`}>
+          <div ref={mapRef} className={isMapCollapsed ? 'h-auto' : 'h-[500px]'}>
             <MapModule articles={articles} />
           </div>
-          <div className="h-[240px]">
-            <TimelineModule articles={articles} />
+          {!isMapCollapsed && (
+            <div className="h-[240px]">
+              <TimelineModule articles={articles} />
+            </div>
+          )}
+        </div>
+
+        {/* Middle Column - Graphs & Analysis */}
+        <div className={`${isMapCollapsed ? 'lg:col-span-7' : 'lg:col-span-4'} space-y-3 transition-all duration-300`}>
+          <div className="h-[360px]">
+            <NetworkGraph3D articles={articles} />
+          </div>
+          <div className="h-[380px]">
+            <GraphModule entities={analysis?.entities || []} />
           </div>
         </div>
 
-        {/* Middle Column - Graph & Analysis */}
-        <div className="lg:col-span-4 space-y-3">
-          <div className="h-[360px]">
-            <GraphModule entities={analysis?.entities || []} />
-          </div>
-          <div className="h-[380px]">
+        {/* Right Column - Data Feed & Analysis */}
+        <div className="lg:col-span-3 space-y-3">
+          {isMapCollapsed && (
+            <div className="h-[240px]">
+              <TimelineModule articles={articles} />
+            </div>
+          )}
+          <div className={isMapCollapsed ? 'h-[500px]' : 'h-[400px]'}>
             <PredictiveAnalysis
               predictions={analysis?.predictions || []}
               sentiment={analysis?.sentiment || null}
               summary={analysis?.summary || ""}
             />
           </div>
-        </div>
-
-        {/* Right Column - Data Feed */}
-        <div className="lg:col-span-3">
-          <div className="h-[750px]">
+          <div className={isMapCollapsed ? 'h-[240px]' : 'h-[340px]'}>
             <DataFeedModule articles={articles} />
           </div>
         </div>

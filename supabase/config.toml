@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.extract-locations]
 verify_jwt = false
+
+[functions.extract-entities]
+verify_jwt = false
