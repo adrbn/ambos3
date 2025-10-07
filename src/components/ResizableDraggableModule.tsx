@@ -32,6 +32,11 @@ const ResizableDraggableModule = ({
   const [size, setSize] = useState({ width: initialWidth, height: initialHeight });
   const [isMobile, setIsMobile] = useState(false);
 
+  // Update size when initialHeight/initialWidth change (e.g., when content loads)
+  useEffect(() => {
+    setSize({ width: initialWidth, height: initialHeight });
+  }, [initialWidth, initialHeight]);
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024);
