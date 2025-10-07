@@ -220,7 +220,7 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
             cooldownTime={3000}
             onEngineStop={() => {
               if (graphRef.current) {
-                graphRef.current.zoomToFit(400, 50);
+                graphRef.current.zoomToFit(400, 100);
               }
             }}
           />
