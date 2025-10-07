@@ -11,12 +11,20 @@ interface SearchBarProps {
   language: string;
   currentQuery: string;
   searchTrigger: number;
+  selectedApi?: 'gnews' | 'newsapi';
 }
 
-const SearchBar = ({ onSearch, language, currentQuery, searchTrigger }: SearchBarProps) => {
+const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi: propSelectedApi }: SearchBarProps) => {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedApi, setSelectedApi] = useState<'gnews' | 'newsapi'>('gnews');
+  const [selectedApi, setSelectedApi] = useState<'gnews' | 'newsapi'>(propSelectedApi || 'gnews');
+
+  // Sync selected API from props
+  useEffect(() => {
+    if (propSelectedApi) {
+      setSelectedApi(propSelectedApi);
+    }
+  }, [propSelectedApi]);
 
   // Auto-search when language changes and we have a query
   useEffect(() => {
@@ -112,6 +120,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger }: SearchBa
           <Button
             onClick={() => handleSearch()}
             disabled={isLoading}
+            data-search-button
             className="hidden sm:block absolute right-2 top-1/2 -translate-y-1/2 hud-button h-7 text-xs px-4"
           >
             {isLoading ? (
@@ -127,6 +136,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger }: SearchBa
         <Button
           onClick={() => handleSearch()}
           disabled={isLoading}
+          data-search-button
           className="sm:hidden hud-button h-10 text-xs px-4 w-full"
         >
           {isLoading ? (

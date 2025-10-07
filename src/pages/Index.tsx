@@ -23,6 +23,7 @@ import SummaryModule from "@/components/SummaryModule";
 import PredictionsModule from "@/components/PredictionsModule";
 import TimelineModule from "@/components/TimelineModule";
 import DataFeedModule from "@/components/DataFeedModule";
+import SectorWatchesModule from "@/components/SectorWatchesModule";
 import StatusBar from "@/components/StatusBar";
 import LanguageSelector from "@/components/LanguageSelector";
 import ResizableDraggableModule from "@/components/ResizableDraggableModule";
@@ -38,6 +39,7 @@ const Index = () => {
   const [analysis, setAnalysis] = useState<any>(null);
   const [language, setLanguage] = useState<string>("en");
   const [searchTrigger, setSearchTrigger] = useState(0);
+  const [selectedApi, setSelectedApi] = useState<'gnews' | 'newsapi'>('gnews');
   const { layout, updateLayout, resetLayout } = useLayoutConfig();
   const [moduleSizes, setModuleSizes] = useState<Record<string, { width: number; height: number }>>({});
   const {
@@ -107,6 +109,20 @@ const Index = () => {
     }
   };
 
+  const handleLaunchWatch = (watch: any) => {
+    setLanguage(watch.language);
+    setSelectedApi(watch.api);
+    setCurrentQuery(watch.query);
+    toast.info(`Lancement de la veille: ${watch.name}`);
+    // Trigger search with the watch parameters
+    setTimeout(() => {
+      const searchButton = document.querySelector('[data-search-button]') as HTMLButtonElement;
+      if (searchButton) {
+        searchButton.click();
+      }
+    }, 100);
+  };
+
   const getModuleComponent = (moduleId: ModuleId) => {
     switch (moduleId) {
       case 'map':
@@ -121,6 +137,8 @@ const Index = () => {
         return <SummaryModule summary={analysis?.summary || ""} />;
       case 'predictions':
         return <PredictionsModule predictions={analysis?.predictions || []} sentiment={analysis?.sentiment || null} />;
+      case 'datafeed':
+        return <DataFeedModule articles={articles} />;
       default:
         return null;
     }
@@ -185,9 +203,22 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Search Bar */}
-      <div className="px-2 sm:px-4 py-2 sm:py-3">
-        <SearchBar onSearch={handleSearch} language={language} currentQuery={currentQuery} searchTrigger={searchTrigger} />
+      {/* Search Bar and Sector Watches */}
+      <div className="px-2 sm:px-4 py-2 sm:py-3 flex flex-col lg:flex-row gap-3">
+        <div className="flex-1">
+          <SearchBar 
+            onSearch={handleSearch} 
+            language={language} 
+            currentQuery={currentQuery} 
+            searchTrigger={searchTrigger}
+            selectedApi={selectedApi}
+          />
+        </div>
+        <div className="lg:w-96">
+          <div className="h-[200px] lg:h-[120px]">
+            <SectorWatchesModule onLaunchWatch={handleLaunchWatch} />
+          </div>
+        </div>
       </div>
 
       {/* Main Grid - Resizable & Draggable Layout */}

@@ -41,6 +41,45 @@ export type Database = {
         }
         Relationships: []
       }
+      sector_watches: {
+        Row: {
+          api: string
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          language: string
+          name: string
+          query: string
+          sector: string
+          updated_at: string
+        }
+        Insert: {
+          api?: string
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          name: string
+          query: string
+          sector: string
+          updated_at?: string
+        }
+        Update: {
+          api?: string
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          name?: string
+          query?: string
+          sector?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
