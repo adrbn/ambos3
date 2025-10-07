@@ -24,6 +24,7 @@ import PredictionsModule from "@/components/PredictionsModule";
 import TimelineModule from "@/components/TimelineModule";
 import DataFeedModule from "@/components/DataFeedModule";
 import SectorWatchesModule from "@/components/SectorWatchesModule";
+import SettingsDialog from "@/components/SettingsDialog";
 import StatusBar from "@/components/StatusBar";
 import LanguageSelector from "@/components/LanguageSelector";
 import ResizableDraggableModule from "@/components/ResizableDraggableModule";
@@ -38,10 +39,11 @@ const Index = () => {
   const [currentQuery, setCurrentQuery] = useState<string>("");
   const [articles, setArticles] = useState<any[]>([]);
   const [analysis, setAnalysis] = useState<any>(null);
-  const [language, setLanguage] = useState<string>("en");
+  const [language, setLanguage] = useState<string>("fr");
   const [searchTrigger, setSearchTrigger] = useState(0);
-  const [selectedApi, setSelectedApi] = useState<'gnews' | 'newsapi'>('gnews');
+  const [selectedApi, setSelectedApi] = useState<'gnews' | 'newsapi'>('newsapi');
   const [activeTab, setActiveTab] = useState<string>("search");
+  const [currentWatch, setCurrentWatch] = useState<any>(null);
   const { layout, updateLayout, resetLayout } = useLayoutConfig();
   const [moduleSizes, setModuleSizes] = useState<Record<string, { width: number; height: number }>>({});
   const {
@@ -101,12 +103,26 @@ const Index = () => {
     setCurrentQuery(query);
     setArticles(fetchedArticles);
     setAnalysis(analysisData);
+    // Clear current watch if it's a manual search (not from a watch)
+    if (!currentWatch || query !== currentQuery) {
+      setCurrentWatch(null);
+    }
   };
 
   const handleLanguageChange = (newLang: string) => {
     setLanguage(newLang);
     if (currentQuery) {
-      toast.info(`Language changed to ${newLang.toUpperCase()}. Searching again...`);
+      // If we have a current watch, use its translated query
+      if (currentWatch) {
+        let queryToUse = currentWatch.query; // Default FR
+        if (newLang === 'en' && currentWatch.query_en) {
+          queryToUse = currentWatch.query_en;
+        } else if (newLang === 'it' && currentWatch.query_it) {
+          queryToUse = currentWatch.query_it;
+        }
+        setCurrentQuery(queryToUse);
+      }
+      toast.info(`Langue changée: ${newLang.toUpperCase()}. Nouvelle recherche...`);
       setSearchTrigger(prev => prev + 1);
     }
   };
@@ -114,6 +130,7 @@ const Index = () => {
   const handleLaunchWatch = (watch: any) => {
     const targetLanguage = language; // Use current language selection
     setSelectedApi(watch.api);
+    setCurrentWatch(watch); // Store the watch for language changes
     
     // Select the appropriate query based on the current language
     let queryToUse = watch.query; // Default to FR
@@ -190,6 +207,7 @@ const Index = () => {
                 Reset
               </Button>
             </div>
+            <SettingsDialog selectedApi={selectedApi} onApiChange={setSelectedApi} />
             <LanguageSelector language={language} onLanguageChange={handleLanguageChange} />
             <div className="hidden sm:flex items-center gap-2 px-2 sm:px-3 py-1 bg-secondary/20 border border-secondary/40 rounded">
               <Activity className="w-3 h-3 text-secondary animate-pulse" />
@@ -199,6 +217,7 @@ const Index = () => {
         </div>
         {/* Mobile layout controls */}
         <div className="lg:hidden flex items-center gap-2 mt-2">
+          <SettingsDialog selectedApi={selectedApi} onApiChange={setSelectedApi} />
           <LayoutManager
             savedLayouts={savedLayouts}
             onSave={handleSaveLayout}

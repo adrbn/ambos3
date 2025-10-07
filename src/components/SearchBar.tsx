@@ -11,20 +11,12 @@ interface SearchBarProps {
   language: string;
   currentQuery: string;
   searchTrigger: number;
-  selectedApi?: 'gnews' | 'newsapi';
+  selectedApi: 'gnews' | 'newsapi';
 }
 
-const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi: propSelectedApi }: SearchBarProps) => {
+const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi }: SearchBarProps) => {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedApi, setSelectedApi] = useState<'gnews' | 'newsapi'>(propSelectedApi || 'gnews');
-
-  // Sync selected API from props
-  useEffect(() => {
-    if (propSelectedApi) {
-      setSelectedApi(propSelectedApi);
-    }
-  }, [propSelectedApi]);
 
   // Sync query with currentQuery prop
   useEffect(() => {
@@ -102,16 +94,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
 
   return (
     <div className="w-full">
-      <div className="relative flex flex-col sm:flex-row gap-2">
-        <Select value={selectedApi} onValueChange={(value: 'gnews' | 'newsapi') => setSelectedApi(value)}>
-          <SelectTrigger className="w-full sm:w-[140px] h-10 bg-card/50 border-primary/30 text-foreground">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="gnews">GNews API</SelectItem>
-            <SelectItem value="newsapi">NewsAPI</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="relative flex gap-2">
         <div className="relative flex-1">
           <Input
             type="text"
@@ -143,7 +126,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
           onClick={() => handleSearch()}
           disabled={isLoading}
           data-search-button
-          className="sm:hidden hud-button h-10 text-xs px-4 w-full"
+          className="sm:hidden hud-button h-10 text-xs px-4"
         >
           {isLoading ? (
             <>
