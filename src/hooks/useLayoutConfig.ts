@@ -6,7 +6,8 @@ export type ModuleId =
   | 'network-graph'
   | 'entities'
   | 'summary'
-  | 'predictions';
+  | 'predictions'
+  | 'datafeed';
 
 interface LayoutConfig {
   moduleOrder: ModuleId[];
@@ -14,6 +15,7 @@ interface LayoutConfig {
 
 const DEFAULT_LAYOUT: LayoutConfig = {
   moduleOrder: [
+    'datafeed',
     'summary',
     'map',
     'timeline',

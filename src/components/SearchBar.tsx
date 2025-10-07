@@ -59,6 +59,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger }: SearchBa
           : "No articles found. Try different keywords.";
         toast.error(errorMsg, { duration: 6000 });
         console.error('No articles returned:', newsData);
+        onSearch(queryToUse, [], null); // Clear any previous data
         setIsLoading(false);
         return;
       }
