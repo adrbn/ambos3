@@ -32,9 +32,11 @@ const MapModule = ({ articles }: MapModuleProps) => {
         zoomControl: true,
       });
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap',
-        className: 'map-tiles-dark',
+      // Use CartoDB Dark Matter tiles - already dark themed
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CartoDB',
+        subdomains: 'abcd',
+        maxZoom: 19
       }).addTo(map);
 
       mapRef.current = map;
@@ -113,10 +115,7 @@ const MapModule = ({ articles }: MapModuleProps) => {
       </h2>
       <div 
         ref={mapContainerRef}
-        className="h-[calc(100%-2rem)] rounded border border-primary/20 overflow-hidden"
-        style={{ 
-          backgroundColor: '#000'
-        }}
+        className="h-[calc(100%-2rem)] rounded border border-primary/30 overflow-hidden"
       />
     </div>
   );

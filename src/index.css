@@ -159,37 +159,45 @@
 
 /* Leaflet Map Dark Theme */
 .leaflet-container {
-  @apply bg-black;
-  background: #000 !important;
+  background: #0a0e1a !important;
+  font-family: 'Roboto Mono', monospace !important;
 }
 
-.map-tiles-dark {
-  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+.leaflet-tile-pane {
+  opacity: 0.8;
 }
 
 .leaflet-popup-content-wrapper {
-  @apply bg-card border border-primary/50 text-foreground;
   background: hsl(var(--card)) !important;
   color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--primary) / 0.5) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.3) !important;
 }
 
 .leaflet-popup-tip {
-  @apply bg-card;
   background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--primary) / 0.5) !important;
 }
 
 .leaflet-control-zoom a {
-  @apply bg-card/90 border-primary/30 text-primary;
-  background: hsl(var(--card) / 0.9) !important;
+  background: hsl(var(--card) / 0.95) !important;
   color: hsl(var(--primary)) !important;
-  border: 1px solid hsl(var(--primary) / 0.3) !important;
+  border: 1px solid hsl(var(--primary) / 0.4) !important;
+  font-weight: bold !important;
 }
 
 .leaflet-control-zoom a:hover {
-  @apply bg-primary/20;
   background: hsl(var(--primary) / 0.2) !important;
+  border-color: hsl(var(--primary)) !important;
 }
 
 .leaflet-popup-close-button {
   color: hsl(var(--primary)) !important;
+  font-size: 20px !important;
+  font-weight: bold !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: hsl(var(--secondary)) !important;
 }
