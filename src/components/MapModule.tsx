@@ -28,27 +28,33 @@ const MapModule = ({ articles }: MapModuleProps) => {
     if (!mapContainerRef.current || mapRef.current || !isEnabled) return;
 
     try {
-      const map = L.map(mapContainerRef.current, {
-        center: [20, 0],
-        zoom: 2,
-        scrollWheelZoom: false,
-        zoomControl: true,
-      });
+      setTimeout(() => {
+        if (!mapContainerRef.current || mapRef.current) return;
+        
+        const map = L.map(mapContainerRef.current, {
+          center: [20, 0],
+          zoom: 2,
+          scrollWheelZoom: false,
+          zoomControl: true,
+        });
 
-      // Use dark mode tiles (CartoDB Dark Matter)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap © CARTO',
-        maxZoom: 19,
-        subdomains: 'abcd'
-      }).addTo(map);
+        // Use dark mode tiles (CartoDB Dark Matter)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          attribution: '© OpenStreetMap © CARTO',
+          maxZoom: 19,
+          subdomains: 'abcd'
+        }).addTo(map);
 
-      mapRef.current = map;
-      setIsMapReady(true);
+        mapRef.current = map;
+        setIsMapReady(true);
+      }, 100);
 
       // Cleanup
       return () => {
-        map.remove();
-        mapRef.current = null;
+        if (mapRef.current) {
+          mapRef.current.remove();
+          mapRef.current = null;
+        }
       };
     } catch (error) {
       console.error('Error initializing map:', error);
