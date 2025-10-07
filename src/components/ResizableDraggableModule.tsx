@@ -52,22 +52,14 @@ const ResizableDraggableModule = ({
     onResize?.(newSize.width, newSize.height);
   };
 
-  // Sur mobile, pas de redimensionnement - juste un conteneur simple
+  // Sur mobile, pas de redimensionnement ni drag-and-drop
   if (isMobile) {
     return (
       <div
         ref={setNodeRef}
         style={style}
-        className="relative group"
+        className="relative"
       >
-        <div
-          {...attributes}
-          {...listeners}
-          className="absolute top-1 left-1 z-20 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity bg-primary/10 hover:bg-primary/20 rounded p-0.5 backdrop-blur-sm border border-primary/30"
-          title="Drag to reorder"
-        >
-          <GripVertical className="w-3 h-3 text-primary" />
-        </div>
         <div className="w-full h-auto min-h-[250px]">
           {children}
         </div>
