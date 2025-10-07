@@ -26,7 +26,9 @@ import DataFeedModule from "@/components/DataFeedModule";
 import StatusBar from "@/components/StatusBar";
 import LanguageSelector from "@/components/LanguageSelector";
 import ResizableDraggableModule from "@/components/ResizableDraggableModule";
+import LayoutManager from "@/components/LayoutManager";
 import { useLayoutConfig, ModuleId } from "@/hooks/useLayoutConfig";
+import { useSavedLayouts } from "@/hooks/useSavedLayouts";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -38,6 +40,7 @@ const Index = () => {
   const [searchTrigger, setSearchTrigger] = useState(0);
   const { layout, updateLayout, resetLayout } = useLayoutConfig();
   const [moduleSizes, setModuleSizes] = useState<Record<string, { width: number; height: number }>>({});
+  const { savedLayouts, saveLayout, deleteLayout, getLayout } = useSavedLayouts();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -69,6 +72,25 @@ const Index = () => {
       ...prev,
       [moduleId]: { width, height }
     }));
+  };
+
+  const handleSaveLayout = (name: string) => {
+    saveLayout(name, layout.moduleOrder, moduleSizes);
+    toast.success(`Layout "${name}" saved`);
+  };
+
+  const handleLoadLayout = (name: string) => {
+    const savedLayout = getLayout(name);
+    if (savedLayout) {
+      updateLayout(savedLayout.moduleOrder);
+      setModuleSizes(savedLayout.moduleSizes);
+      toast.success(`Layout "${name}" loaded`);
+    }
+  };
+
+  const handleDeleteLayout = (name: string) => {
+    deleteLayout(name);
+    toast.success(`Layout "${name}" deleted`);
   };
 
   const handleSearch = (query: string, fetchedArticles: any[], analysisData: any) => {
@@ -122,7 +144,13 @@ const Index = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <LayoutManager
+              savedLayouts={savedLayouts}
+              onSave={handleSaveLayout}
+              onLoad={handleLoadLayout}
+              onDelete={handleDeleteLayout}
+            />
             <Button
               variant="outline"
               size="sm"
@@ -130,7 +158,7 @@ const Index = () => {
               className="text-xs"
             >
               <RotateCcw className="w-3 h-3 mr-1" />
-              Reset Layout
+              Reset
             </Button>
             <LanguageSelector language={language} onLanguageChange={handleLanguageChange} />
             <div className="flex items-center gap-2 px-3 py-1 bg-secondary/20 border border-secondary/40 rounded">
