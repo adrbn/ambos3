@@ -93,51 +93,34 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
   };
 
   return (
-    <div className="w-full">
-      <div className="relative flex gap-2">
-        <div className="relative flex-1">
-          <Input
-            type="text"
-            placeholder="Enter intelligence query (e.g., 'Ukraine war', 'climate change')..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            disabled={isLoading}
-            className="w-full h-10 pl-10 pr-4 sm:pr-36 bg-card/50 border-primary/30 text-foreground placeholder:text-muted-foreground focus:border-primary focus:border-glow font-mono text-sm"
-          />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
-          <Button
-            onClick={() => handleSearch()}
-            disabled={isLoading}
-            data-search-button
-            className="hidden sm:block absolute right-2 top-1/2 -translate-y-1/2 hud-button h-7 text-xs px-4"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                RECHERCHER
-              </>
-            ) : (
-              'RECHERCHER'
-            )}
-          </Button>
-        </div>
-        <Button
-          onClick={() => handleSearch()}
+    <div className="w-full space-y-2">
+      <div className="relative">
+        <Input
+          type="text"
+          placeholder="Enter intelligence query (e.g., 'Ukraine war', 'climate change')..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           disabled={isLoading}
-          data-search-button
-          className="sm:hidden hud-button h-10 text-xs px-4"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-              RECHERCHER
-            </>
-          ) : (
-            'RECHERCHER'
-          )}
-        </Button>
+          className="w-full h-10 pl-10 pr-4 bg-card/50 border-primary/30 text-foreground placeholder:text-muted-foreground focus:border-primary focus:border-glow font-mono text-sm"
+        />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
       </div>
+      <Button
+        onClick={() => handleSearch()}
+        disabled={isLoading}
+        data-search-button
+        className="w-full hud-button h-10 text-xs px-4"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+            RECHERCHER
+          </>
+        ) : (
+          'RECHERCHER'
+        )}
+      </Button>
     </div>
   );
 };
