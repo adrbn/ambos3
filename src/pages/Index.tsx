@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Shield, Activity, RotateCcw } from "lucide-react";
+import { Shield, Activity, RotateCcw, Search, BookmarkPlus } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -31,6 +31,7 @@ import LayoutManager from "@/components/LayoutManager";
 import { useLayoutConfig, ModuleId } from "@/hooks/useLayoutConfig";
 import { useSavedLayouts } from "@/hooks/useSavedLayouts";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -40,6 +41,7 @@ const Index = () => {
   const [language, setLanguage] = useState<string>("en");
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [selectedApi, setSelectedApi] = useState<'gnews' | 'newsapi'>('gnews');
+  const [activeTab, setActiveTab] = useState<string>("search");
   const { layout, updateLayout, resetLayout } = useLayoutConfig();
   const [moduleSizes, setModuleSizes] = useState<Record<string, { width: number; height: number }>>({});
   const {
@@ -122,6 +124,7 @@ const Index = () => {
     }
     
     setCurrentQuery(queryToUse);
+    setActiveTab("search"); // Switch to search tab
     toast.info(`Lancement de la veille: ${watch.name} (${targetLanguage.toUpperCase()})`);
     
     // Trigger search with the watch parameters
@@ -213,22 +216,36 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Search Bar and Sector Watches */}
-      <div className="px-2 sm:px-4 py-2 sm:py-3 flex flex-col lg:flex-row gap-3">
-        <div className="flex-1">
-          <SearchBar 
-            onSearch={handleSearch} 
-            language={language} 
-            currentQuery={currentQuery} 
-            searchTrigger={searchTrigger}
-            selectedApi={selectedApi}
-          />
-        </div>
-        <div className="lg:w-96">
-          <div className="h-[200px] lg:h-[120px]">
-            <SectorWatchesModule onLaunchWatch={handleLaunchWatch} />
-          </div>
-        </div>
+      {/* Tabs: Search and Sector Watches */}
+      <div className="px-2 sm:px-4 py-2 sm:py-3">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-3">
+            <TabsTrigger value="search" className="flex items-center gap-2">
+              <Search className="w-4 h-4" />
+              <span className="hidden sm:inline">Recherche classique</span>
+              <span className="sm:hidden">Recherche</span>
+            </TabsTrigger>
+            <TabsTrigger value="watches" className="flex items-center gap-2">
+              <BookmarkPlus className="w-4 h-4" />
+              <span className="hidden sm:inline">Veilles sectorielles</span>
+              <span className="sm:hidden">Veilles</span>
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="search" className="mt-0">
+            <SearchBar 
+              onSearch={handleSearch} 
+              language={language} 
+              currentQuery={currentQuery} 
+              searchTrigger={searchTrigger}
+              selectedApi={selectedApi}
+            />
+          </TabsContent>
+          <TabsContent value="watches" className="mt-0">
+            <div className="h-[400px] sm:h-[500px]">
+              <SectorWatchesModule onLaunchWatch={handleLaunchWatch} />
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Main Grid - Resizable & Draggable Layout */}

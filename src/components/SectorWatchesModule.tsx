@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -168,7 +169,7 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
               Nouvelle
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-primary/30">
+          <DialogContent className="bg-card border-primary/30 max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-primary">
                 {editingWatch ? "Modifier la veille" : "Nouvelle veille sectorielle"}
@@ -193,36 +194,45 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
                   className="bg-card/50 border-primary/30"
                 />
               </div>
+              
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Requête FR *</label>
-                <Textarea
-                  value={formData.query}
-                  onChange={(e) => setFormData({ ...formData, query: e.target.value })}
-                  placeholder="Ex: défense France Italie OR militaire France Italie"
-                  className="bg-card/50 border-primary/30"
-                  rows={2}
-                />
+                <label className="text-xs text-muted-foreground mb-2 block">Requêtes de recherche *</label>
+                <Tabs defaultValue="fr" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="fr">Français</TabsTrigger>
+                    <TabsTrigger value="en">English</TabsTrigger>
+                    <TabsTrigger value="it">Italiano</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="fr" className="mt-2">
+                    <Textarea
+                      value={formData.query}
+                      onChange={(e) => setFormData({ ...formData, query: e.target.value })}
+                      placeholder="Ex: défense France Italie OR militaire France Italie"
+                      className="bg-card/50 border-primary/30"
+                      rows={3}
+                    />
+                  </TabsContent>
+                  <TabsContent value="en" className="mt-2">
+                    <Textarea
+                      value={formData.query_en}
+                      onChange={(e) => setFormData({ ...formData, query_en: e.target.value })}
+                      placeholder="Ex: defense France Italy OR military France Italy"
+                      className="bg-card/50 border-primary/30"
+                      rows={3}
+                    />
+                  </TabsContent>
+                  <TabsContent value="it" className="mt-2">
+                    <Textarea
+                      value={formData.query_it}
+                      onChange={(e) => setFormData({ ...formData, query_it: e.target.value })}
+                      placeholder="Ex: difesa Francia Italia OR militare Francia Italia"
+                      className="bg-card/50 border-primary/30"
+                      rows={3}
+                    />
+                  </TabsContent>
+                </Tabs>
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Requête EN</label>
-                <Textarea
-                  value={formData.query_en}
-                  onChange={(e) => setFormData({ ...formData, query_en: e.target.value })}
-                  placeholder="Ex: defense France Italy OR military France Italy"
-                  className="bg-card/50 border-primary/30"
-                  rows={2}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Requête IT</label>
-                <Textarea
-                  value={formData.query_it}
-                  onChange={(e) => setFormData({ ...formData, query_it: e.target.value })}
-                  placeholder="Ex: difesa Francia Italia OR militare Francia Italia"
-                  className="bg-card/50 border-primary/30"
-                  rows={2}
-                />
-              </div>
+
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Description</label>
                 <Textarea
@@ -235,7 +245,7 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Langue</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Langue par défaut</label>
                   <Select value={formData.language} onValueChange={(value) => setFormData({ ...formData, language: value })}>
                     <SelectTrigger className="bg-card/50 border-primary/30">
                       <SelectValue />
@@ -260,7 +270,7 @@ const SectorWatchesModule = ({ onLaunchWatch }: SectorWatchesModuleProps) => {
                   </Select>
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(false)}>
                   Annuler
                 </Button>
