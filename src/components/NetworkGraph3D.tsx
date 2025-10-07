@@ -3,6 +3,7 @@ import ForceGraph2D from 'react-force-graph-2d';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { X } from 'lucide-react';
 
 interface Node {
@@ -29,6 +30,7 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
   const [graphData, setGraphData] = useState<{ nodes: Node[]; links: Link[] }>({ nodes: [], links: [] });
   const [isLoading, setIsLoading] = useState(false);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('person');
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<any>(null);
 
@@ -106,6 +108,18 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
     );
   }
 
+  // Filtrer les données selon l'onglet actif
+  const getFilteredData = () => {
+    const filteredNodes = graphData.nodes.filter(node => node.type === activeTab);
+    const nodeIds = new Set(filteredNodes.map(n => n.id));
+    const filteredLinks = graphData.links.filter(link => 
+      nodeIds.has(link.source.toString()) && nodeIds.has(link.target.toString())
+    );
+    return { nodes: filteredNodes, links: filteredLinks };
+  };
+
+  const filteredData = getFilteredData();
+
   return (
     <div className="hud-panel h-full flex flex-col">
       <div className="flex items-center justify-between mb-2">
@@ -125,6 +139,14 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
         </div>
       </div>
 
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-2">
+        <TabsList className="grid w-full grid-cols-3 h-8">
+          <TabsTrigger value="person" className="text-[10px]">Personnes</TabsTrigger>
+          <TabsTrigger value="location" className="text-[10px]">Lieux</TabsTrigger>
+          <TabsTrigger value="organization" className="text-[10px]">Institutions</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <div ref={containerRef} className="flex-1 rounded border border-primary/30 overflow-hidden" style={{ background: 'radial-gradient(circle at center, rgba(0, 217, 255, 0.05) 0%, rgba(0, 0, 0, 0.8) 100%)' }}>
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
@@ -137,12 +159,16 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
           <div className="flex items-center justify-center h-full">
             <p className="text-xs text-muted-foreground">Aucune donnée disponible</p>
           </div>
+        ) : filteredData.nodes.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-xs text-muted-foreground">Aucune entité de ce type</p>
+          </div>
         ) : (
           <ForceGraph2D
             ref={graphRef}
-            graphData={graphData}
+            graphData={filteredData}
             width={containerRef.current?.offsetWidth || 600}
-            height={containerRef.current?.offsetHeight || 340}
+            height={containerRef.current?.offsetHeight || 300}
             nodeLabel={(node: any) => `${node.name} (${node.type})`}
             onNodeClick={(node: any) => setSelectedNode(node)}
             nodeCanvasObject={(node: any, ctx, globalScale) => {
@@ -195,24 +221,9 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
         )}
       </div>
 
-      {graphData.nodes.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2 text-[10px]">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full" style={{ background: '#00D9FF' }}></div>
-            <span className="text-muted-foreground">Personnes</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full" style={{ background: '#FF6B9D' }}></div>
-            <span className="text-muted-foreground">Organisations</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full" style={{ background: '#00FF9F' }}></div>
-            <span className="text-muted-foreground">Lieux</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full" style={{ background: '#FFD700' }}></div>
-            <span className="text-muted-foreground">Événements</span>
-          </div>
+      {filteredData.nodes.length > 0 && (
+        <div className="mt-2 text-[10px] text-muted-foreground text-center">
+          {filteredData.nodes.length} entité{filteredData.nodes.length > 1 ? 's' : ''} • {filteredData.links.length} relation{filteredData.links.length > 1 ? 's' : ''}
         </div>
       )}
       
