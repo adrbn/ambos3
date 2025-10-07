@@ -70,22 +70,6 @@ export const useSavedLayouts = () => {
     }
   };
 
-  const deleteLayout = async (name: string) => {
-    try {
-      const { error } = await supabase
-        .from('saved_layouts')
-        .delete()
-        .eq('name', name);
-
-      if (error) throw error;
-
-      toast.success('Layout deleted');
-      await fetchLayouts();
-    } catch (error) {
-      console.error('Failed to delete layout:', error);
-      toast.error('Failed to delete layout');
-    }
-  };
 
   const getLayout = (name: string): SavedLayout | undefined => {
     return savedLayouts.find(l => l.name === name);
@@ -94,7 +78,6 @@ export const useSavedLayouts = () => {
   return {
     savedLayouts,
     saveLayout,
-    deleteLayout,
     getLayout,
     isLoading,
   };

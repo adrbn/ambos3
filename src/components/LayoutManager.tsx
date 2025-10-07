@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Save, FolderOpen, Trash2 } from "lucide-react";
+import { Save, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,10 +23,9 @@ interface LayoutManagerProps {
   savedLayouts: any[];
   onSave: (name: string) => void;
   onLoad: (name: string) => void;
-  onDelete: (name: string) => void;
 }
 
-const LayoutManager = ({ savedLayouts, onSave, onLoad, onDelete }: LayoutManagerProps) => {
+const LayoutManager = ({ savedLayouts, onSave, onLoad }: LayoutManagerProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [layoutName, setLayoutName] = useState("");
 
@@ -93,30 +92,18 @@ const LayoutManager = ({ savedLayouts, onSave, onLoad, onDelete }: LayoutManager
             </div>
           ) : (
             savedLayouts.map((layout) => (
-              <div key={layout.name} className="flex items-center justify-between">
-                <DropdownMenuItem
-                  onClick={() => onLoad(layout.name)}
-                  className="flex-1 cursor-pointer"
-                >
-                  <div className="flex flex-col">
-                    <span className="font-medium">{layout.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(layout.timestamp).toLocaleDateString()}
-                    </span>
-                  </div>
-                </DropdownMenuItem>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(layout.name);
-                  }}
-                  className="h-8 w-8 p-0 hover:bg-destructive/10"
-                >
-                  <Trash2 className="w-3 h-3 text-destructive" />
-                </Button>
-              </div>
+              <DropdownMenuItem
+                key={layout.name}
+                onClick={() => onLoad(layout.name)}
+                className="cursor-pointer"
+              >
+                <div className="flex flex-col">
+                  <span className="font-medium">{layout.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(layout.timestamp).toLocaleDateString()}
+                  </span>
+                </div>
+              </DropdownMenuItem>
             ))
           )}
         </DropdownMenuContent>

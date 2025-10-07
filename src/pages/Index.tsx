@@ -40,7 +40,12 @@ const Index = () => {
   const [searchTrigger, setSearchTrigger] = useState(0);
   const { layout, updateLayout, resetLayout } = useLayoutConfig();
   const [moduleSizes, setModuleSizes] = useState<Record<string, { width: number; height: number }>>({});
-  const { savedLayouts, saveLayout, deleteLayout, getLayout } = useSavedLayouts();
+  const {
+    savedLayouts,
+    saveLayout,
+    getLayout,
+    isLoading: layoutsLoading,
+  } = useSavedLayouts();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -86,11 +91,6 @@ const Index = () => {
       setModuleSizes(savedLayout.moduleSizes);
       toast.success(`Layout "${name}" loaded`);
     }
-  };
-
-  const handleDeleteLayout = (name: string) => {
-    deleteLayout(name);
-    toast.success(`Layout "${name}" deleted`);
   };
 
   const handleSearch = (query: string, fetchedArticles: any[], analysisData: any) => {
@@ -148,7 +148,6 @@ const Index = () => {
                 savedLayouts={savedLayouts}
                 onSave={handleSaveLayout}
                 onLoad={handleLoadLayout}
-                onDelete={handleDeleteLayout}
               />
               <Button
                 variant="outline"
@@ -173,7 +172,6 @@ const Index = () => {
             savedLayouts={savedLayouts}
             onSave={handleSaveLayout}
             onLoad={handleLoadLayout}
-            onDelete={handleDeleteLayout}
           />
           <Button
             variant="outline"
