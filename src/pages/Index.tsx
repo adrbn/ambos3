@@ -186,12 +186,16 @@ const Index = () => {
             <div className="flex flex-col lg:flex-row lg:flex-wrap gap-2">
               {layout.moduleOrder.map((moduleId) => {
                 const savedSize = moduleSizes[moduleId];
+                const hasContent = articles.length > 0;
                 return (
-                  <div key={moduleId} className="w-full lg:w-auto">
+                  <div 
+                    key={moduleId} 
+                    className={`w-full lg:w-auto transition-all ${!hasContent ? 'lg:min-h-0' : ''}`}
+                  >
                     <ResizableDraggableModule
                       id={moduleId}
                       initialWidth={savedSize?.width || 400}
-                      initialHeight={savedSize?.height || 300}
+                      initialHeight={hasContent ? (savedSize?.height || 300) : 80}
                       onResize={(w, h) => handleModuleResize(moduleId, w, h)}
                     >
                       {getModuleComponent(moduleId)}
