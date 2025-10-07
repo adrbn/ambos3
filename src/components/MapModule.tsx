@@ -54,7 +54,7 @@ const MapModule = ({ articles }: MapModuleProps) => {
     }
   }, [isEnabled]);
 
-  // Update markers when articles change
+  // Extract and update markers when articles change
   useEffect(() => {
     if (!mapRef.current || !isMapReady || !isEnabled) return;
 
@@ -64,37 +64,60 @@ const MapModule = ({ articles }: MapModuleProps) => {
 
     if (articles.length === 0) return;
 
-    // Add new markers
-    const locations = articles
-      .filter(article => article.source?.name)
-      .slice(0, 10)
-      .map((article, index) => ({
-        title: article.title,
-        source: article.source.name,
-        lat: 20 + (Math.random() - 0.5) * 40,
-        lng: 0 + (Math.random() - 0.5) * 80,
-        url: article.url
-      }));
-
-    locations.forEach((location) => {
+    // Extraire les localisations via AI
+    const extractLocations = async () => {
       try {
-        const marker = L.marker([location.lat, location.lng])
-          .bindPopup(`
-            <div style="font-size: 12px; max-width: 200px;">
-              <h3 style="font-weight: bold; color: #00D9FF; margin-bottom: 4px;">${location.source}</h3>
-              <p style="margin-bottom: 8px;">${location.title}</p>
-              <a href="${location.url}" target="_blank" rel="noopener noreferrer" style="color: #00D9FF; text-decoration: underline;">
-                Read Article
-              </a>
-            </div>
-          `)
-          .addTo(mapRef.current!);
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-locations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ articles }),
+        });
+
+        if (!response.ok) {
+          console.error('Error extracting locations:', response.statusText);
+          return;
+        }
+
+        const { locations } = await response.json();
         
-        markersRef.current.push(marker);
+        if (!locations || locations.length === 0) {
+          console.log('No locations extracted');
+          return;
+        }
+
+        // Ajouter les marqueurs pour chaque localisation
+        locations.forEach((location: any, index: number) => {
+          try {
+            const article = articles[index] || articles[0];
+            const marker = L.marker([location.lat, location.lng])
+              .bindPopup(`
+                <div style="font-size: 12px; max-width: 200px;">
+                  <h3 style="font-weight: bold; color: #00D9FF; margin-bottom: 4px;">${location.name}</h3>
+                  <p style="margin-bottom: 4px; font-style: italic; font-size: 10px;">${location.relevance}</p>
+                  <p style="margin-bottom: 8px;">${article.title}</p>
+                  <a href="${article.url}" target="_blank" rel="noopener noreferrer" style="color: #00D9FF; text-decoration: underline;">
+                    Lire l'article
+                  </a>
+                </div>
+              `)
+              .addTo(mapRef.current!);
+            
+            markersRef.current.push(marker);
+          } catch (error) {
+            console.error('Error adding marker:', error);
+          }
+        });
+
+        console.log(`Added ${locations.length} location markers`);
       } catch (error) {
-        console.error('Error adding marker:', error);
+        console.error('Error in location extraction:', error);
       }
-    });
+    };
+
+    extractLocations();
   }, [articles, isMapReady, isEnabled]);
 
   return (
