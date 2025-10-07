@@ -35,10 +35,11 @@ const MapModule = ({ articles }: MapModuleProps) => {
         zoomControl: true,
       });
 
-      // Use OpenStreetMap tiles
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap',
-        maxZoom: 19
+      // Use dark mode tiles (CartoDB Dark Matter)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CARTO',
+        maxZoom: 19,
+        subdomains: 'abcd'
       }).addTo(map);
 
       mapRef.current = map;

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
+import { X } from 'lucide-react';
 
 interface Node {
   id: string;
@@ -26,6 +28,7 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
   const [isEnabled, setIsEnabled] = useState(true);
   const [graphData, setGraphData] = useState<{ nodes: Node[]; links: Link[] }>({ nodes: [], links: [] });
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<any>(null);
 
@@ -50,8 +53,15 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
         }
 
         const data = await response.json();
-        setGraphData(data);
-        console.log(`Loaded ${data.nodes.length} entities with ${data.links.length} relationships`);
+        
+        // Filter out weak links (keep only strength >= 3)
+        const filteredLinks = data.links.filter((link: Link) => link.strength >= 3);
+        
+        setGraphData({
+          nodes: data.nodes,
+          links: filteredLinks
+        });
+        console.log(`Loaded ${data.nodes.length} entities with ${filteredLinks.length} strong relationships`);
       } catch (error) {
         console.error('Error in entity extraction:', error);
       } finally {
@@ -134,6 +144,7 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
             width={containerRef.current?.offsetWidth || 600}
             height={containerRef.current?.offsetHeight || 340}
             nodeLabel={(node: any) => `${node.name} (${node.type})`}
+            onNodeClick={(node: any) => setSelectedNode(node)}
             nodeCanvasObject={(node: any, ctx, globalScale) => {
               const label = node.name;
               const fontSize = 12 / globalScale;
@@ -203,6 +214,37 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
             <span className="text-muted-foreground">Événements</span>
           </div>
         </div>
+      )}
+      
+      {/* Node Info Card */}
+      {selectedNode && (
+        <Card className="absolute top-4 right-4 p-4 max-w-xs bg-card/95 border-primary/50 shadow-lg">
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="text-sm font-bold text-primary uppercase">{selectedNode.name}</h3>
+            <button
+              onClick={() => setSelectedNode(null)}
+              className="text-muted-foreground hover:text-primary transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="space-y-2 text-xs">
+            <div>
+              <span className="text-muted-foreground">Type:</span>
+              <span className="ml-2 text-foreground capitalize">{selectedNode.type}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Importance:</span>
+              <span className="ml-2 text-foreground">{selectedNode.importance}/10</span>
+            </div>
+            {selectedNode.description && (
+              <div>
+                <span className="text-muted-foreground">Description:</span>
+                <p className="mt-1 text-foreground/80">{selectedNode.description}</p>
+              </div>
+            )}
+          </div>
+        </Card>
       )}
     </div>
   );
