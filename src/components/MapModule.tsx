@@ -8,12 +8,42 @@ interface MapModuleProps {
   articles: any[];
 }
 
-// Fix Leaflet default marker icon
+// Fix Leaflet default marker icon - Custom cyber style
 delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+
+// Create custom marker icon with cyber style
+const customIcon = L.divIcon({
+  html: `
+    <div style="position: relative; width: 30px; height: 30px;">
+      <div style="
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 12px solid transparent;
+        border-right: 12px solid transparent;
+        border-top: 20px solid #00D9FF;
+        filter: drop-shadow(0 0 8px #00D9FF);
+      "></div>
+      <div style="
+        position: absolute;
+        top: 2px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 10px solid transparent;
+        border-right: 10px solid transparent;
+        border-top: 16px solid #0a0a0a;
+      "></div>
+    </div>
+  `,
+  className: 'custom-marker',
+  iconSize: [30, 30],
+  iconAnchor: [15, 30],
+  popupAnchor: [0, -30]
 });
 
 const MapModule = ({ articles }: MapModuleProps) => {
@@ -115,14 +145,48 @@ const MapModule = ({ articles }: MapModuleProps) => {
         locations.forEach((location: any, index: number) => {
           try {
             const article = articles[index] || articles[0];
-            const marker = L.marker([location.lat, location.lng])
+            const marker = L.marker([location.lat, location.lng], { icon: customIcon })
               .bindPopup(`
-                <div style="font-size: 12px; max-width: 200px;">
-                  <h3 style="font-weight: bold; color: #00D9FF; margin-bottom: 4px;">${location.name}</h3>
-                  <p style="margin-bottom: 4px; font-style: italic; font-size: 10px;">${location.relevance}</p>
-                  <p style="margin-bottom: 8px;">${article.title}</p>
-                  <a href="${article.url}" target="_blank" rel="noopener noreferrer" style="color: #00D9FF; text-decoration: underline;">
-                    Lire l'article
+                <div style="
+                  font-size: 12px; 
+                  max-width: 250px;
+                  background: rgba(10, 10, 10, 0.95);
+                  border: 1px solid rgba(0, 217, 255, 0.3);
+                  border-radius: 4px;
+                  padding: 12px;
+                ">
+                  <h3 style="
+                    font-weight: bold; 
+                    color: #00D9FF; 
+                    margin: 0 0 8px 0;
+                    text-transform: uppercase;
+                    font-size: 11px;
+                    letter-spacing: 0.5px;
+                  ">${location.name}</h3>
+                  <p style="
+                    margin: 0 0 4px 0; 
+                    font-style: italic; 
+                    font-size: 10px;
+                    color: rgba(0, 217, 255, 0.7);
+                  ">${location.relevance}</p>
+                  <p style="
+                    margin: 0 0 8px 0;
+                    color: rgba(255, 255, 255, 0.9);
+                    line-height: 1.4;
+                  ">${article.title}</p>
+                  <a href="${article.url}" target="_blank" rel="noopener noreferrer" style="
+                    color: #00D9FF; 
+                    text-decoration: none;
+                    font-size: 10px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    border: 1px solid rgba(0, 217, 255, 0.3);
+                    padding: 4px 8px;
+                    border-radius: 2px;
+                    display: inline-block;
+                    transition: all 0.2s;
+                  " onmouseover="this.style.borderColor='#00D9FF'; this.style.backgroundColor='rgba(0, 217, 255, 0.1)'" onmouseout="this.style.borderColor='rgba(0, 217, 255, 0.3)'; this.style.backgroundColor='transparent'">
+                    Lire l'article →
                   </a>
                 </div>
               `)

@@ -220,7 +220,12 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
             cooldownTime={3000}
             onEngineStop={() => {
               if (graphRef.current) {
-                graphRef.current.zoomToFit(400, 100);
+                // Zoom to fit with dynamic padding based on node count
+                const nodeCount = filteredData.nodes.length;
+                const basePadding = 80;
+                const additionalPadding = Math.min(nodeCount * 5, 120);
+                const totalPadding = basePadding + additionalPadding;
+                graphRef.current.zoomToFit(400, totalPadding);
               }
             }}
           />
