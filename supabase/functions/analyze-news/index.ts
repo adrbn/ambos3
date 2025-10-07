@@ -22,9 +22,9 @@ serve(async (req) => {
     console.log('Analyzing articles for query:', query);
 
     const systemPrompts = {
-      en: 'You are an intelligence analyst specializing in OSINT. Analyze the provided news articles and extract: 1) Key entities (people, organizations, locations) with their roles in the context. 2) A comprehensive summary. 3) Predictive analysis of what may happen next with probabilities. 4) Public sentiment and expert opinions. Return valid JSON only.',
-      fr: "Vous êtes un analyste du renseignement spécialisé en OSINT. Analysez les articles fournis et extrayez : 1) Entités clés (personnes, organisations, lieux) avec leurs rôles dans le contexte. 2) Un résumé complet. 3) Une analyse prédictive de ce qui pourrait se passer ensuite avec des probabilités. 4) Le sentiment public et les opinions d'experts. Retournez uniquement du JSON valide.",
-      it: "Sei un analista dell'intelligence specializzato in OSINT. Analizza gli articoli forniti ed estrai: 1) Entità chiave (persone, organizzazioni, luoghi) con i loro ruoli nel contesto. 2) Un riepilogo completo. 3) Analisi predittiva di cosa potrebbe accadere dopo con probabilità. 4) Sentiment pubblico e opinioni di esperti. Restituisci solo JSON valido."
+      en: 'You are an intelligence analyst specializing in OSINT. Analyze the provided news articles and extract: 1) Key entities (people, organizations, locations) with their roles in the context. 2) A CONCISE yet COMPREHENSIVE summary - be straight to the point while capturing ALL critical information, key facts, and important developments. Avoid redundancy but miss nothing essential. 3) Predictive analysis of what may happen next with probabilities. 4) Public sentiment and expert opinions. Return valid JSON only.',
+      fr: "Vous êtes un analyste du renseignement spécialisé en OSINT. Analysez les articles fournis et extrayez : 1) Entités clés (personnes, organisations, lieux) avec leurs rôles dans le contexte. 2) Un résumé CONCIS mais COMPLET - allez droit au but tout en capturant TOUTES les informations critiques, faits clés et développements importants. Évitez la redondance mais n'omettez rien d'essentiel. 3) Une analyse prédictive de ce qui pourrait se passer ensuite avec des probabilités. 4) Le sentiment public et les opinions d'experts. Retournez uniquement du JSON valide.",
+      it: "Sei un analista dell'intelligence specializzato in OSINT. Analizza gli articoli forniti ed estrai: 1) Entità chiave (persone, organizzazioni, luoghi) con i loro ruoli nel contesto. 2) Un riepilogo CONCISO ma COMPLETO - vai dritto al punto catturando TUTTE le informazioni critiche, fatti chiave e sviluppi importanti. Evita ridondanze ma non tralasciare nulla di essenziale. 3) Analisi predittiva di cosa potrebbe accadere dopo con probabilità. 4) Sentiment pubblico e opinioni di esperti. Restituisci solo JSON valido."
     };
 
     const articlesText = articles.map((a: any, i: number) => 
@@ -46,7 +46,7 @@ serve(async (req) => {
             content: `Query: "${query}"\n\nArticles:\n${articlesText}\n\nProvide analysis in JSON format with this structure:
 {
   "entities": [{"name": "string", "type": "person|organization|location", "role": "string", "mentions": number}],
-  "summary": "string",
+  "summary": "CRITICAL: Make this summary CONCISE and STRAIGHT TO THE POINT while capturing ALL essential information. Include: key facts, critical developments, main actors, important context. Be synthetic but comprehensive - every sentence must add value, no fluff or repetition.",
   "predictions": [{"scenario": "string", "probability": "high|medium|low", "timeframe": "string"}],
   "sentiment": {"public": "string", "experts": "string"}
 }`
