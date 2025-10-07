@@ -41,6 +41,18 @@ serve(async (req) => {
       console.error('GNews API errors:', data.errors);
       throw new Error(`GNews API error: ${data.errors.join(', ')}`);
     }
+    
+    // Check if articles were removed due to free plan limitations
+    if (data.totalArticles > 0 && (!data.articles || data.articles.length === 0)) {
+      console.warn('Articles found but removed due to free plan limitations');
+      return new Response(JSON.stringify({ 
+        articles: [],
+        totalArticles: data.totalArticles,
+        error: 'Free plan limitation: Articles older than 30 days are not available. Try searching for recent news topics (last 2-3 weeks).'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
