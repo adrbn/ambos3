@@ -39,6 +39,7 @@ const Index = () => {
   const [language, setLanguage] = useState<string>("en");
   const [searchTrigger, setSearchTrigger] = useState(0);
   const { layout, updateLayout, resetLayout } = useLayoutConfig();
+  const [moduleSizes, setModuleSizes] = useState<Record<string, { width: number; height: number }>>({});
   const {
     savedLayouts,
     saveLayout,
@@ -67,11 +68,19 @@ const Index = () => {
 
   const handleResetLayout = () => {
     resetLayout();
+    setModuleSizes({});
     toast.success('Layout réinitialisé');
   };
 
+  const handleModuleResize = (moduleId: string, width: number, height: number) => {
+    setModuleSizes(prev => ({
+      ...prev,
+      [moduleId]: { width, height }
+    }));
+  };
+
   const handleSaveLayout = (name: string) => {
-    saveLayout(name, layout.moduleOrder, {});
+    saveLayout(name, layout.moduleOrder, moduleSizes);
     toast.success(`Layout "${name}" saved`);
   };
 
@@ -79,6 +88,7 @@ const Index = () => {
     const savedLayout = getLayout(name);
     if (savedLayout) {
       updateLayout(savedLayout.moduleOrder);
+      setModuleSizes(savedLayout.moduleSizes);
       toast.success(`Layout "${name}" loaded`);
     }
   };
@@ -181,7 +191,7 @@ const Index = () => {
       </div>
 
       {/* Main Grid - Resizable & Draggable Layout */}
-      <main className="flex-1 px-2 sm:px-4 pb-2 sm:pb-3 overflow-hidden flex flex-col">
+      <main className="flex-1 px-2 sm:px-4 pb-2 sm:pb-3 overflow-auto">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -191,8 +201,9 @@ const Index = () => {
             items={layout.moduleOrder}
             strategy={rectSortingStrategy}
           >
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-2 grid-rows-2">
+            <div className="flex flex-col lg:flex-row lg:flex-wrap gap-3 lg:gap-2">
               {layout.moduleOrder.map((moduleId) => {
+                const savedSize = moduleSizes[moduleId];
                 const hasContent = articles.length > 0;
                 
                 // Don't render empty modules
@@ -201,9 +212,14 @@ const Index = () => {
                 return (
                   <div 
                     key={moduleId} 
-                    className="w-full h-full min-h-0"
+                    className="w-full lg:w-auto"
                   >
-                    <ResizableDraggableModule id={moduleId}>
+                    <ResizableDraggableModule
+                      id={moduleId}
+                      initialWidth={savedSize?.width || 460}
+                      initialHeight={savedSize?.height || 345}
+                      onResize={(w, h) => handleModuleResize(moduleId, w, h)}
+                    >
                       {getModuleComponent(moduleId)}
                     </ResizableDraggableModule>
                   </div>
