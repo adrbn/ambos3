@@ -147,7 +147,7 @@ const Index = () => {
       </div>
 
       {/* Main Grid - Resizable & Draggable Layout */}
-      <main className="flex-1 px-4 pb-3">
+      <main className="flex-1 px-4 pb-3 overflow-auto">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -157,19 +157,20 @@ const Index = () => {
             items={layout.moduleOrder}
             strategy={rectSortingStrategy}
           >
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col lg:flex-row lg:flex-wrap gap-2">
               {layout.moduleOrder.map((moduleId) => {
                 const savedSize = moduleSizes[moduleId];
                 return (
-                  <ResizableDraggableModule
-                    key={moduleId}
-                    id={moduleId}
-                    initialWidth={savedSize?.width || 400}
-                    initialHeight={savedSize?.height || 300}
-                    onResize={(w, h) => handleModuleResize(moduleId, w, h)}
-                  >
-                    {getModuleComponent(moduleId)}
-                  </ResizableDraggableModule>
+                  <div key={moduleId} className="w-full lg:w-auto">
+                    <ResizableDraggableModule
+                      id={moduleId}
+                      initialWidth={savedSize?.width || 400}
+                      initialHeight={savedSize?.height || 300}
+                      onResize={(w, h) => handleModuleResize(moduleId, w, h)}
+                    >
+                      {getModuleComponent(moduleId)}
+                    </ResizableDraggableModule>
+                  </div>
                 );
               })}
             </div>
