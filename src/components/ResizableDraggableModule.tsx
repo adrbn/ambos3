@@ -57,10 +57,10 @@ const ResizableDraggableModule = ({
     return (
       <div
         ref={setNodeRef}
-        style={style}
-        className="relative"
+        style={{ ...style, height: `${initialHeight}px` }}
+        className="relative w-full"
       >
-        <div className="w-full h-[400px]">
+        <div className="w-full h-full">
           {children}
         </div>
       </div>

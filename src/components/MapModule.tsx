@@ -181,14 +181,13 @@ const MapModule = ({ articles }: MapModuleProps) => {
       </div>
       
       {articles.length === 0 ? (
-        <div className="flex-1 min-h-[300px] rounded border border-primary/20 overflow-hidden flex items-center justify-center bg-card/20">
+        <div className="flex-1 rounded border border-primary/20 overflow-hidden flex items-center justify-center bg-card/20">
           <p className="text-xs text-muted-foreground">Aucune donnée disponible</p>
         </div>
       ) : (
         <div 
           ref={mapContainerRef}
-          className="flex-1 min-h-[300px] rounded border border-primary/30 overflow-hidden"
-          style={{ minHeight: '300px' }}
+          className="flex-1 rounded border border-primary/30 overflow-hidden"
         />
       )}
     </div>
