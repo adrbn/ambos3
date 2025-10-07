@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -15,6 +16,7 @@ interface SearchBarProps {
 const SearchBar = ({ onSearch, language, currentQuery, searchTrigger }: SearchBarProps) => {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedApi, setSelectedApi] = useState<'gnews' | 'newsapi'>('gnews');
 
   // Auto-search when language changes and we have a query
   useEffect(() => {
@@ -36,7 +38,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger }: SearchBa
     try {
       // Fetch news articles
       const { data: newsData, error: newsError } = await supabase.functions.invoke('fetch-news', {
-        body: { query: queryToUse, language }
+        body: { query: queryToUse, language, api: selectedApi }
       });
 
       if (newsError) throw newsError;
@@ -86,7 +88,16 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger }: SearchBa
 
   return (
     <div className="w-full">
-      <div className="relative flex flex-col sm:flex-row gap-2 sm:gap-0">
+      <div className="relative flex flex-col sm:flex-row gap-2">
+        <Select value={selectedApi} onValueChange={(value: 'gnews' | 'newsapi') => setSelectedApi(value)}>
+          <SelectTrigger className="w-full sm:w-[140px] h-10 bg-card/50 border-primary/30 text-foreground">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="gnews">GNews API</SelectItem>
+            <SelectItem value="newsapi">NewsAPI</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="relative flex-1">
           <Input
             type="text"
