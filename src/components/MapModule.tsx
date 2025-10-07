@@ -120,6 +120,30 @@ const MapModule = ({ articles }: MapModuleProps) => {
     extractLocations();
   }, [articles, isMapReady, isEnabled]);
 
+  // Si désactivé, afficher un bloc réduit
+  if (!isEnabled) {
+    return (
+      <div className="hud-panel p-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold text-primary uppercase tracking-wider">
+            CARTE GÉOGRAPHIQUE
+          </h2>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="map-toggle" className="text-[10px] text-muted-foreground cursor-pointer">
+              OFF
+            </Label>
+            <Switch 
+              id="map-toggle"
+              checked={isEnabled}
+              onCheckedChange={setIsEnabled}
+              className="data-[state=checked]:bg-primary"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="hud-panel h-full">
       <div className="flex items-center justify-between mb-2">
@@ -128,7 +152,7 @@ const MapModule = ({ articles }: MapModuleProps) => {
         </h2>
         <div className="flex items-center gap-2">
           <Label htmlFor="map-toggle" className="text-[10px] text-muted-foreground cursor-pointer">
-            {isEnabled ? 'ON' : 'OFF'}
+            ON
           </Label>
           <Switch 
             id="map-toggle"
@@ -139,11 +163,7 @@ const MapModule = ({ articles }: MapModuleProps) => {
         </div>
       </div>
       
-      {!isEnabled ? (
-        <div className="h-[calc(100%-2rem)] rounded border border-primary/20 overflow-hidden flex items-center justify-center bg-card/20">
-          <p className="text-xs text-muted-foreground">Carte désactivée</p>
-        </div>
-      ) : articles.length === 0 ? (
+      {articles.length === 0 ? (
         <div className="h-[calc(100%-2rem)] rounded border border-primary/20 overflow-hidden flex items-center justify-center bg-card/20">
           <p className="text-xs text-muted-foreground">Aucune donnée disponible</p>
         </div>
