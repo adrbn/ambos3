@@ -18,7 +18,7 @@ interface SectorWatch {
   query: string;
   query_en: string | null;
   query_it: string | null;
-  language: string;
+  language: Language;
   api: string;
   description: string | null;
   color: string;
@@ -35,17 +35,35 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingWatch, setEditingWatch] = useState<SectorWatch | null>(null);
   const { t } = useTranslation(language);
-  const [formData, setFormData] = useState({
+  const [activeQueryTab, setActiveQueryTab] = useState<Language>('fr');
+  const [formData, setFormData] = useState<{
+    name: string;
+    sector: string;
+    query: string;
+    query_en: string;
+    query_it: string;
+    language: Language;
+    api: string;
+    description: string;
+    color: string;
+  }>({
     name: "",
     sector: "",
     query: "",
     query_en: "",
     query_it: "",
-    language: "fr",
+    language: language, // Use current language as default
     api: "newsapi",
     description: "",
     color: "#0ea5e9"
   });
+
+  // Update default language when site language changes
+  useEffect(() => {
+    if (!editingWatch) {
+      setFormData(prev => ({ ...prev, language }));
+    }
+  }, [language, editingWatch]);
 
   useEffect(() => {
     fetchWatches();
@@ -59,7 +77,12 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
         .order('sector', { ascending: true });
 
       if (error) throw error;
-      setWatches(data || []);
+      // Cast language to Language type
+      const watches = (data || []).map(watch => ({
+        ...watch,
+        language: watch.language as Language
+      }));
+      setWatches(watches);
     } catch (error: any) {
       console.error('Error fetching watches:', error);
       toast.error("Erreur lors du chargement des veilles");
@@ -119,6 +142,7 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
 
   const openEditDialog = (watch: SectorWatch) => {
     setEditingWatch(watch);
+    setActiveQueryTab(language); // Set active tab to current language
     setFormData({
       name: watch.name,
       sector: watch.sector,
@@ -135,13 +159,14 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
 
   const resetForm = () => {
     setEditingWatch(null);
+    setActiveQueryTab(language);
     setFormData({
       name: "",
       sector: "",
       query: "",
       query_en: "",
       query_it: "",
-      language: "fr",
+      language: language,
       api: "newsapi",
       description: "",
       color: "#0ea5e9"
@@ -201,7 +226,16 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
               
               <div>
                 <label className="text-xs text-muted-foreground mb-2 block">{t('searchQuery')} *</label>
-                <Tabs defaultValue="fr" className="w-full">
+                <Tabs 
+                  value={activeQueryTab} 
+                  onValueChange={(value) => {
+                    const newLang = value as Language;
+                    setActiveQueryTab(newLang);
+                    // Update default language when switching tabs
+                    setFormData(prev => ({ ...prev, language: newLang }));
+                  }} 
+                  className="w-full"
+                >
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="fr">{t('french')}</TabsTrigger>
                     <TabsTrigger value="en">{t('english')}</TabsTrigger>
@@ -250,7 +284,7 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">{t('defaultLanguage')}</label>
-                  <Select value={formData.language} onValueChange={(value) => setFormData({ ...formData, language: value })}>
+                  <Select value={formData.language} onValueChange={(value: Language) => setFormData({ ...formData, language: value })}>
                     <SelectTrigger className="bg-card/50 border-primary/30">
                       <SelectValue />
                     </SelectTrigger>

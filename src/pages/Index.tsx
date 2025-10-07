@@ -112,6 +112,10 @@ const Index = () => {
     }
   };
 
+  const handleSummaryRegenerate = (newSummary: string) => {
+    setAnalysis((prev: any) => prev ? { ...prev, summary: newSummary } : { summary: newSummary });
+  };
+
   const handleLanguageChange = (newLang: Language) => {
     setLanguage(newLang);
     if (currentQuery) {
@@ -167,7 +171,15 @@ const Index = () => {
       case 'entities':
         return <GraphModule entities={analysis?.entities || []} />;
       case 'summary':
-        return <SummaryModule summary={analysis?.summary || ""} />;
+        return (
+          <SummaryModule 
+            summary={analysis?.summary || ""} 
+            articles={articles}
+            query={currentQuery}
+            language={language}
+            onRegenerate={handleSummaryRegenerate}
+          />
+        );
       case 'predictions':
         return <PredictionsModule predictions={analysis?.predictions || []} sentiment={analysis?.sentiment || null} />;
       case 'datafeed':
