@@ -99,13 +99,13 @@ const Index = () => {
 
   const getModuleHeight = (moduleId: ModuleId) => {
     switch (moduleId) {
-      case 'map': return 'h-[340px]';
-      case 'timeline': return 'h-[180px]';
-      case 'network-graph': return 'h-[280px]';
-      case 'entities': return 'h-[240px]';
-      case 'summary': return 'h-[200px]';
-      case 'predictions': return 'h-[200px]';
-      case 'datafeed': return 'h-[180px]';
+      case 'map': return 'h-[400px]';
+      case 'timeline': return 'h-[190px]';
+      case 'network-graph': return 'h-[400px]';
+      case 'entities': return 'h-[400px]';
+      case 'summary': return 'h-[195px]';
+      case 'predictions': return 'h-[195px]';
+      case 'datafeed': return 'h-[210px]';
       default: return 'h-auto';
     }
   };
@@ -113,15 +113,19 @@ const Index = () => {
   const getModuleColumns = (moduleId: ModuleId) => {
     switch (moduleId) {
       case 'map':
+        return 'lg:col-span-5 lg:row-span-2';
       case 'timeline':
-        return 'lg:col-span-5';
+        return 'lg:col-span-7 lg:row-span-1';
       case 'network-graph':
+        return 'lg:col-span-4 lg:row-span-2';
       case 'entities':
-        return 'lg:col-span-4';
+        return 'lg:col-span-4 lg:row-span-2';
       case 'summary':
+        return 'lg:col-span-3 lg:row-span-1';
       case 'predictions':
+        return 'lg:col-span-3 lg:row-span-1';
       case 'datafeed':
-        return 'lg:col-span-3';
+        return 'lg:col-span-4 lg:row-span-1';
       default:
         return 'lg:col-span-12';
     }
@@ -168,7 +172,7 @@ const Index = () => {
       </div>
 
       {/* Main Grid - Compact Draggable Layout */}
-      <main className="flex-1 px-4 pb-3 overflow-hidden">
+      <main className="flex-1 px-4 pb-3">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -178,17 +182,21 @@ const Index = () => {
             items={layout.moduleOrder}
             strategy={rectSortingStrategy}
           >
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 h-[calc(100vh-140px)]">
-              {layout.moduleOrder.map((moduleId) => (
-                <div
-                  key={moduleId}
-                  className={getModuleColumns(moduleId)}
-                >
-                  <DraggableModule id={moduleId} className={`${getModuleHeight(moduleId)} w-full`}>
-                    {getModuleComponent(moduleId)}
-                  </DraggableModule>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 lg:grid-cols-12 auto-rows-min gap-2 min-h-[calc(100vh-140px)]">
+              {layout.moduleOrder.map((moduleId) => {
+                const cols = getModuleColumns(moduleId);
+                const height = getModuleHeight(moduleId);
+                return (
+                  <div
+                    key={moduleId}
+                    className={`${cols} ${height}`}
+                  >
+                    <DraggableModule id={moduleId} className="w-full h-full">
+                      {getModuleComponent(moduleId)}
+                    </DraggableModule>
+                  </div>
+                );
+              })}
             </div>
           </SortableContext>
         </DndContext>
