@@ -163,7 +163,7 @@ const MapModule = ({ articles }: MapModuleProps) => {
 
   return (
     <div className="hud-panel h-full flex flex-col">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2 flex-shrink-0">
         <h2 className="text-xs font-bold text-primary uppercase tracking-wider">
           CARTE GÉOGRAPHIQUE
         </h2>
@@ -181,13 +181,14 @@ const MapModule = ({ articles }: MapModuleProps) => {
       </div>
       
       {articles.length === 0 ? (
-        <div className="flex-1 rounded border border-primary/20 overflow-hidden flex items-center justify-center bg-card/20">
+        <div className="flex-1 min-h-[300px] rounded border border-primary/20 overflow-hidden flex items-center justify-center bg-card/20">
           <p className="text-xs text-muted-foreground">Aucune donnée disponible</p>
         </div>
       ) : (
         <div 
           ref={mapContainerRef}
-          className="flex-1 rounded border border-primary/30 overflow-hidden"
+          className="flex-1 min-h-[300px] rounded border border-primary/30 overflow-hidden"
+          style={{ minHeight: '300px' }}
         />
       )}
     </div>

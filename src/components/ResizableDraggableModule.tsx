@@ -60,7 +60,7 @@ const ResizableDraggableModule = ({
         style={style}
         className="relative"
       >
-        <div className="w-full h-auto min-h-[250px]">
+        <div className="w-full h-[400px]">
           {children}
         </div>
       </div>
