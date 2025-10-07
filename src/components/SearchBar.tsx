@@ -26,10 +26,16 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
     }
   }, [propSelectedApi]);
 
+  // Sync query with currentQuery prop
+  useEffect(() => {
+    if (currentQuery) {
+      setQuery(currentQuery);
+    }
+  }, [currentQuery]);
+
   // Auto-search when language changes and we have a query
   useEffect(() => {
     if (searchTrigger > 0 && currentQuery) {
-      setQuery(currentQuery);
       handleSearch(currentQuery);
     }
   }, [searchTrigger]);
