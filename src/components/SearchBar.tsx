@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
-import { FunctionsHttpError } from '@supabase/supabase-js'; // Importation critique pour la correction
+import { FunctionsHttpError } from '@supabase/supabase-js'; // Importation essentielle pour le décodage d'erreur
 
 interface SearchBarProps {
   onSearch: (query: string, articles: any[], analysis: any) => void;
@@ -53,23 +53,30 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
       // GESTION D'ERREUR NON-2XX (Status Code d'erreur de la fonction Edge : 4xx, 5xx)
       if (newsError) {
         if (newsError instanceof FunctionsHttpError) {
+          let errorMessage: string;
+          
           try {
-            // Tenter de décoder le message d'erreur réel contenu dans le corps
+            // Tenter de lire le corps JSON
             const errorBody = await newsError.context.json();
-            const errorMessage = errorBody.error || errorBody.message || `Erreur Serveur (${newsError.context.status || '??'})`;
+            errorMessage = errorBody.error || errorBody.message || `Erreur Serveur (${newsError.context.status || '??'}): Corps décodé.`;
             
-            toast.error(errorMessage);
-            console.error('Erreur Edge Function réelle:', errorBody);
-            
-            throw new Error(errorMessage); // Lance l'erreur décodée pour la gestion globale
-
           } catch (e) {
-            // La réponse n'est pas en JSON (cas rare)
-            const errorText = await newsError.context.text();
-            toast.error(`Erreur de la fonction Edge: ${errorText || 'Réponse illisible.'}`);
-            console.error('Erreur Edge Function non-JSON:', errorText);
-            throw new Error(errorText || "La recherche a échoué en raison d'une erreur serveur.");
+            // Si la lecture JSON échoue (corps déjà lu ou non-JSON)
+            // On essaie de lire le corps en texte, ou on utilise le statut par défaut
+            try {
+                const errorText = await newsError.context.text();
+                errorMessage = `Erreur de la fonction Edge (${newsError.context.status}): ${errorText || 'Réponse illisible.'}`;
+            } catch (textReadError) {
+                // Si la lecture texte échoue également (body stream already read)
+                errorMessage = `Erreur de la fonction Edge: Le flux de réponse a été lu. Code: ${newsError.context.status}. Vérifiez les logs Supabase.`;
+            }
+            
+            console.error('Erreur Edge Function (Lecture/Décodage):', newsError, e);
           }
+          
+          toast.error(errorMessage);
+          throw new Error(errorMessage); // Lance l'erreur pour la gestion globale
+
         } else {
           // Erreur réseau ou autre
           throw newsError; 
