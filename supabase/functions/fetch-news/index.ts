@@ -17,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    // 🟢 CODE FINAL : ON RÉCUPÈRE LA VALEUR DE L'API ENVOYÉE PAR LE CLIENT
+    // 🟢 CODE PROPRE : On utilise la valeur de l'API envoyée par le client
     const { query, language, api: selectedApi } = await req.json(); 
 
     if (!query || !language) {
