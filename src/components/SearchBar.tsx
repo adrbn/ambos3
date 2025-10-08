@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
-import { FunctionsHttpError } from '@supabase/supabase-js'; // <--- CORRECTION: Importation nécessaire pour décoder l'erreur 2xx
+import { FunctionsHttpError } from '@supabase/supabase-js'; // Importation critique pour la correction
 
 interface SearchBarProps {
   onSearch: (query: string, articles: any[], analysis: any) => void;
@@ -50,37 +50,35 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
         body: { query: queryToUse, language, api: selectedApi }
       });
 
-      // --- DÉBUT DU CORRECTIF: GESTION D'ERREUR NON-2XX ---
+      // GESTION D'ERREUR NON-2XX (Status Code d'erreur de la fonction Edge : 4xx, 5xx)
       if (newsError) {
         if (newsError instanceof FunctionsHttpError) {
-          // Si c'est une erreur HTTP de la fonction Edge, on décode son message réel
           try {
+            // Tenter de décoder le message d'erreur réel contenu dans le corps
             const errorBody = await newsError.context.json();
             const errorMessage = errorBody.error || errorBody.message || `Erreur Serveur (${newsError.context.status || '??'})`;
             
-            // Afficher le message d'erreur précis (y compris la limitation du plan)
             toast.error(errorMessage);
             console.error('Erreur Edge Function réelle:', errorBody);
             
-            // On lance l'erreur pour la gestion globale de l'UI
-            throw new Error(errorMessage);
+            throw new Error(errorMessage); // Lance l'erreur décodée pour la gestion globale
 
           } catch (e) {
-            // La réponse n'est pas en JSON (erreur Edge Function ou Deno)
+            // La réponse n'est pas en JSON (cas rare)
             const errorText = await newsError.context.text();
             toast.error(`Erreur de la fonction Edge: ${errorText || 'Réponse illisible.'}`);
             console.error('Erreur Edge Function non-JSON:', errorText);
             throw new Error(errorText || "La recherche a échoué en raison d'une erreur serveur.");
           }
         } else {
-          // Erreur de réseau, FetchError, etc.
+          // Erreur réseau ou autre
           throw newsError; 
         }
       }
-      // --- FIN DU CORRECTIF ---
+      // FIN GESTION D'ERREUR NON-2XX
 
 
-      // 2. Gestion des erreurs renvoyées en 200 par la fonction Edge (ex: limitation de plan)
+      // 2. Gestion des erreurs retournées dans le corps (Statut 200, mais contenu est une erreur)
       if (newsData?.error) {
         toast.error(newsData.error, {
           duration: newsData.isRateLimitError ? 10000 : 6000
@@ -109,7 +107,6 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
       });
 
       if (analysisError) {
-        // La gestion d'erreur ici est plus simple pour l'analyse
         console.error('Erreur d\'analyse:', analysisError);
         toast.error("Échec de l'analyse des articles.");
         onSearch(queryToUse, newsData.articles, null);
@@ -118,7 +115,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
         onSearch(queryToUse, newsData.articles, analysisData);
       }
     } catch (error: any) {
-      // Ce bloc attrape toutes les erreurs lancées (y compris le message décodé)
+      // Catch final pour toutes les erreurs lancées
       console.error('Échec de la recherche (Catch final):', error);
       toast.error(error.message || "La recherche a échoué.");
     } finally {
