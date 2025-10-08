@@ -14,15 +14,18 @@ import { toast } from "sonner";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
 
+// CORRECTION 1 : Mise à jour de l'interface pour accepter 'mediastack'
 interface SettingsDialogProps {
-  selectedApi: 'gnews' | 'newsapi';
-  onApiChange: (api: 'gnews' | 'newsapi') => void;
+  selectedApi: 'gnews' | 'newsapi' | 'mediastack';
+  onApiChange: (api: 'gnews' | 'newsapi' | 'mediastack') => void;
   language: Language;
 }
 
 const SettingsDialog = ({ selectedApi, onApiChange, language }: SettingsDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [tempApi, setTempApi] = useState<'gnews' | 'newsapi'>(selectedApi);
+  
+  // CORRECTION 2 : Mise à jour de l'état local pour accepter 'mediastack'
+  const [tempApi, setTempApi] = useState<'gnews' | 'newsapi' | 'mediastack'>(selectedApi);
   const { t } = useTranslation(language);
 
   const handleSave = () => {
@@ -50,13 +53,19 @@ const SettingsDialog = ({ selectedApi, onApiChange, language }: SettingsDialogPr
             <label className="text-sm font-medium text-foreground mb-2 block">
               {t('searchApiLabel')}
             </label>
-            <Select value={tempApi} onValueChange={(value: 'gnews' | 'newsapi') => setTempApi(value)}>
+            <Select 
+              value={tempApi} 
+              // Le type de la valeur doit aussi être mis à jour ici
+              onValueChange={(value: 'gnews' | 'newsapi' | 'mediastack') => setTempApi(value)}
+            >
               <SelectTrigger className="bg-card/50 border-primary/30">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="gnews">GNews API</SelectItem>
                 <SelectItem value="newsapi">NewsAPI</SelectItem>
+                {/* CORRECTION 3 : Ajout de la nouvelle option visible */}
+                <SelectItem value="mediastack">Mediastack API</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-2">
