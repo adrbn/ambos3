@@ -53,6 +53,7 @@ export const translations = {
     summary: "SYNTHÈSE",
     predictions: "PRÉDICTIONS",
     timeline: "CHRONOLOGIE",
+    sentimentTrend: "ÉVOLUTION DU SENTIMENT",
     map: "CARTE",
     entities: "ENTITÉS",
     keyEntities: "ENTITÉS CLÉS",
@@ -75,6 +76,10 @@ export const translations = {
     mediumProbability: "Probabilité moyenne",
     lowProbability: "Probabilité faible",
     noTimelineData: "Aucune donnée de chronologie pour le moment",
+    positive: "Positif",
+    neutral: "Neutre",
+    negative: "Négatif",
+    noDataAvailable: "Aucune donnée disponible",
     
     // Settings Dialog
     settingsTitle: "Paramètres",
@@ -149,6 +154,7 @@ export const translations = {
     summary: "SUMMARY",
     predictions: "PREDICTIONS",
     timeline: "TIMELINE",
+    sentimentTrend: "SENTIMENT TREND",
     map: "MAP",
     entities: "ENTITIES",
     keyEntities: "KEY ENTITIES",
@@ -171,6 +177,10 @@ export const translations = {
     mediumProbability: "Medium probability",
     lowProbability: "Low probability",
     noTimelineData: "No timeline data yet",
+    positive: "Positive",
+    neutral: "Neutral",
+    negative: "Negative",
+    noDataAvailable: "No data available",
     
     // Settings Dialog
     settingsTitle: "Settings",
@@ -245,6 +255,7 @@ export const translations = {
     summary: "SINTESI",
     predictions: "PREVISIONI",
     timeline: "CRONOLOGIA",
+    sentimentTrend: "TENDENZA DEL SENTIMENT",
     map: "MAPPA",
     entities: "ENTITÀ",
     keyEntities: "ENTITÀ CHIAVE",
@@ -267,6 +278,10 @@ export const translations = {
     mediumProbability: "Media probabilità",
     lowProbability: "Bassa probabilità",
     noTimelineData: "Nessun dato della timeline ancora",
+    positive: "Positivo",
+    neutral: "Neutro",
+    negative: "Negativo",
+    noDataAvailable: "Nessun dato disponibile",
     
     // Settings Dialog
     settingsTitle: "Impostazioni",
