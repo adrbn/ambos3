@@ -13,7 +13,7 @@ interface SearchBarProps {
   language: Language;
   currentQuery: string;
   searchTrigger: number;
-  selectedApi: 'gnews' | 'newsapi';
+  selectedApi: 'gnews' | 'newsapi' | 'mediastack';
 }
 
 const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi }: SearchBarProps) => {
