@@ -17,13 +17,8 @@ serve(async (req) => {
   }
 
   try {
-    // Note: 'api' est reçu dans le JSON mais n'est pas utilisé directement
-    const { query, language } = await req.json(); 
-    
-    // 🛑 TEMPORAIRE : FORÇAGE DE MEDIASTACK POUR LE TEST 🛑
-    // Ceci ignore la valeur de l'API envoyée par le client (qui est erronée)
-    // et garantit que nous testons le serveur Mediastack.
-    const selectedApi = 'mediastack'; 
+    // 🟢 CODE FINAL : ON RÉCUPÈRE LA VALEUR DE L'API ENVOYÉE PAR LE CLIENT
+    const { query, language, api: selectedApi } = await req.json(); 
 
     if (!query || !language) {
       return new Response(JSON.stringify({ error: 'Missing query or language' }), {
