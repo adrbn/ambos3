@@ -6,6 +6,9 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+// AJOUTÉ : Définit les sources d'API disponibles, y compris 'mediastack'
+export type ApiSource = 'gnews' | 'newsapi' | 'mediastack'; 
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -43,7 +46,7 @@ export type Database = {
       }
       sector_watches: {
         Row: {
-          api: string
+          api: string // NOTE: Ce champ devrait idéalement être de type ApiSource dans la DB
           color: string | null
           created_at: string
           description: string | null
