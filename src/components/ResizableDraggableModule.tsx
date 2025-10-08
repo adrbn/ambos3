@@ -94,27 +94,13 @@ const ResizableDraggableModule = ({
         onResize={handleResize}
         minConstraints={[200, 150]}
         maxConstraints={[1200, 800]}
-        resizeHandles={['se', 's', 'e', 'sw', 'w', 'n', 'ne', 'nw']}
+        resizeHandles={['se', 's', 'e']}
         className="w-full h-full"
-        handle={(handleAxis) => {
-          const handleStyles: Record<string, { cursor: string; position: string; component: JSX.Element }> = {
-            se: { cursor: 'cursor-se-resize', position: 'bottom-0 right-0', component: <div className="w-3 h-3 border-r-2 border-b-2 border-primary/60" /> },
-            s: { cursor: 'cursor-s-resize', position: 'bottom-0 left-1/2 -translate-x-1/2', component: <div className="w-8 h-1.5 border-b-2 border-primary/60 rounded-full" /> },
-            e: { cursor: 'cursor-e-resize', position: 'right-0 top-1/2 -translate-y-1/2', component: <div className="h-8 w-1.5 border-r-2 border-primary/60 rounded-full" /> },
-            sw: { cursor: 'cursor-sw-resize', position: 'bottom-0 left-0', component: <div className="w-3 h-3 border-l-2 border-b-2 border-primary/60" /> },
-            w: { cursor: 'cursor-w-resize', position: 'left-0 top-1/2 -translate-y-1/2', component: <div className="h-8 w-1.5 border-l-2 border-primary/60 rounded-full" /> },
-            n: { cursor: 'cursor-n-resize', position: 'top-0 left-1/2 -translate-x-1/2', component: <div className="w-8 h-1.5 border-t-2 border-primary/60 rounded-full" /> },
-            ne: { cursor: 'cursor-ne-resize', position: 'top-0 right-0', component: <div className="w-3 h-3 border-r-2 border-t-2 border-primary/60" /> },
-            nw: { cursor: 'cursor-nw-resize', position: 'top-0 left-0', component: <div className="w-3 h-3 border-l-2 border-t-2 border-primary/60" /> },
-          };
-          
-          const style = handleStyles[handleAxis];
-          return (
-            <div className={`absolute ${style.position} p-1 ${style.cursor} opacity-0 group-hover:opacity-100 transition-opacity z-10`}>
-              {style.component}
-            </div>
-          );
-        }}
+        handle={
+          <div className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute bottom-1 right-1 w-3 h-3 border-r-2 border-b-2 border-primary/50" />
+          </div>
+        }
       >
         <div className="w-full h-full overflow-hidden">
           {children}

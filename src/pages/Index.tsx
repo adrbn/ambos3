@@ -24,7 +24,6 @@ import PredictionsModule from "@/components/PredictionsModule";
 import TimelineModule from "@/components/TimelineModule";
 import DataFeedModule from "@/components/DataFeedModule";
 import SectorWatchesModule from "@/components/SectorWatchesModule";
-import SentimentTrendModule from "@/components/SentimentTrendModule";
 import SettingsDialog from "@/components/SettingsDialog";
 import StatusBar from "@/components/StatusBar";
 import LanguageSelector from "@/components/LanguageSelector";
@@ -185,8 +184,6 @@ const Index = () => {
         return <PredictionsModule predictions={analysis?.predictions || []} sentiment={analysis?.sentiment || null} language={language} />;
       case 'datafeed':
         return <DataFeedModule articles={articles} language={language} />;
-      case 'sentiment-trend':
-        return <SentimentTrendModule articles={articles} language={language} />;
       default:
         return null;
     }
