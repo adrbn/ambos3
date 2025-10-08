@@ -1,5 +1,4 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-// Remplacement de l'ancienne importation 'https://deno.land/x/xhr@0.1.0/mod.ts' qui n'est pas nécessaire ici
 
 // Constantes pour les en-têtes CORS
 const corsHeaders = {
@@ -18,8 +17,13 @@ serve(async (req) => {
   }
 
   try {
-    // Le front-end envoie maintenant 'api' et nous avons besoin de 'query' et 'language'
-    const { query, language, api: selectedApi } = await req.json();
+    // Note: 'api' est reçu dans le JSON mais n'est pas utilisé directement
+    const { query, language } = await req.json(); 
+    
+    // 🛑 TEMPORAIRE : FORÇAGE DE MEDIASTACK POUR LE TEST 🛑
+    // Ceci ignore la valeur de l'API envoyée par le client (qui est erronée)
+    // et garantit que nous testons le serveur Mediastack.
+    const selectedApi = 'mediastack'; 
 
     if (!query || !language) {
       return new Response(JSON.stringify({ error: 'Missing query or language' }), {
@@ -42,18 +46,17 @@ serve(async (req) => {
       url.searchParams.append('max', '10');
     } else if (selectedApi === 'newsapi') {
       apiKey = Deno.env.get('NEWSAPI_KEY');
-      // NewsAPI nécessite la clé dans un header ou dans l'URL, utilisons un header pour la sécurité
       url = new URL(NEWSAPI_ENDPOINT);
       url.searchParams.append('q', query);
       url.searchParams.append('language', language);
       url.searchParams.append('pageSize', '10');
-      headers['X-Api-Key'] = apiKey || ''; // NewsAPI utilise un header
+      headers['X-Api-Key'] = apiKey || '';
     } else if (selectedApi === 'mediastack') {
       apiKey = Deno.env.get('MEDIASTACK_KEY');
       url = new URL(MEDIASTACK_ENDPOINT);
       url.searchParams.append('keywords', query);
       url.searchParams.append('language', language);
-      url.searchParams.append('access_key', apiKey || ''); // Mediastack utilise la clé dans l'URL
+      url.searchParams.append('access_key', apiKey || '');
       url.searchParams.append('limit', '10');
     } else {
       return new Response(JSON.stringify({ error: 'Invalid API selected' }), {
@@ -74,18 +77,15 @@ serve(async (req) => {
     
     // 2. Gestion des erreurs non-200 (4xx, 5xx)
     if (!response.ok) {
-      // Tente de lire le corps de la réponse. Le .catch() prévient l'erreur de "body stream already read"
       const errorText = await response.text().catch(() => 'No response body or body stream consumed.');
       console.error('API Error:', response.status, errorText);
       
-      // La fonction Edge doit renvoyer un statut non-2xx pour que le client (SearchBar.tsx) décode
-      // correctement le message réel de l'API.
       return new Response(JSON.stringify({ 
         error: `API error (${response.status} from ${selectedApi}): ${errorText.substring(0, 100)}...`,
         isRateLimitError: response.status === 429 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: response.status, // Renvoyer le statut réel pour le client (SearchBar.tsx)
+        status: response.status,
       });
     }
 
@@ -112,11 +112,11 @@ serve(async (req) => {
             url: article.url,
             image: article.urlToImage,
             publishedAt: article.publishedAt,
-            source: article.source, // NewsAPI fournit source.id et source.name
+            source: article.source,
         }));
         totalArticles = data.totalResults || articles.length;
     } else if (data.articles) { 
-        // GNews (le format de base de votre ancien code)
+        // GNews (le format de base)
         articles = data.articles;
         totalArticles = data.totalArticles || articles.length;
     }
@@ -126,7 +126,6 @@ serve(async (req) => {
         console.error('API error in body:', data);
         const errorMessage = data.message || (data.errors ? data.errors.join(', ') : 'Unknown API error');
         
-        // On retourne l'erreur dans un corps 200 pour le front-end comme avant.
         return new Response(JSON.stringify({ 
             articles: [],
             error: `API error from ${selectedApi}: ${errorMessage}`,
