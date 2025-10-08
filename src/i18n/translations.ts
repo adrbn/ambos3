@@ -19,6 +19,13 @@ export const translations = {
     searchPlaceholder: "Entrez votre requête (ex: 'guerre Ukraine', 'changement climatique')...",
     searchButton: "RECHERCHER",
     searching: "Recherche en cours...",
+    sourceType: "Type de source",
+    newsApis: "APIs d'actualités",
+    socialOsint: "OSINT Social",
+    credibilityScore: "Fiabilité",
+    verified: "Vérifié",
+    engagement: "Engagement",
+    platform: "Plateforme",
     
     // Sector Watches
     newWatch: "Nouvelle",
@@ -115,6 +122,13 @@ export const translations = {
     searchPlaceholder: "Enter your query (e.g., 'Ukraine war', 'climate change')...",
     searchButton: "SEARCH",
     searching: "Searching...",
+    sourceType: "Source Type",
+    newsApis: "News APIs",
+    socialOsint: "Social OSINT",
+    credibilityScore: "Credibility",
+    verified: "Verified",
+    engagement: "Engagement",
+    platform: "Platform",
     
     // Sector Watches
     newWatch: "New",
@@ -211,6 +225,13 @@ export const translations = {
     searchPlaceholder: "Inserisci la tua query (es: 'guerra Ucraina', 'cambiamento climatico')...",
     searchButton: "CERCA",
     searching: "Ricerca in corso...",
+    sourceType: "Tipo di fonte",
+    newsApis: "API di notizie",
+    socialOsint: "OSINT Sociale",
+    credibilityScore: "Affidabilità",
+    verified: "Verificato",
+    engagement: "Coinvolgimento",
+    platform: "Piattaforma",
     
     // Sector Watches
     newWatch: "Nuovo",

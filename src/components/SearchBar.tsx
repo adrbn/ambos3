@@ -14,9 +14,11 @@ interface SearchBarProps {
   currentQuery: string;
   searchTrigger: number;
   selectedApi: 'gnews' | 'newsapi' | 'mediastack';
+  sourceType: 'news' | 'osint';
+  onSourceTypeChange: (type: 'news' | 'osint') => void;
 }
 
-const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi }: SearchBarProps) => {
+const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi, sourceType, onSourceTypeChange }: SearchBarProps) => {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation(language);
@@ -45,9 +47,14 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
     setIsLoading(true);
 
     try {
-      // 1. Appel de la fonction Edge 'fetch-news'
-      const { data: newsData, error: newsError } = await supabase.functions.invoke('fetch-news', {
-        body: { query: queryToUse, language, api: selectedApi }
+      // 1. Determine which edge function to call based on source type
+      const functionName = sourceType === 'osint' ? 'fetch-bluesky' : 'fetch-news';
+      const body = sourceType === 'osint' 
+        ? { query: queryToUse, language, limit: 50 }
+        : { query: queryToUse, language, api: selectedApi };
+      
+      const { data: newsData, error: newsError } = await supabase.functions.invoke(functionName, {
+        body
       });
 
       // GESTION D'ERREUR NON-2XX (Status Code d'erreur de la fonction Edge : 4xx, 5xx)
@@ -131,7 +138,31 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
   };
 
   return (
-    <div className="w-full space-y-2">
+    <div className="w-full space-y-3">
+      {/* Source Type Toggle */}
+      <div className="flex gap-2 p-1 bg-card/30 rounded-lg border border-primary/20">
+        <button
+          onClick={() => onSourceTypeChange('news')}
+          className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all ${
+            sourceType === 'news'
+              ? 'bg-primary text-primary-foreground shadow-lg'
+              : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
+          }`}
+        >
+          📰 {t('newsApis')}
+        </button>
+        <button
+          onClick={() => onSourceTypeChange('osint')}
+          className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all ${
+            sourceType === 'osint'
+              ? 'bg-primary text-primary-foreground shadow-lg'
+              : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
+          }`}
+        >
+          🔍 {t('socialOsint')}
+        </button>
+      </div>
+
       <div className="relative">
         <Input
           type="text"

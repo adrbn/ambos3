@@ -3,6 +3,9 @@ project_id = "vmrmvcndzrkcxwjoxplv"
 [functions.fetch-news]
 verify_jwt = false
 
+[functions.fetch-bluesky]
+verify_jwt = false
+
 [functions.analyze-news]
 verify_jwt = false
 

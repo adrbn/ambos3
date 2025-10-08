@@ -33,6 +33,7 @@ import { useLayoutConfig, ModuleId } from "@/hooks/useLayoutConfig";
 import { useSavedLayouts } from "@/hooks/useSavedLayouts";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
+import { ApiSource } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -43,7 +44,8 @@ const Index = () => {
   const [analysis, setAnalysis] = useState<any>(null);
   const [language, setLanguage] = useState<Language>("fr");
   const [searchTrigger, setSearchTrigger] = useState(0);
-  const [selectedApi, setSelectedApi] = useState<'gnews' | 'newsapi'>('newsapi');
+  const [selectedApi, setSelectedApi] = useState<ApiSource>('newsapi');
+  const [sourceType, setSourceType] = useState<'news' | 'osint'>('news');
   const [activeTab, setActiveTab] = useState<string>("search");
   const [currentWatch, setCurrentWatch] = useState<any>(null);
   const { t } = useTranslation(language);
@@ -271,6 +273,8 @@ const Index = () => {
               currentQuery={currentQuery} 
               searchTrigger={searchTrigger}
               selectedApi={selectedApi}
+              sourceType={sourceType}
+              onSourceTypeChange={setSourceType}
             />
           </TabsContent>
           <TabsContent value="watches" className="mt-0">
