@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
+import { FunctionsHttpError } from '@supabase/supabase-js'; // <--- CORRECTION: Importation nécessaire pour décoder l'erreur 2xx
 
 interface SearchBarProps {
   onSearch: (query: string, articles: any[], analysis: any) => void;
@@ -37,58 +38,89 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
   const handleSearch = async (searchQuery?: string) => {
     const queryToUse = searchQuery || query;
     if (!queryToUse.trim()) {
-      toast.error("Please enter a search query");
+      toast.error("Veuillez entrer une requête de recherche.");
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
-      // Fetch news articles
+      // 1. Appel de la fonction Edge 'fetch-news'
       const { data: newsData, error: newsError } = await supabase.functions.invoke('fetch-news', {
         body: { query: queryToUse, language, api: selectedApi }
       });
 
-      if (newsError) throw newsError;
-      
-      // Check for API errors in the response
+      // --- DÉBUT DU CORRECTIF: GESTION D'ERREUR NON-2XX ---
+      if (newsError) {
+        if (newsError instanceof FunctionsHttpError) {
+          // Si c'est une erreur HTTP de la fonction Edge, on décode son message réel
+          try {
+            const errorBody = await newsError.context.json();
+            const errorMessage = errorBody.error || errorBody.message || `Erreur Serveur (${newsError.context.status || '??'})`;
+            
+            // Afficher le message d'erreur précis (y compris la limitation du plan)
+            toast.error(errorMessage);
+            console.error('Erreur Edge Function réelle:', errorBody);
+            
+            // On lance l'erreur pour la gestion globale de l'UI
+            throw new Error(errorMessage);
+
+          } catch (e) {
+            // La réponse n'est pas en JSON (erreur Edge Function ou Deno)
+            const errorText = await newsError.context.text();
+            toast.error(`Erreur de la fonction Edge: ${errorText || 'Réponse illisible.'}`);
+            console.error('Erreur Edge Function non-JSON:', errorText);
+            throw new Error(errorText || "La recherche a échoué en raison d'une erreur serveur.");
+          }
+        } else {
+          // Erreur de réseau, FetchError, etc.
+          throw newsError; 
+        }
+      }
+      // --- FIN DU CORRECTIF ---
+
+
+      // 2. Gestion des erreurs renvoyées en 200 par la fonction Edge (ex: limitation de plan)
       if (newsData?.error) {
-        toast.error(newsData.error, { 
-          duration: newsData.isRateLimitError ? 10000 : 6000 
+        toast.error(newsData.error, {
+          duration: newsData.isRateLimitError ? 10000 : 6000
         });
-        console.error('API error:', newsData);
+        console.error('Erreur API (gestion interne):', newsData);
         setIsLoading(false);
         return;
       }
-      
+
+      // 3. Gestion de l'absence d'articles
       if (!newsData?.articles || newsData.articles.length === 0) {
-        const errorMsg = newsData?.totalArticles > 0 
-          ? "Articles found but not available (30+ days old). Try recent news topics!" 
-          : "No articles found. Try different keywords.";
+        const errorMsg = newsData?.totalArticles > 0
+          ? "Articles trouvés mais non disponibles (plus de 30 jours). Essayez des sujets d'actualité plus récents !"
+          : "Aucun article trouvé. Essayez d'autres mots-clés.";
         toast.error(errorMsg, { duration: 6000 });
-        console.error('No articles returned:', newsData);
+        console.error('Aucun article retourné:', newsData);
         setIsLoading(false);
         return;
       }
 
-      toast.success(`Found ${newsData.articles.length} articles`);
+      toast.success(`Trouvé ${newsData.articles.length} articles`);
 
-      // Analyze articles with AI
+      // 4. Analyse des articles avec l'IA
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-news', {
         body: { articles: newsData.articles, query: queryToUse, language }
       });
 
       if (analysisError) {
-        console.error('Analysis error:', analysisError);
-        toast.error("Failed to analyze articles");
+        // La gestion d'erreur ici est plus simple pour l'analyse
+        console.error('Erreur d\'analyse:', analysisError);
+        toast.error("Échec de l'analyse des articles.");
         onSearch(queryToUse, newsData.articles, null);
       } else {
-        toast.success("AI analysis complete");
+        toast.success("Analyse IA terminée.");
         onSearch(queryToUse, newsData.articles, analysisData);
       }
     } catch (error: any) {
-      console.error('Search error:', error);
-      toast.error(error.message || "Search failed");
+      // Ce bloc attrape toutes les erreurs lancées (y compris le message décodé)
+      console.error('Échec de la recherche (Catch final):', error);
+      toast.error(error.message || "La recherche a échoué.");
     } finally {
       setIsLoading(false);
     }
