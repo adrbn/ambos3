@@ -47,10 +47,10 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
     setIsLoading(true);
 
     try {
-      // 1. Enrichir la requête via ChatGPT
+      // 1. Enrichir la requête via ChatGPT (adapté au type de source)
       toast.info("Enrichissement de la requête...", { duration: 2000 });
       const { data: enrichData, error: enrichError } = await supabase.functions.invoke('enrich-query', {
-        body: { query: queryToUse, language }
+        body: { query: queryToUse, language, sourceType }
       });
 
       if (enrichError || !enrichData?.enrichedQuery) {

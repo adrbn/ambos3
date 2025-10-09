@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, language } = await req.json();
+    const { query, language, sourceType = 'news' } = await req.json();
     
     if (!query) {
       return new Response(
@@ -26,9 +26,26 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log(`Enriching query: "${query}" (language: ${language})`);
+    console.log(`Enriching query: "${query}" (language: ${language}, sourceType: ${sourceType})`);
 
-    const systemPrompt = `Tu es un expert en requêtes de recherche booléennes pour les API de news. 
+    // Different enrichment strategies based on source type
+    const systemPrompt = sourceType === 'osint' 
+      ? `Tu es un expert en recherche sur les réseaux sociaux (Mastodon, Twitter, etc.).
+Ta tâche est de transformer une requête simple en une liste de hashtags pertinents pour Mastodon.
+
+Règles CRITIQUES:
+- Retourne UNIQUEMENT des hashtags séparés par des espaces
+- Chaque hashtag commence par #
+- Maximum 3-5 hashtags les plus pertinents
+- Inclus des variantes en anglais ET dans la langue demandée
+- Pas de parenthèses, pas d'opérateurs booléens
+- Hashtags simples sans espaces (utilise CamelCase si nécessaire)
+
+Exemples:
+"conférence cyber italie" → "#cybersecurity #conference #italy #cybersécurité #tech"
+"elections usa" → "#election #USA #politics #vote #democracy"
+"climat france" → "#climate #france #environment #climatechange #écologie"`
+      : `Tu es un expert en requêtes de recherche booléennes pour les API de news. 
 Ta tâche est de transformer une requête simple en une requête complexe optimisée avec des opérateurs booléens (AND, OR, NOT).
 
 Règles:
@@ -44,6 +61,10 @@ Exemples:
 "elections usa" → "(élection OR election OR présidentielle OR presidential) AND (États-Unis OR USA OR United States OR America)"
 "climat france" → "(climat OR climate OR réchauffement OR warming OR environnement OR environment) AND France"`;
 
+    const userPrompt = sourceType === 'osint'
+      ? `Transforme cette requête en hashtags pour Mastodon (langue: ${language}):\n\n"${query}"\n\nRéponds UNIQUEMENT avec les hashtags séparés par des espaces, sans explications.`
+      : `Transforme cette requête simple en requête booléenne complexe (langue: ${language}):\n\n"${query}"\n\nRéponds UNIQUEMENT avec la requête enrichie, sans explications.`;
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -54,10 +75,7 @@ Exemples:
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { 
-            role: 'user', 
-            content: `Transforme cette requête simple en requête booléenne complexe (langue: ${language}):\n\n"${query}"\n\nRéponds UNIQUEMENT avec la requête enrichie, sans explications.`
-          }
+          { role: 'user', content: userPrompt }
         ],
         temperature: 0.3,
         max_tokens: 200,
