@@ -138,7 +138,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
 
       // 4. Analyse des articles avec l'IA
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-news', {
-        body: { articles: allArticles, query: queryToUse, language }
+        body: { articles: allArticles, query: queryToUse, language, sourceType }
       });
 
       if (analysisError) {

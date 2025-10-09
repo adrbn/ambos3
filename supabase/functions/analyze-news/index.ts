@@ -12,24 +12,79 @@ serve(async (req) => {
   }
 
   try {
-    const { articles, query, language = 'en' } = await req.json();
+    const { articles, query, language = 'en', sourceType = 'news' } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log('Analyzing articles for query:', query);
+    console.log(`Analyzing articles for query: ${query} (sourceType: ${sourceType})`);
 
-    const systemPrompts = {
-      en: 'You are an intelligence analyst specializing in OSINT. Analyze the provided news articles and extract: 1) Key entities (people, organizations, locations) with their roles in the context. 2) A CONCISE yet COMPREHENSIVE summary - be straight to the point while capturing ALL critical information, key facts, and important developments. Avoid redundancy but miss nothing essential. 3) Predictive analysis of what may happen next with probabilities. 4) Public sentiment and expert opinions. Return valid JSON only.',
-      fr: "Vous êtes un analyste du renseignement spécialisé en OSINT. Analysez les articles fournis et extrayez : 1) Entités clés (personnes, organisations, lieux) avec leurs rôles dans le contexte. 2) Un résumé CONCIS mais COMPLET - allez droit au but tout en capturant TOUTES les informations critiques, faits clés et développements importants. Évitez la redondance mais n'omettez rien d'essentiel. 3) Une analyse prédictive de ce qui pourrait se passer ensuite avec des probabilités. 4) Le sentiment public et les opinions d'experts. Retournez uniquement du JSON valide.",
-      it: "Sei un analista dell'intelligence specializzato in OSINT. Analizza gli articoli forniti ed estrai: 1) Entità chiave (persone, organizzazioni, luoghi) con i loro ruoli nel contesto. 2) Un riepilogo CONCISO ma COMPLETO - vai dritto al punto catturando TUTTE le informazioni critiche, fatti chiave e sviluppi importanti. Evita ridondanze ma non tralasciare nulla di essenziale. 3) Analisi predittiva di cosa potrebbe accadere dopo con probabilità. 4) Sentiment pubblico e opinioni di esperti. Restituisci solo JSON valido."
+    // Different analysis approach for Press vs OSINT
+    const systemPrompts = sourceType === 'osint' ? {
+      en: `You are an OSINT analyst specializing in social media intelligence and community sentiment analysis. 
+
+CRITICAL: These are SOCIAL MEDIA posts from platforms like Mastodon and BlueSky - NOT verified news sources.
+
+Your analysis must focus on:
+1) COMMUNITY PULSE & SENTIMENT: What are online communities saying? What emotions, concerns, hopes are expressed?
+2) EMERGING NARRATIVES: What stories, theories, or interpretations are forming in social networks?
+3) DIVERGENCE & CONVERGENCE: Where do opinions split? Where do they align? Identify camps, factions, consensus.
+4) SIGNAL DETECTION: Spot early warnings, weak signals, grassroots movements before they hit mainstream media
+5) CREDIBILITY ASSESSMENT: Which voices have high engagement? Which accounts seem influential vs fringe?
+6) VOLATILITY INDICATORS: What topics are heating up? What sudden shifts in discourse?
+
+Remember: This is the PULSE of online communities - more reactive, emotional, and volatile than press. Capture the MOOD, the DISCOURSE, the DYNAMICS.
+
+Return valid JSON only.`,
+      fr: `Vous êtes un analyste OSINT spécialisé dans l'intelligence des réseaux sociaux et l'analyse des sentiments communautaires.
+
+CRITIQUE: Ce sont des posts de RÉSEAUX SOCIAUX (Mastodon, BlueSky) - PAS des sources d'information vérifiées.
+
+Votre analyse doit se concentrer sur:
+1) POULS & SENTIMENT COMMUNAUTAIRE: Que disent les communautés en ligne? Quelles émotions, préoccupations, espoirs s'expriment?
+2) RÉCITS ÉMERGENTS: Quelles histoires, théories ou interprétations se forment dans les réseaux sociaux?
+3) DIVERGENCES & CONVERGENCES: Où les opinions divergent? Où s'alignent-elles? Identifiez les camps, factions, consensus.
+4) DÉTECTION DE SIGNAUX: Repérez les signaux faibles, mouvements de terrain avant qu'ils atteignent les médias mainstream
+5) ÉVALUATION CRÉDIBILITÉ: Quelles voix ont un fort engagement? Quels comptes semblent influents vs marginaux?
+6) INDICATEURS DE VOLATILITÉ: Quels sujets s'échauffent? Quels changements soudains dans le discours?
+
+Rappel: C'est le POULS des communautés en ligne - plus réactif, émotionnel et volatile que la presse. Capturez l'AMBIANCE, le DISCOURS, les DYNAMIQUES.
+
+Retournez uniquement du JSON valide.`,
+      it: `Sei un analista OSINT specializzato nell'intelligence dei social media e nell'analisi del sentiment delle comunità.
+
+CRITICO: Questi sono post dai SOCIAL MEDIA (Mastodon, BlueSky) - NON fonti giornalistiche verificate.
+
+La tua analisi deve concentrarsi su:
+1) POLSO & SENTIMENT COMUNITARIO: Cosa dicono le comunità online? Quali emozioni, preoccupazioni, speranze vengono espresse?
+2) NARRAZIONI EMERGENTI: Quali storie, teorie o interpretazioni si stanno formando nei social network?
+3) DIVERGENZE & CONVERGENZE: Dove le opinioni divergono? Dove si allineano? Identifica campi, fazioni, consenso.
+4) RILEVAMENTO SEGNALI: Individua segnali deboli, movimenti dal basso prima che raggiungano i media mainstream
+5) VALUTAZIONE CREDIBILITÀ: Quali voci hanno alto engagement? Quali account sembrano influenti vs marginali?
+6) INDICATORI VOLATILITÀ: Quali argomenti si stanno scaldando? Quali cambiamenti improvvisi nel discorso?
+
+Ricorda: Questo è il POLSO delle comunità online - più reattivo, emotivo e volatile della stampa. Cattura l'ATMOSFERA, il DISCORSO, le DINAMICHE.
+
+Restituisci solo JSON valido.`
+    } : {
+      en: 'You are an intelligence analyst specializing in press and media analysis. Analyze the provided news articles from verified journalistic sources and extract: 1) Key entities (people, organizations, locations) with their roles in the context. 2) A CONCISE yet COMPREHENSIVE summary - be straight to the point while capturing ALL critical information, key facts, and important developments from verified press sources. 3) Predictive analysis of what may happen next with probabilities. 4) Public sentiment and expert opinions as reported in the press. Return valid JSON only.',
+      fr: "Vous êtes un analyste du renseignement spécialisé dans l'analyse de la presse et des médias. Analysez les articles de presse issus de sources journalistiques vérifiées et extrayez : 1) Entités clés (personnes, organisations, lieux) avec leurs rôles dans le contexte. 2) Un résumé CONCIS mais COMPLET - allez droit au but tout en capturant TOUTES les informations critiques, faits clés et développements importants issus de sources de presse vérifiées. 3) Une analyse prédictive de ce qui pourrait se passer ensuite avec des probabilités. 4) Le sentiment public et les opinions d'experts tels que rapportés dans la presse. Retournez uniquement du JSON valide.",
+      it: "Sei un analista dell'intelligence specializzato nell'analisi della stampa e dei media. Analizza gli articoli di stampa da fonti giornalistiche verificate ed estrai: 1) Entità chiave (persone, organizzazioni, luoghi) con i loro ruoli nel contesto. 2) Un riepilogo CONCISO ma COMPLETO - vai dritto al punto catturando TUTTE le informazioni critiche, fatti chiave e sviluppi importanti da fonti stampa verificate. 3) Analisi predittiva di cosa potrebbe accadere dopo con probabilità. 4) Sentiment pubblico e opinioni di esperti come riportati nella stampa. Restituisci solo JSON valido."
     };
 
-    const articlesText = articles.map((a: any, i: number) => 
-      `[${i+1}] ${a.title}\n${a.description}\nSource: ${a.source?.name || 'Unknown'}\nPublished: ${a.publishedAt}\nURL: ${a.url}`
-    ).join('\n\n');
+    const articlesText = articles.map((a: any, i: number) => {
+      const baseInfo = `[${i+1}] ${a.title}\n${a.description}\nSource: ${a.source?.name || 'Unknown'}\nPublished: ${a.publishedAt}\nURL: ${a.url}`;
+      
+      // Add OSINT-specific metadata if available
+      if (a.osint) {
+        const osintInfo = `\nPlatform: ${a.osint.platform}\nCredibility Score: ${a.osint.credibilityScore}/100\nEngagement: ${a.osint.engagement?.likes || 0} likes, ${a.osint.engagement?.reposts || 0} reposts, ${a.osint.engagement?.replies || 0} replies`;
+        return baseInfo + osintInfo;
+      }
+      
+      return baseInfo;
+    }).join('\n\n');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -43,12 +98,20 @@ serve(async (req) => {
           { role: 'system', content: systemPrompts[language as keyof typeof systemPrompts] || systemPrompts.en },
           { 
             role: 'user', 
-            content: `Query: "${query}"\n\nArticles:\n${articlesText}\n\nProvide analysis in JSON format with this structure:
+            content: sourceType === 'osint' 
+              ? `Query: "${query}"\n\nSOCIAL MEDIA POSTS (${articles.length} posts from Mastodon/BlueSky):\n${articlesText}\n\nProvide OSINT COMMUNITY ANALYSIS in JSON format with this structure:
+{
+  "entities": [{"name": "string", "type": "person|organization|location|hashtag", "role": "string", "mentions": number}],
+  "summary": "FOCUS: Capture the PULSE of online communities - What are people FEELING and SAYING? What narratives are EMERGING? What's TRENDING? Be DIRECT and INSIGHTFUL about the community dynamics and discourse patterns.",
+  "predictions": [{"scenario": "Based on community discourse patterns and emerging narratives", "probability": "high|medium|low", "timeframe": "string"}],
+  "sentiment": {"community_mood": "Overall emotional tone and intensity in communities", "divergences": "Main points of disagreement or different camps", "convergences": "Areas of consensus or shared concern", "weak_signals": "Early indicators or grassroots movements"}
+}`
+              : `Query: "${query}"\n\nPRESS ARTICLES (${articles.length} verified news sources):\n${articlesText}\n\nProvide PRESS ANALYSIS in JSON format with this structure:
 {
   "entities": [{"name": "string", "type": "person|organization|location", "role": "string", "mentions": number}],
-  "summary": "CRITICAL: Make this summary CONCISE and STRAIGHT TO THE POINT while capturing ALL essential information. Include: key facts, critical developments, main actors, important context. Be synthetic but comprehensive - every sentence must add value, no fluff or repetition.",
+  "summary": "CONCISE and STRAIGHT TO THE POINT while capturing ALL essential information from verified press sources. Include: key facts, critical developments, main actors, important context.",
   "predictions": [{"scenario": "string", "probability": "high|medium|low", "timeframe": "string"}],
-  "sentiment": {"public": "string", "experts": "string"}
+  "sentiment": {"public": "Public opinion as reported in press", "experts": "Expert opinions and analysis from press sources"}
 }`
           }
         ],
