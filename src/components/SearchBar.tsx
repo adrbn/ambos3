@@ -182,51 +182,62 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
           📰 {t('newsApis')}
         </button>
         
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all flex items-center justify-center gap-1 ${
-                sourceType === 'osint'
-                  ? 'bg-primary text-primary-foreground shadow-lg'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
-              }`}
-              onClick={() => onSourceTypeChange('osint')}
-            >
-              🔍 {t('socialOsint')}
-              <Settings2 className="w-3 h-3 ml-1" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-72 bg-card border-primary/30 p-3" align="end">
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground font-mono mb-2">Sources OSINT actives:</p>
-              <div className="flex flex-col gap-2">
-                {['mastodon', 'bluesky'].map((source) => (
-                  <label
-                    key={source}
-                    className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={osintSources.includes(source)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          onOsintSourcesChange([...osintSources, source]);
-                        } else {
-                          onOsintSourcesChange(osintSources.filter(s => s !== source));
-                        }
-                      }}
-                      className="w-3 h-3"
-                    />
-                    <span className="text-xs font-mono capitalize flex-1">{source}</span>
-                  </label>
-                ))}
+        <div className="flex flex-1 gap-1">
+          <button
+            onClick={() => onSourceTypeChange('osint')}
+            className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all ${
+              sourceType === 'osint'
+                ? 'bg-primary text-primary-foreground shadow-lg'
+                : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
+            }`}
+          >
+            🔍 {t('socialOsint')}
+          </button>
+          
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className={`px-2 py-2 rounded-md text-xs transition-all border border-primary/30 ${
+                  sourceType === 'osint'
+                    ? 'bg-primary/20 text-primary hover:bg-primary/30'
+                    : 'bg-card/50 text-muted-foreground hover:text-foreground hover:bg-card/70'
+                }`}
+              >
+                <Settings2 className="w-3 h-3" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 bg-card border-primary/30 p-3" align="end">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-mono mb-2">Sources OSINT actives:</p>
+                <div className="flex flex-col gap-2">
+                  {['mastodon', 'bluesky'].map((source) => (
+                    <label
+                      key={source}
+                      className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={osintSources.includes(source)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            onOsintSourcesChange([...osintSources, source]);
+                          } else {
+                            onOsintSourcesChange(osintSources.filter(s => s !== source));
+                          }
+                        }}
+                        className="w-3 h-3"
+                      />
+                      <span className="text-xs font-mono capitalize flex-1">{source}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground/70 mt-2">
+                  ⚠️ Threads nécessite OAuth et validation d'app (non disponible)
+                </p>
               </div>
-              <p className="text-[10px] text-muted-foreground/70 mt-2">
-                ⚠️ Threads nécessite OAuth et validation d'app (non disponible)
-              </p>
-            </div>
-          </PopoverContent>
-        </Popover>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       <div className="relative">

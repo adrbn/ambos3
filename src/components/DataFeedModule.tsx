@@ -104,7 +104,11 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
                       <>
                         <span className="text-muted-foreground/50">•</span>
                         <Badge variant="secondary" className="text-xs py-0">
-                          {article.osint.platform === 'mastodon' ? '🐘 Mastodon' : article.osint.platform}
+                          {article.osint.platform === 'mastodon' 
+                            ? '🐘 Mastodon' 
+                            : article.osint.platform === 'bluesky' 
+                            ? '🦋 BlueSky' 
+                            : article.osint.platform}
                         </Badge>
                         {article.osint.verified && (
                           <span className="text-green-500 text-xs">✓</span>
