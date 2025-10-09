@@ -47,11 +47,28 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
     setIsLoading(true);
 
     try {
-      // 1. Determine which edge function to call based on source type
+      // 1. Enrichir la requête via ChatGPT
+      toast.info("Enrichissement de la requête...", { duration: 2000 });
+      const { data: enrichData, error: enrichError } = await supabase.functions.invoke('enrich-query', {
+        body: { query: queryToUse, language }
+      });
+
+      if (enrichError || !enrichData?.enrichedQuery) {
+        console.error('Erreur enrichissement:', enrichError);
+        toast.warning("Enrichissement échoué, utilisation de la requête simple");
+      }
+
+      const finalQuery = enrichData?.enrichedQuery || queryToUse;
+      
+      if (enrichData?.enrichedQuery) {
+        toast.success(`Requête enrichie : ${finalQuery.substring(0, 80)}...`, { duration: 3000 });
+      }
+
+      // 2. Determine which edge function to call based on source type
       const functionName = sourceType === 'osint' ? 'fetch-bluesky' : 'fetch-news';
       const body = sourceType === 'osint' 
-        ? { query: queryToUse, language, limit: 50 }
-        : { query: queryToUse, language, api: selectedApi };
+        ? { query: finalQuery, language, limit: 50 }
+        : { query: finalQuery, language, api: selectedApi };
       
       const { data: newsData, error: newsError } = await supabase.functions.invoke(functionName, {
         body
