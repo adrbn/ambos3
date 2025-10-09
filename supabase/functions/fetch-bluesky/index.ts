@@ -31,6 +31,7 @@ interface MastodonStatus {
   reblogs_count: number;
   replies_count: number;
   media_attachments: any[];
+  tags?: { name: string; url: string }[];
 }
 
 interface CredibilityFactors {
@@ -162,17 +163,22 @@ Deno.serve(async (req) => {
     // Timeline API returns array directly, not wrapped in object
     let statuses: MastodonStatus[] = Array.isArray(data) ? data : (data.statuses || []);
 
+    console.log(`Received ${statuses.length} posts from Mastodon API`);
+
     // Filter by query text if using public timeline (client-side filtering)
     if (!isHashtagSearch && query) {
       const queryLower = query.toLowerCase();
+      const beforeFilter = statuses.length;
       statuses = statuses.filter(status => {
         const content = status.content.toLowerCase();
         const account = status.account.display_name.toLowerCase() + ' ' + status.account.username.toLowerCase();
-        return content.includes(queryLower) || account.includes(queryLower);
+        const tags = status.tags?.map(t => t.name.toLowerCase()).join(' ') || '';
+        return content.includes(queryLower) || account.includes(queryLower) || tags.includes(queryLower);
       });
+      console.log(`Filtered from ${beforeFilter} to ${statuses.length} posts matching "${query}"`);
     }
 
-    console.log(`Found ${statuses.length} Mastodon posts`);
+    console.log(`Returning ${statuses.length} Mastodon posts`);
 
     // Normalize Mastodon posts to article format with credibility scoring
     const articles = statuses.map((status) => {
