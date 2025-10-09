@@ -20,6 +20,29 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
     return "text-red-500 border-red-500/50 bg-red-500/10";
   };
 
+  const detectPlatform = (article: any): 'mastodon' | 'bluesky' | string => {
+    // Check URL first
+    if (article.url?.includes('bsky.app') || article.url?.includes('bsky.brid.gy')) {
+      return 'bluesky';
+    }
+    // Check source name
+    if (article.source?.name?.includes('bsky.social') || article.source?.name?.includes('bsky.brid.gy')) {
+      return 'bluesky';
+    }
+    // Check osint.platform if available
+    if (article.osint?.platform) {
+      return article.osint.platform;
+    }
+    // Default to mastodon for OSINT posts
+    return article.osint ? 'mastodon' : 'news';
+  };
+
+  const truncateUrl = (url: string, maxLength: number = 45) => {
+    if (url.length <= maxLength) return url;
+    const half = Math.floor((maxLength - 3) / 2);
+    return url.slice(0, half) + '...' + url.slice(-half);
+  };
+
   const filters = [
     { id: 'all', label: t('allFeeds') },
     { id: 'recent', label: t('recent') },
@@ -104,11 +127,9 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
                       <>
                         <span className="text-muted-foreground/50">•</span>
                         <Badge variant="secondary" className="text-xs py-0">
-                          {article.osint.platform === 'mastodon' 
-                            ? '🐘 Mastodon' 
-                            : article.osint.platform === 'bluesky' 
+                          {detectPlatform(article) === 'bluesky' 
                             ? '🦋 BlueSky' 
-                            : article.osint.platform}
+                            : '🐘 Mastodon'}
                         </Badge>
                         {article.osint.verified && (
                           <span className="text-green-500 text-xs">✓</span>
@@ -128,6 +149,7 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:text-secondary transition-colors"
+                      title={article.url}
                     >
                       <ExternalLink className="w-3 h-3" />
                     </a>

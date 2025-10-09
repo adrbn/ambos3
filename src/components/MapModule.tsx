@@ -205,6 +205,15 @@ const MapModule = ({ articles, language }: MapModuleProps) => {
         });
 
         console.log(`Added ${locations.length} location markers`);
+
+        // Fit map to show all markers with better zoom
+        if (markersRef.current.length > 0 && mapRef.current) {
+          const group = L.featureGroup(markersRef.current);
+          mapRef.current.fitBounds(group.getBounds(), {
+            padding: [30, 30],
+            maxZoom: 5
+          });
+        }
       } catch (error) {
         console.error('Error in location extraction:', error);
       }

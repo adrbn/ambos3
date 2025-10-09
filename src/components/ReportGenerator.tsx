@@ -37,27 +37,26 @@ const ReportGenerator = ({ articles, analysis, query, language }: ReportGenerato
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       line-height: 1.6;
       color: #1a1a1a;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #f5f5f5;
       padding: 20px;
     }
     .container {
       max-width: 1200px;
       margin: 0 auto;
       background: white;
-      border-radius: 12px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       overflow: hidden;
     }
     .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #2c3e50;
       color: white;
-      padding: 40px;
+      padding: 30px;
       text-align: center;
     }
     .header h1 {
-      font-size: 2.5em;
+      font-size: 2em;
       margin-bottom: 10px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
     }
     .header .meta {
       font-size: 0.9em;
@@ -71,15 +70,15 @@ const ReportGenerator = ({ articles, analysis, query, language }: ReportGenerato
       border-bottom: none;
     }
     .section-title {
-      font-size: 1.8em;
-      color: #667eea;
+      font-size: 1.5em;
+      color: #2c3e50;
       margin-bottom: 20px;
       padding-bottom: 10px;
-      border-bottom: 3px solid #667eea;
+      border-bottom: 2px solid #2c3e50;
     }
     .summary-box {
-      background: #f8f9ff;
-      border-left: 4px solid #667eea;
+      background: #f8f9fa;
+      border-left: 4px solid #2c3e50;
       padding: 20px;
       margin: 15px 0;
       border-radius: 4px;
@@ -91,12 +90,12 @@ const ReportGenerator = ({ articles, analysis, query, language }: ReportGenerato
       margin: 20px 0;
     }
     .stat-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #2c3e50;
       color: white;
       padding: 20px;
       border-radius: 8px;
       text-align: center;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .stat-card .number {
       font-size: 2.5em;
@@ -148,10 +147,10 @@ const ReportGenerator = ({ articles, analysis, query, language }: ReportGenerato
     }
     .osint-badge {
       display: inline-block;
-      background: #764ba2;
+      background: #34495e;
       color: white;
       padding: 4px 12px;
-      border-radius: 12px;
+      border-radius: 4px;
       font-size: 0.75em;
       margin-right: 8px;
     }
@@ -170,11 +169,23 @@ const ReportGenerator = ({ articles, analysis, query, language }: ReportGenerato
       margin: 20px 0;
     }
     .predictions-list li {
-      background: #f8f9ff;
+      background: #f8f9fa;
       padding: 15px;
       margin: 10px 0;
-      border-left: 4px solid #667eea;
+      border-left: 4px solid #2c3e50;
       border-radius: 4px;
+    }
+    .prediction-item {
+      margin-bottom: 8px;
+    }
+    .prediction-scenario {
+      font-weight: bold;
+      color: #2c3e50;
+    }
+    .prediction-meta {
+      font-size: 0.85em;
+      color: #666;
+      margin-top: 4px;
     }
     .footer {
       background: #f5f5f5;
@@ -206,18 +217,18 @@ const ReportGenerator = ({ articles, analysis, query, language }: ReportGenerato
       <div class="stats">
         <div class="stat-card">
           <div class="number">${articles.length}</div>
-          <div class="label">Articles analysés</div>
+          <div class="label">Posts analysés</div>
         </div>
-        ${analysis?.sentiment ? `
-        <div class="stat-card">
-          <div class="number">${analysis.sentiment.score || 'N/A'}</div>
-          <div class="label">Score de sentiment</div>
-        </div>
-        ` : ''}
         ${analysis?.entities?.length ? `
         <div class="stat-card">
           <div class="number">${analysis.entities.length}</div>
           <div class="label">Entités identifiées</div>
+        </div>
+        ` : ''}
+        ${analysis?.predictions?.length ? `
+        <div class="stat-card">
+          <div class="number">${analysis.predictions.length}</div>
+          <div class="label">Prédictions</div>
         </div>
         ` : ''}
       </div>
@@ -237,14 +248,20 @@ const ReportGenerator = ({ articles, analysis, query, language }: ReportGenerato
       <h2 class="section-title">🔮 Prédictions & Tendances</h2>
       <ul class="predictions-list">
         ${analysis.predictions.map((pred: any) => `
-          <li><strong>${pred.trend || pred.title || pred}</strong></li>
+          <li class="prediction-item">
+            <div class="prediction-scenario">${pred.scenario || 'Prédiction'}</div>
+            <div class="prediction-meta">
+              Probabilité: ${pred.probability || 'N/A'} | 
+              Horizon: ${pred.timeframe || 'N/A'}
+            </div>
+          </li>
         `).join('')}
       </ul>
     </div>
     ` : ''}
 
     <div class="section">
-      <h2 class="section-title">📰 Articles (${articles.length})</h2>
+      <h2 class="section-title">📰 Posts analysés (${articles.length})</h2>
       <div class="article-grid">
         ${articles.map((article: any) => `
           <div class="article-card">
