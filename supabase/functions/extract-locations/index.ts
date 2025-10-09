@@ -25,10 +25,20 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Préparer le contenu des articles pour l'analyse
-    const articlesText = articles.slice(0, 10).map((article: any, idx: number) => 
-      `Article ${idx + 1}:\nTitle: ${article.title}\nDescription: ${article.description || ''}\nSource: ${article.source?.name || 'Unknown'}`
-    ).join('\n\n');
+    // Préparer le contenu des articles pour l'analyse, en incluant les métadonnées OSINT
+    const articlesText = articles.slice(0, 10).map((article: any, idx: number) => {
+      let text = `Article ${idx + 1}:\nTitle: ${article.title}\nDescription: ${article.description || ''}\nSource: ${article.source?.name || 'Unknown'}`;
+      
+      // Pour les posts OSINT, ajouter des infos supplémentaires qui pourraient contenir des localisations
+      if (article.osint) {
+        if (article.author) text += `\nAuthor: ${article.author}`;
+        if (article.content && article.content !== article.description) {
+          text += `\nContent: ${article.content}`;
+        }
+      }
+      
+      return text;
+    }).join('\n\n');
 
     console.log('Extracting locations from articles...');
 
@@ -44,11 +54,17 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a geographic location extraction expert. Extract all mentioned locations (cities, countries, regions) from news articles and provide their approximate coordinates.'
+            content: `You are a geographic location extraction expert. Extract ALL mentioned locations from articles/posts including:
+- Locations explicitly mentioned in the text
+- Countries, cities, regions mentioned in any context
+- Places mentioned in usernames or author info
+- Geographic areas implied by context
+
+Provide approximate coordinates for each location. Be thorough and extract even locations mentioned in passing.`
           },
           {
             role: 'user',
-            content: `Extract geographic locations mentioned in these articles and provide their coordinates:\n\n${articlesText}`
+            content: `Extract ALL geographic locations mentioned or implied in these articles/posts and provide their coordinates:\n\n${articlesText}`
           }
         ],
         tools: [

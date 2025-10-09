@@ -56,7 +56,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
       if (enableQueryEnrichment) {
         toast.info("Enrichissement de la requête...", { duration: 2000 });
         const { data: enrichData, error: enrichError } = await supabase.functions.invoke('enrich-query', {
-          body: { query: queryToUse, language, sourceType }
+          body: { query: queryToUse, language, sourceType, osintPlatforms: osintSources }
         });
 
         if (enrichError || !enrichData?.enrichedQuery) {

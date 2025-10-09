@@ -146,6 +146,11 @@ Deno.serve(async (req) => {
       const credibility = calculateCredibilityScore(post);
       const contentText = post.record.text.trim();
       const postUrl = `https://bsky.app/profile/${post.author.handle}/post/${post.uri.split('/').pop()}`;
+      
+      // Detect if this is actually a BlueSky post by checking the handle
+      const isBlueSky = post.author.handle.includes('.bsky.social') || 
+                        post.author.handle.includes('bsky.brid.gy') ||
+                        post.uri.includes('did:plc:');
 
       return {
         title: contentText.substring(0, 100) + (contentText.length > 100 ? '...' : ''),
@@ -161,7 +166,7 @@ Deno.serve(async (req) => {
         author: post.author.displayName || post.author.handle,
         // OSINT-specific fields
         osint: {
-          platform: 'bluesky',
+          platform: isBlueSky ? 'bluesky' : 'mastodon',
           credibilityScore: credibility.score,
           credibilityFactors: credibility.factors,
           engagement: {

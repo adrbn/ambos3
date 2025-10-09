@@ -220,10 +220,10 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
             cooldownTime={3000}
             onEngineStop={() => {
               if (graphRef.current) {
-                // Tighter zoom with less padding
+                // Much tighter zoom with minimal padding
                 const nodeCount = filteredData.nodes.length;
-                const basePadding = 80;
-                const additionalPadding = Math.min(nodeCount * 4, 100);
+                const basePadding = 40;
+                const additionalPadding = Math.min(nodeCount * 2, 50);
                 const totalPadding = basePadding + additionalPadding;
                 graphRef.current.zoomToFit(400, totalPadding);
               }
