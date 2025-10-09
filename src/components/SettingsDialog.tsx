@@ -10,26 +10,29 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
 
-// CORRECTION 1 : Mise à jour de l'interface pour accepter 'mediastack'
 interface SettingsDialogProps {
   selectedApi: 'gnews' | 'newsapi' | 'mediastack';
   onApiChange: (api: 'gnews' | 'newsapi' | 'mediastack') => void;
   language: Language;
+  enableQueryEnrichment: boolean;
+  onEnableQueryEnrichmentChange: (enabled: boolean) => void;
 }
 
-const SettingsDialog = ({ selectedApi, onApiChange, language }: SettingsDialogProps) => {
+const SettingsDialog = ({ selectedApi, onApiChange, language, enableQueryEnrichment, onEnableQueryEnrichmentChange }: SettingsDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  
-  // CORRECTION 2 : Mise à jour de l'état local pour accepter 'mediastack'
   const [tempApi, setTempApi] = useState<'gnews' | 'newsapi' | 'mediastack'>(selectedApi);
+  const [tempEnrichment, setTempEnrichment] = useState(enableQueryEnrichment);
   const { t } = useTranslation(language);
 
   const handleSave = () => {
     onApiChange(tempApi);
+    onEnableQueryEnrichmentChange(tempEnrichment);
     setIsOpen(false);
     toast.success(t('settingsSaved'));
   };
@@ -55,7 +58,6 @@ const SettingsDialog = ({ selectedApi, onApiChange, language }: SettingsDialogPr
             </label>
             <Select 
               value={tempApi} 
-              // Le type de la valeur doit aussi être mis à jour ici
               onValueChange={(value: 'gnews' | 'newsapi' | 'mediastack') => setTempApi(value)}
             >
               <SelectTrigger className="bg-card/50 border-primary/30">
@@ -64,7 +66,6 @@ const SettingsDialog = ({ selectedApi, onApiChange, language }: SettingsDialogPr
               <SelectContent>
                 <SelectItem value="gnews">GNews API</SelectItem>
                 <SelectItem value="newsapi">NewsAPI</SelectItem>
-                {/* CORRECTION 3 : Ajout de la nouvelle option visible */}
                 <SelectItem value="mediastack">Mediastack API</SelectItem>
               </SelectContent>
             </Select>
@@ -72,6 +73,28 @@ const SettingsDialog = ({ selectedApi, onApiChange, language }: SettingsDialogPr
               {t('searchApiDescription')}
             </p>
           </div>
+
+          <Separator className="my-4" />
+
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">⚙️ Menu développeur</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-foreground">
+                  Enrichissement des requêtes
+                </label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Active l'optimisation automatique des requêtes via IA (opérateurs booléens pour news, hashtags pour OSINT)
+                </p>
+              </div>
+              <Switch
+                checked={tempEnrichment}
+                onCheckedChange={setTempEnrichment}
+                className="ml-3"
+              />
+            </div>
+          </div>
+
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => setIsOpen(false)}>
               {t('cancel')}

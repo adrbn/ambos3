@@ -48,6 +48,7 @@ const Index = () => {
   const [selectedApi, setSelectedApi] = useState<ApiSource>('newsapi');
   const [sourceType, setSourceType] = useState<'news' | 'osint'>('news');
   const [osintSources, setOsintSources] = useState<string[]>(['mastodon', 'bluesky']);
+  const [enableQueryEnrichment, setEnableQueryEnrichment] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("search");
   const [currentWatch, setCurrentWatch] = useState<any>(null);
   const [currentLayoutName, setCurrentLayoutName] = useState<string | null>(null);
@@ -239,7 +240,13 @@ const Index = () => {
                 {t('reset')}
               </Button>
             </div>
-            <SettingsDialog selectedApi={selectedApi} onApiChange={setSelectedApi} language={language} />
+            <SettingsDialog 
+              selectedApi={selectedApi} 
+              onApiChange={setSelectedApi} 
+              language={language}
+              enableQueryEnrichment={enableQueryEnrichment}
+              onEnableQueryEnrichmentChange={setEnableQueryEnrichment}
+            />
             <LanguageSelector language={language} onLanguageChange={handleLanguageChange} />
             <div className="hidden sm:flex items-center gap-2 px-2 sm:px-3 py-1 bg-secondary/20 border border-secondary/40 rounded">
               <Activity className="w-3 h-3 text-secondary animate-pulse" />
@@ -293,6 +300,7 @@ const Index = () => {
               onSourceTypeChange={setSourceType}
               osintSources={osintSources}
               onOsintSourcesChange={setOsintSources}
+              enableQueryEnrichment={enableQueryEnrichment}
             />
           </TabsContent>
           <TabsContent value="watches" className="mt-0">

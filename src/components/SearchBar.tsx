@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, Settings2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
-import { FunctionsHttpError } from '@supabase/supabase-js'; // Importation essentielle pour le décodage d'erreur
 
 interface SearchBarProps {
   onSearch: (query: string, articles: any[], analysis: any) => void;
@@ -18,9 +18,10 @@ interface SearchBarProps {
   onSourceTypeChange: (type: 'news' | 'osint') => void;
   osintSources: string[];
   onOsintSourcesChange: (sources: string[]) => void;
+  enableQueryEnrichment: boolean;
 }
 
-const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi, sourceType, onSourceTypeChange, osintSources, onOsintSourcesChange }: SearchBarProps) => {
+const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi, sourceType, onSourceTypeChange, osintSources, onOsintSourcesChange, enableQueryEnrichment }: SearchBarProps) => {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation(language);
@@ -49,21 +50,22 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
     setIsLoading(true);
 
     try {
-      // 1. Enrichir la requête via ChatGPT (adapté au type de source)
-      toast.info("Enrichissement de la requête...", { duration: 2000 });
-      const { data: enrichData, error: enrichError } = await supabase.functions.invoke('enrich-query', {
-        body: { query: queryToUse, language, sourceType }
-      });
-
-      if (enrichError || !enrichData?.enrichedQuery) {
-        console.error('Erreur enrichissement:', enrichError);
-        toast.warning("Enrichissement échoué, utilisation de la requête simple");
-      }
-
-      const finalQuery = enrichData?.enrichedQuery || queryToUse;
+      // 1. Enrichir la requête via ChatGPT (adapté au type de source) - SEULEMENT SI ACTIVÉ
+      let finalQuery = queryToUse;
       
-      if (enrichData?.enrichedQuery) {
-        toast.success(`Requête enrichie : ${finalQuery.substring(0, 80)}...`, { duration: 3000 });
+      if (enableQueryEnrichment) {
+        toast.info("Enrichissement de la requête...", { duration: 2000 });
+        const { data: enrichData, error: enrichError } = await supabase.functions.invoke('enrich-query', {
+          body: { query: queryToUse, language, sourceType }
+        });
+
+        if (enrichError || !enrichData?.enrichedQuery) {
+          console.error('Erreur enrichissement:', enrichError);
+          toast.warning("Enrichissement échoué, utilisation de la requête simple");
+        } else {
+          finalQuery = enrichData.enrichedQuery;
+          toast.success(`Requête enrichie : ${finalQuery.substring(0, 80)}...`, { duration: 3000 });
+        }
       }
 
       // 2. Fetch from selected sources
@@ -179,49 +181,53 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
         >
           📰 {t('newsApis')}
         </button>
-        <button
-          onClick={() => onSourceTypeChange('osint')}
-          className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all ${
-            sourceType === 'osint'
-              ? 'bg-primary text-primary-foreground shadow-lg'
-              : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
-          }`}
-        >
-          🔍 {t('socialOsint')}
-        </button>
+        
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all flex items-center justify-center gap-1 ${
+                sourceType === 'osint'
+                  ? 'bg-primary text-primary-foreground shadow-lg'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
+              }`}
+              onClick={() => onSourceTypeChange('osint')}
+            >
+              🔍 {t('socialOsint')}
+              <Settings2 className="w-3 h-3 ml-1" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-72 bg-card border-primary/30 p-3" align="end">
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground font-mono mb-2">Sources OSINT actives:</p>
+              <div className="flex flex-col gap-2">
+                {['mastodon', 'bluesky'].map((source) => (
+                  <label
+                    key={source}
+                    className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={osintSources.includes(source)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          onOsintSourcesChange([...osintSources, source]);
+                        } else {
+                          onOsintSourcesChange(osintSources.filter(s => s !== source));
+                        }
+                      }}
+                      className="w-3 h-3"
+                    />
+                    <span className="text-xs font-mono capitalize flex-1">{source}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground/70 mt-2">
+                ⚠️ Threads nécessite OAuth et validation d'app (non disponible)
+              </p>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
-
-      {/* OSINT Sources Selector */}
-      {sourceType === 'osint' && (
-        <div className="space-y-2 p-3 bg-card/20 rounded-lg border border-primary/20">
-          <p className="text-xs text-muted-foreground font-mono mb-2">Sources OSINT actives:</p>
-          <div className="flex flex-wrap gap-2">
-            {['mastodon', 'bluesky'].map((source) => (
-              <label
-                key={source}
-                className="flex items-center gap-2 px-3 py-1.5 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
-              >
-                <input
-                  type="checkbox"
-                  checked={osintSources.includes(source)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      onOsintSourcesChange([...osintSources, source]);
-                    } else {
-                      onOsintSourcesChange(osintSources.filter(s => s !== source));
-                    }
-                  }}
-                  className="w-3 h-3"
-                />
-                <span className="text-xs font-mono capitalize">{source}</span>
-              </label>
-            ))}
-          </div>
-          <p className="text-[10px] text-muted-foreground/70 mt-2">
-            ⚠️ Threads nécessite OAuth et validation d'app (non disponible sans connexion)
-          </p>
-        </div>
-      )}
 
       <div className="relative">
         <Input
