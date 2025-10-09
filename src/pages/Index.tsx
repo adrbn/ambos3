@@ -29,6 +29,7 @@ import StatusBar from "@/components/StatusBar";
 import LanguageSelector from "@/components/LanguageSelector";
 import ResizableDraggableModule from "@/components/ResizableDraggableModule";
 import LayoutManager from "@/components/LayoutManager";
+import ReportGenerator from "@/components/ReportGenerator";
 import { useLayoutConfig, ModuleId } from "@/hooks/useLayoutConfig";
 import { useSavedLayouts } from "@/hooks/useSavedLayouts";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -46,6 +47,7 @@ const Index = () => {
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [selectedApi, setSelectedApi] = useState<ApiSource>('newsapi');
   const [sourceType, setSourceType] = useState<'news' | 'osint'>('news');
+  const [osintSources, setOsintSources] = useState<string[]>(['mastodon', 'bluesky']);
   const [activeTab, setActiveTab] = useState<string>("search");
   const [currentWatch, setCurrentWatch] = useState<any>(null);
   const { t } = useTranslation(language);
@@ -208,11 +210,20 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
+            {articles.length > 0 && (
+              <ReportGenerator
+                articles={articles}
+                analysis={analysis}
+                query={currentQuery}
+                language={language}
+              />
+            )}
             <div className="hidden lg:flex items-center gap-2">
               <LayoutManager
                 savedLayouts={savedLayouts}
                 onSave={handleSaveLayout}
                 onLoad={handleLoadLayout}
+                currentLayout={layout}
               />
               <Button
                 variant="outline"
@@ -238,6 +249,7 @@ const Index = () => {
             savedLayouts={savedLayouts}
             onSave={handleSaveLayout}
             onLoad={handleLoadLayout}
+            currentLayout={layout}
           />
           <Button
             variant="outline"
@@ -275,6 +287,8 @@ const Index = () => {
               selectedApi={selectedApi}
               sourceType={sourceType}
               onSourceTypeChange={setSourceType}
+              osintSources={osintSources}
+              onOsintSourcesChange={setOsintSources}
             />
           </TabsContent>
           <TabsContent value="watches" className="mt-0">

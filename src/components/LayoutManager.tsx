@@ -23,9 +23,10 @@ interface LayoutManagerProps {
   savedLayouts: any[];
   onSave: (name: string) => void;
   onLoad: (name: string) => void;
+  currentLayout?: any;
 }
 
-const LayoutManager = ({ savedLayouts, onSave, onLoad }: LayoutManagerProps) => {
+const LayoutManager = ({ savedLayouts, onSave, onLoad, currentLayout }: LayoutManagerProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [layoutName, setLayoutName] = useState("");
 
@@ -91,20 +92,30 @@ const LayoutManager = ({ savedLayouts, onSave, onLoad }: LayoutManagerProps) => 
               No saved layouts
             </div>
           ) : (
-            savedLayouts.map((layout) => (
-              <DropdownMenuItem
-                key={layout.name}
-                onClick={() => onLoad(layout.name)}
-                className="cursor-pointer"
-              >
-                <div className="flex flex-col">
-                  <span className="font-medium">{layout.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(layout.timestamp).toLocaleDateString()}
-                  </span>
-                </div>
-              </DropdownMenuItem>
-            ))
+            savedLayouts.map((layout) => {
+              const isCurrentLayout = currentLayout && 
+                JSON.stringify(currentLayout.moduleOrder) === JSON.stringify(layout.moduleOrder);
+              
+              return (
+                <DropdownMenuItem
+                  key={layout.name}
+                  onClick={() => onLoad(layout.name)}
+                  className="cursor-pointer"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex flex-col flex-1">
+                      <span className="font-medium">{layout.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(layout.timestamp).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {isCurrentLayout && (
+                      <span className="text-primary ml-2">✓</span>
+                    )}
+                  </div>
+                </DropdownMenuItem>
+              );
+            })
           )}
         </DropdownMenuContent>
       </DropdownMenu>

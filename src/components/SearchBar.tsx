@@ -16,9 +16,11 @@ interface SearchBarProps {
   selectedApi: 'gnews' | 'newsapi' | 'mediastack';
   sourceType: 'news' | 'osint';
   onSourceTypeChange: (type: 'news' | 'osint') => void;
+  osintSources: string[];
+  onOsintSourcesChange: (sources: string[]) => void;
 }
 
-const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi, sourceType, onSourceTypeChange }: SearchBarProps) => {
+const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi, sourceType, onSourceTypeChange, osintSources, onOsintSourcesChange }: SearchBarProps) => {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation(language);
@@ -64,86 +66,88 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
         toast.success(`Requête enrichie : ${finalQuery.substring(0, 80)}...`, { duration: 3000 });
       }
 
-      // 2. Determine which edge function to call based on source type
-      const functionName = sourceType === 'osint' ? 'fetch-bluesky' : 'fetch-news';
-      const body = sourceType === 'osint' 
-        ? { query: finalQuery, language, limit: 50 }
-        : { query: finalQuery, language, api: selectedApi };
+      // 2. Fetch from selected sources
+      let allArticles: any[] = [];
       
-      const { data: newsData, error: newsError } = await supabase.functions.invoke(functionName, {
-        body
-      });
-
-      // GESTION D'ERREUR NON-2XX (Status Code d'erreur de la fonction Edge : 4xx, 5xx)
-      if (newsError) {
-        if (newsError instanceof FunctionsHttpError) {
-          let errorMessage: string;
+      if (sourceType === 'osint') {
+        // Fetch from multiple OSINT sources in parallel
+        const fetchPromises = osintSources.map(async (source) => {
+          const functionMap: Record<string, string> = {
+            'mastodon': 'fetch-bluesky',
+            'bluesky': 'fetch-bluesky-real',
+          };
+          
+          const functionName = functionMap[source];
+          if (!functionName) return { articles: [] };
           
           try {
-            // Tenter de lire le corps JSON
-            const errorBody = await newsError.context.json();
-            errorMessage = errorBody.error || errorBody.message || `Erreur Serveur (${newsError.context.status || '??'}): Corps décodé.`;
+            const { data, error } = await supabase.functions.invoke(functionName, {
+              body: { query: finalQuery, language, limit: 50 }
+            });
             
-          } catch (e) {
-            // Si la lecture JSON échoue (corps déjà lu ou non-JSON)
-            // On essaie de lire le corps en texte, ou on utilise le statut par défaut
-            try {
-                const errorText = await newsError.context.text();
-                errorMessage = `Erreur de la fonction Edge (${newsError.context.status}): ${errorText || 'Réponse illisible.'}`;
-            } catch (textReadError) {
-                // Si la lecture texte échoue également (body stream already read)
-                errorMessage = `Erreur de la fonction Edge: Le flux de réponse a été lu. Code: ${newsError.context.status}. Vérifiez les logs Supabase.`;
+            if (error) {
+              console.error(`Error fetching from ${source}:`, error);
+              toast.error(`Erreur ${source}: ${error.message}`);
+              return { articles: [] };
             }
             
-            console.error('Erreur Edge Function (Lecture/Décodage):', newsError, e);
+            return data || { articles: [] };
+          } catch (err) {
+            console.error(`Exception fetching from ${source}:`, err);
+            return { articles: [] };
           }
-          
-          toast.error(errorMessage);
-          throw new Error(errorMessage); // Lance l'erreur pour la gestion globale
-
-        } else {
-          // Erreur réseau ou autre
-          throw newsError; 
-        }
-      }
-      // FIN GESTION D'ERREUR NON-2XX
-
-
-      // 2. Gestion des erreurs retournées dans le corps (Statut 200, mais contenu est une erreur)
-      if (newsData?.error) {
-        toast.error(newsData.error, {
-          duration: newsData.isRateLimitError ? 10000 : 6000
         });
-        console.error('Erreur API (gestion interne):', newsData);
-        setIsLoading(false);
-        return;
+        
+        const results = await Promise.all(fetchPromises);
+        allArticles = results.flatMap(result => result.articles || []);
+        
+        if (allArticles.length === 0) {
+          toast.error("Aucun article trouvé sur les sources sélectionnées.");
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        // Fetch from news API
+        const { data: newsData, error: newsError } = await supabase.functions.invoke('fetch-news', {
+          body: { query: finalQuery, language, api: selectedApi }
+        });
+        
+        if (newsError) {
+          throw newsError;
+        }
+        
+        if (newsData?.error) {
+          toast.error(newsData.error, {
+            duration: newsData.isRateLimitError ? 10000 : 6000
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        allArticles = newsData?.articles || [];
       }
-
+      
       // 3. Gestion de l'absence d'articles
-      if (!newsData?.articles || newsData.articles.length === 0) {
-        const errorMsg = newsData?.totalArticles > 0
-          ? "Articles trouvés mais non disponibles (plus de 30 jours). Essayez des sujets d'actualité plus récents !"
-          : "Aucun article trouvé. Essayez d'autres mots-clés.";
-        toast.error(errorMsg, { duration: 6000 });
-        console.error('Aucun article retourné:', newsData);
+      if (!allArticles || allArticles.length === 0) {
+        toast.error("Aucun article trouvé. Essayez d'autres mots-clés ou sources.", { duration: 6000 });
         setIsLoading(false);
         return;
       }
 
-      toast.success(`Trouvé ${newsData.articles.length} articles`);
+      toast.success(`Trouvé ${allArticles.length} article${allArticles.length > 1 ? 's' : ''} sur ${sourceType === 'osint' ? osintSources.join(', ') : 'news APIs'}`);
 
       // 4. Analyse des articles avec l'IA
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-news', {
-        body: { articles: newsData.articles, query: queryToUse, language }
+        body: { articles: allArticles, query: queryToUse, language }
       });
 
       if (analysisError) {
         console.error('Erreur d\'analyse:', analysisError);
         toast.error("Échec de l'analyse des articles.");
-        onSearch(queryToUse, newsData.articles, null);
+        onSearch(queryToUse, allArticles, null);
       } else {
         toast.success("Analyse IA terminée.");
-        onSearch(queryToUse, newsData.articles, analysisData);
+        onSearch(queryToUse, allArticles, analysisData);
       }
     } catch (error: any) {
       // Catch final pour toutes les erreurs lancées
@@ -179,6 +183,38 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
           🔍 {t('socialOsint')}
         </button>
       </div>
+
+      {/* OSINT Sources Selector */}
+      {sourceType === 'osint' && (
+        <div className="space-y-2 p-3 bg-card/20 rounded-lg border border-primary/20">
+          <p className="text-xs text-muted-foreground font-mono mb-2">Sources OSINT actives:</p>
+          <div className="flex flex-wrap gap-2">
+            {['mastodon', 'bluesky'].map((source) => (
+              <label
+                key={source}
+                className="flex items-center gap-2 px-3 py-1.5 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
+              >
+                <input
+                  type="checkbox"
+                  checked={osintSources.includes(source)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      onOsintSourcesChange([...osintSources, source]);
+                    } else {
+                      onOsintSourcesChange(osintSources.filter(s => s !== source));
+                    }
+                  }}
+                  className="w-3 h-3"
+                />
+                <span className="text-xs font-mono capitalize">{source}</span>
+              </label>
+            ))}
+          </div>
+          <p className="text-[10px] text-muted-foreground/70 mt-2">
+            ⚠️ Threads nécessite OAuth et validation d'app (non disponible sans connexion)
+          </p>
+        </div>
+      )}
 
       <div className="relative">
         <Input

@@ -15,13 +15,26 @@ interface LayoutConfig {
 
 const DEFAULT_LAYOUT: LayoutConfig = {
   moduleOrder: [
-    'datafeed',
     'summary',
     'map',
-    'timeline',
-    'predictions',
     'entities',
     'network-graph',
+    'predictions',
+    'timeline',
+    'datafeed',
+  ],
+};
+
+// AMB 2 Layout - Set as initial default
+const AMB2_LAYOUT: LayoutConfig = {
+  moduleOrder: [
+    'summary',
+    'map',
+    'entities',
+    'network-graph',
+    'predictions',
+    'timeline',
+    'datafeed',
   ],
 };
 
@@ -31,9 +44,9 @@ export const useLayoutConfig = () => {
   const [layout, setLayout] = useState<LayoutConfig>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : DEFAULT_LAYOUT;
+      return stored ? JSON.parse(stored) : AMB2_LAYOUT; // Use AMB2 as default
     } catch {
-      return DEFAULT_LAYOUT;
+      return AMB2_LAYOUT;
     }
   });
 
