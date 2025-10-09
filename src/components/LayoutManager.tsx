@@ -23,10 +23,10 @@ interface LayoutManagerProps {
   savedLayouts: any[];
   onSave: (name: string) => void;
   onLoad: (name: string) => void;
-  currentLayout?: any;
+  currentLayoutName?: string;
 }
 
-const LayoutManager = ({ savedLayouts, onSave, onLoad, currentLayout }: LayoutManagerProps) => {
+const LayoutManager = ({ savedLayouts, onSave, onLoad, currentLayoutName }: LayoutManagerProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [layoutName, setLayoutName] = useState("");
 
@@ -93,8 +93,7 @@ const LayoutManager = ({ savedLayouts, onSave, onLoad, currentLayout }: LayoutMa
             </div>
           ) : (
             savedLayouts.map((layout) => {
-              const isCurrentLayout = currentLayout && 
-                JSON.stringify(currentLayout.moduleOrder) === JSON.stringify(layout.moduleOrder);
+              const isCurrentLayout = currentLayoutName === layout.name;
               
               return (
                 <DropdownMenuItem
@@ -110,7 +109,7 @@ const LayoutManager = ({ savedLayouts, onSave, onLoad, currentLayout }: LayoutMa
                       </span>
                     </div>
                     {isCurrentLayout && (
-                      <span className="text-primary ml-2">✓</span>
+                      <span className="text-primary text-lg ml-2">✓</span>
                     )}
                   </div>
                 </DropdownMenuItem>

@@ -50,6 +50,7 @@ const Index = () => {
   const [osintSources, setOsintSources] = useState<string[]>(['mastodon', 'bluesky']);
   const [activeTab, setActiveTab] = useState<string>("search");
   const [currentWatch, setCurrentWatch] = useState<any>(null);
+  const [currentLayoutName, setCurrentLayoutName] = useState<string | null>(null);
   const { t } = useTranslation(language);
   const { layout, updateLayout, resetLayout } = useLayoutConfig();
   const [moduleSizes, setModuleSizes] = useState<Record<string, { width: number; height: number }>>({});
@@ -82,6 +83,7 @@ const Index = () => {
   const handleResetLayout = () => {
     resetLayout();
     setModuleSizes({});
+    setCurrentLayoutName(null);
     toast.success('Layout réinitialisé');
   };
 
@@ -94,6 +96,7 @@ const Index = () => {
 
   const handleSaveLayout = (name: string) => {
     saveLayout(name, layout.moduleOrder, moduleSizes);
+    setCurrentLayoutName(name);
     toast.success(`${t('saveLayout')} "${name}"`);
   };
 
@@ -102,6 +105,7 @@ const Index = () => {
     if (savedLayout) {
       updateLayout(savedLayout.moduleOrder);
       setModuleSizes(savedLayout.moduleSizes);
+      setCurrentLayoutName(name);
       toast.success(`${t('loadLayout')} "${name}"`);
     }
   };
@@ -223,7 +227,7 @@ const Index = () => {
                 savedLayouts={savedLayouts}
                 onSave={handleSaveLayout}
                 onLoad={handleLoadLayout}
-                currentLayout={layout}
+                currentLayoutName={currentLayoutName}
               />
               <Button
                 variant="outline"
@@ -249,7 +253,7 @@ const Index = () => {
             savedLayouts={savedLayouts}
             onSave={handleSaveLayout}
             onLoad={handleLoadLayout}
-            currentLayout={layout}
+            currentLayoutName={currentLayoutName}
           />
           <Button
             variant="outline"
