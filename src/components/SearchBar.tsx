@@ -137,13 +137,13 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
       }
       
       // 3. Gestion de l'absence d'articles
-      if (!allArticles || allArticles.length === 0) {
-        toast.error("Aucun article trouvé. Essayez d'autres mots-clés ou sources.", { duration: 6000 });
+      if (allArticles.length === 0) {
+        toast.error(`Aucun post trouvé. Essayez d'autres mots-clés ou sources.`, { duration: 6000 });
         setIsLoading(false);
         return;
       }
 
-      toast.success(`Trouvé ${allArticles.length} article${allArticles.length > 1 ? 's' : ''} sur ${sourceType === 'osint' ? osintSources.join(', ') : 'news APIs'}`);
+      toast.success(`Trouvé ${allArticles.length} post${allArticles.length > 1 ? 's' : ''} sur ${sourceType === 'osint' ? osintSources.join(', ') : 'news APIs'}`);
 
       // 4. Analyse des articles avec l'IA
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-news', {

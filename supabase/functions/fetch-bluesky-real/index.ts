@@ -110,10 +110,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Fetching BlueSky posts for query: "${query}"${language ? ` in language: ${language}` : ''}`);
+    // BlueSky doesn't use hashtags - clean them if present
+    const cleanQuery = query.replace(/#/g, '').trim();
+
+    console.log(`Fetching BlueSky posts for query: "${cleanQuery}"${language ? ` in language: ${language}` : ''}`);
 
     const searchUrl = new URL(`${BLUESKY_API}/xrpc/app.bsky.feed.searchPosts`);
-    searchUrl.searchParams.append('q', query);
+    searchUrl.searchParams.append('q', cleanQuery);
     searchUrl.searchParams.append('limit', Math.min(limit, 100).toString());
     
     if (language) {
