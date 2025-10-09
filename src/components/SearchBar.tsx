@@ -87,25 +87,14 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
             
             if (error) {
               console.error(`Error fetching from ${source}:`, error);
-              
-              // Special handling for BlueSky auth errors
-              if (source === 'bluesky' && error.message?.includes('401')) {
-                toast.error(`BlueSky nécessite une authentification. Configurez BLUESKY_IDENTIFIER et BLUESKY_APP_PASSWORD dans les secrets.`, { duration: 8000 });
-              } else {
-                toast.error(`Erreur ${source}: ${error.message}`);
-              }
+              toast.error(`Erreur ${source}: ${error.message}`);
               return { articles: [] };
             }
             
             // Check for error in response data
             if (data?.error) {
               console.error(`${source} returned error:`, data);
-              
-              if (source === 'bluesky' && (data.error.includes('authentication') || data.error.includes('401'))) {
-                toast.warning(`⚠️ BlueSky: Authentification requise. Utilisez Mastodon en attendant.`, { duration: 8000 });
-              } else {
-                toast.warning(`${source}: ${data.error}`);
-              }
+              toast.warning(`${source}: ${data.error}`);
               return { articles: [] };
             }
             

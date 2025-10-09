@@ -37,7 +37,7 @@ Your analysis must focus on:
 
 Remember: This is the PULSE of online communities - more reactive, emotional, and volatile than press. Capture the MOOD, the DISCOURSE, the DYNAMICS.
 
-Return valid JSON only.`,
+IMPORTANT: Respond ONLY in English. Return valid JSON only.`,
       fr: `Vous êtes un analyste OSINT spécialisé dans l'intelligence des réseaux sociaux et l'analyse des sentiments communautaires.
 
 CRITIQUE: Ce sont des posts de RÉSEAUX SOCIAUX (Mastodon, BlueSky) - PAS des sources d'information vérifiées.
@@ -52,7 +52,7 @@ Votre analyse doit se concentrer sur:
 
 Rappel: C'est le POULS des communautés en ligne - plus réactif, émotionnel et volatile que la presse. Capturez l'AMBIANCE, le DISCOURS, les DYNAMIQUES.
 
-Retournez uniquement du JSON valide.`,
+IMPORTANT: Répondez UNIQUEMENT en français. Retournez uniquement du JSON valide.`,
       it: `Sei un analista OSINT specializzato nell'intelligence dei social media e nell'analisi del sentiment delle comunità.
 
 CRITICO: Questi sono post dai SOCIAL MEDIA (Mastodon, BlueSky) - NON fonti giornalistiche verificate.
@@ -67,11 +67,57 @@ La tua analisi deve concentrarsi su:
 
 Ricorda: Questo è il POLSO delle comunità online - più reattivo, emotivo e volatile della stampa. Cattura l'ATMOSFERA, il DISCORSO, le DINAMICHE.
 
-Restituisci solo JSON valido.`
+IMPORTANTE: Rispondi SOLO in italiano. Restituisci solo JSON valido.`
     } : {
-      en: 'You are an intelligence analyst specializing in press and media analysis. Analyze the provided news articles from verified journalistic sources and extract: 1) Key entities (people, organizations, locations) with their roles in the context. 2) A CONCISE yet COMPREHENSIVE summary - be straight to the point while capturing ALL critical information, key facts, and important developments from verified press sources. 3) Predictive analysis of what may happen next with probabilities. 4) Public sentiment and expert opinions as reported in the press. Return valid JSON only.',
-      fr: "Vous êtes un analyste du renseignement spécialisé dans l'analyse de la presse et des médias. Analysez les articles de presse issus de sources journalistiques vérifiées et extrayez : 1) Entités clés (personnes, organisations, lieux) avec leurs rôles dans le contexte. 2) Un résumé CONCIS mais COMPLET - allez droit au but tout en capturant TOUTES les informations critiques, faits clés et développements importants issus de sources de presse vérifiées. 3) Une analyse prédictive de ce qui pourrait se passer ensuite avec des probabilités. 4) Le sentiment public et les opinions d'experts tels que rapportés dans la presse. Retournez uniquement du JSON valide.",
-      it: "Sei un analista dell'intelligence specializzato nell'analisi della stampa e dei media. Analizza gli articoli di stampa da fonti giornalistiche verificate ed estrai: 1) Entità chiave (persone, organizzazioni, luoghi) con i loro ruoli nel contesto. 2) Un riepilogo CONCISO ma COMPLETO - vai dritto al punto catturando TUTTE le informazioni critiche, fatti chiave e sviluppi importanti da fonti stampa verificate. 3) Analisi predittiva di cosa potrebbe accadere dopo con probabilità. 4) Sentiment pubblico e opinioni di esperti come riportati nella stampa. Restituisci solo JSON valido."
+      en: 'You are an intelligence analyst specializing in press and media analysis. Analyze the provided news articles from verified journalistic sources and extract: 1) Key entities (people, organizations, locations) with their roles in the context. 2) A CONCISE yet COMPREHENSIVE summary - be straight to the point while capturing ALL critical information, key facts, and important developments from verified press sources. 3) Predictive analysis of what may happen next with probabilities. 4) Public sentiment and expert opinions as reported in the press. IMPORTANT: Respond ONLY in English. Return valid JSON only.',
+      fr: "Vous êtes un analyste du renseignement spécialisé dans l'analyse de la presse et des médias. Analysez les articles de presse issus de sources journalistiques vérifiées et extrayez : 1) Entités clés (personnes, organisations, lieux) avec leurs rôles dans le contexte. 2) Un résumé CONCIS mais COMPLET - allez droit au but tout en capturant TOUTES les informations critiques, faits clés et développements importants issus de sources de presse vérifiées. 3) Une analyse prédictive de ce qui pourrait se passer ensuite avec des probabilités. 4) Le sentiment public et les opinions d'experts tels que rapportés dans la presse. IMPORTANT: Répondez UNIQUEMENT en français. Retournez uniquement du JSON valide.",
+      it: "Sei un analista dell'intelligence specializzato nell'analisi della stampa e dei media. Analizza gli articoli di stampa da fonti giornalistiche verificate ed estrai: 1) Entità chiave (persone, organizzazioni, luoghi) con i loro ruoli nel contesto. 2) Un riepilogo CONCISO ma COMPLETO - vai dritto al punto catturando TUTTE le informazioni critiche, fatti chiave e sviluppi importanti da fonti stampa verificate. 3) Analisi predittiva di cosa potrebbe accadere dopo con probabilità. 4) Sentiment pubblico e opinioni di esperti come riportati nella stampa. IMPORTANTE: Rispondi SOLO in italiano. Restituisci solo JSON valido."
+    };
+    
+    const userPromptInstructions = sourceType === 'osint' ? {
+      en: `Provide OSINT COMMUNITY ANALYSIS in JSON format with this structure:
+{
+  "entities": [{"name": "string", "type": "person|organization|location|hashtag", "role": "string", "mentions": number}],
+  "summary": "FOCUS: Capture the PULSE of online communities - What are people FEELING and SAYING? What narratives are EMERGING? What's TRENDING? Be DIRECT and INSIGHTFUL about the community dynamics and discourse patterns.",
+  "predictions": [{"scenario": "Based on community discourse patterns and emerging narratives", "probability": "high|medium|low", "timeframe": "string"}],
+  "sentiment": {"community_mood": "Overall emotional tone and intensity in communities", "divergences": "Main points of disagreement or different camps", "convergences": "Areas of consensus or shared concern", "weak_signals": "Early indicators or grassroots movements"}
+}`,
+      fr: `Fournissez une ANALYSE OSINT COMMUNAUTAIRE au format JSON avec cette structure:
+{
+  "entities": [{"name": "string", "type": "person|organization|location|hashtag", "role": "string", "mentions": number}],
+  "summary": "FOCUS: Capturez le POULS des communautés en ligne - Que ressentent et disent les gens? Quels récits ÉMERGENT? Qu'est-ce qui est TENDANCE? Soyez DIRECT et PERSPICACE sur les dynamiques communautaires et les schémas de discours.",
+  "predictions": [{"scenario": "Basé sur les schémas de discours communautaire et les récits émergents", "probability": "high|medium|low", "timeframe": "string"}],
+  "sentiment": {"community_mood": "Ton émotionnel global et intensité dans les communautés", "divergences": "Principaux points de désaccord ou différents camps", "convergences": "Zones de consensus ou préoccupation partagée", "weak_signals": "Indicateurs précoces ou mouvements de terrain"}
+}`,
+      it: `Fornisci un'ANALISI OSINT DELLA COMUNITÀ in formato JSON con questa struttura:
+{
+  "entities": [{"name": "string", "type": "person|organization|location|hashtag", "role": "string", "mentions": number}],
+  "summary": "FOCUS: Cattura il POLSO delle comunità online - Cosa stanno SENTENDO e DICENDO le persone? Quali narrazioni stanno EMERGENDO? Cosa è di TENDENZA? Sii DIRETTO e PERSPICACE sulle dinamiche comunitarie e sui pattern del discorso.",
+  "predictions": [{"scenario": "Basato sui pattern di discorso comunitario e narrazioni emergenti", "probability": "high|medium|low", "timeframe": "string"}],
+  "sentiment": {"community_mood": "Tono emotivo complessivo e intensità nelle comunità", "divergences": "Principali punti di disaccordo o campi diversi", "convergences": "Aree di consenso o preoccupazione condivisa", "weak_signals": "Indicatori precoci o movimenti dal basso"}
+}`
+    } : {
+      en: `Provide PRESS ANALYSIS in JSON format with this structure:
+{
+  "entities": [{"name": "string", "type": "person|organization|location", "role": "string", "mentions": number}],
+  "summary": "CONCISE and STRAIGHT TO THE POINT while capturing ALL essential information from verified press sources. Include: key facts, critical developments, main actors, important context.",
+  "predictions": [{"scenario": "string", "probability": "high|medium|low", "timeframe": "string"}],
+  "sentiment": {"public": "Public opinion as reported in press", "experts": "Expert opinions and analysis from press sources"}
+}`,
+      fr: `Fournissez une ANALYSE DE PRESSE au format JSON avec cette structure:
+{
+  "entities": [{"name": "string", "type": "person|organization|location", "role": "string", "mentions": number}],
+  "summary": "CONCIS et DIRECT tout en capturant TOUTES les informations essentielles des sources de presse vérifiées. Incluez: faits clés, développements critiques, acteurs principaux, contexte important.",
+  "predictions": [{"scenario": "string", "probability": "high|medium|low", "timeframe": "string"}],
+  "sentiment": {"public": "Opinion publique telle que rapportée dans la presse", "experts": "Opinions et analyses d'experts des sources de presse"}
+}`,
+      it: `Fornisci un'ANALISI STAMPA in formato JSON con questa struttura:
+{
+  "entities": [{"name": "string", "type": "person|organization|location", "role": "string", "mentions": number}],
+  "summary": "CONCISO e DIRETTO AL PUNTO catturando TUTTE le informazioni essenziali da fonti stampa verificate. Includi: fatti chiave, sviluppi critici, attori principali, contesto importante.",
+  "predictions": [{"scenario": "string", "probability": "high|medium|low", "timeframe": "string"}],
+  "sentiment": {"public": "Opinione pubblica come riportata nella stampa", "experts": "Opinioni ed analisi di esperti da fonti stampa"}
+}`
     };
 
     const articlesText = articles.map((a: any, i: number) => {
@@ -99,20 +145,8 @@ Restituisci solo JSON valido.`
           { 
             role: 'user', 
             content: sourceType === 'osint' 
-              ? `Query: "${query}"\n\nSOCIAL MEDIA POSTS (${articles.length} posts from Mastodon/BlueSky):\n${articlesText}\n\nProvide OSINT COMMUNITY ANALYSIS in JSON format with this structure:
-{
-  "entities": [{"name": "string", "type": "person|organization|location|hashtag", "role": "string", "mentions": number}],
-  "summary": "FOCUS: Capture the PULSE of online communities - What are people FEELING and SAYING? What narratives are EMERGING? What's TRENDING? Be DIRECT and INSIGHTFUL about the community dynamics and discourse patterns.",
-  "predictions": [{"scenario": "Based on community discourse patterns and emerging narratives", "probability": "high|medium|low", "timeframe": "string"}],
-  "sentiment": {"community_mood": "Overall emotional tone and intensity in communities", "divergences": "Main points of disagreement or different camps", "convergences": "Areas of consensus or shared concern", "weak_signals": "Early indicators or grassroots movements"}
-}`
-              : `Query: "${query}"\n\nPRESS ARTICLES (${articles.length} verified news sources):\n${articlesText}\n\nProvide PRESS ANALYSIS in JSON format with this structure:
-{
-  "entities": [{"name": "string", "type": "person|organization|location", "role": "string", "mentions": number}],
-  "summary": "CONCISE and STRAIGHT TO THE POINT while capturing ALL essential information from verified press sources. Include: key facts, critical developments, main actors, important context.",
-  "predictions": [{"scenario": "string", "probability": "high|medium|low", "timeframe": "string"}],
-  "sentiment": {"public": "Public opinion as reported in press", "experts": "Expert opinions and analysis from press sources"}
-}`
+              ? `Query: "${query}"\n\nSOCIAL MEDIA POSTS (${articles.length} posts from Mastodon/BlueSky):\n${articlesText}\n\n${userPromptInstructions[language as keyof typeof userPromptInstructions] || userPromptInstructions.en}`
+              : `Query: "${query}"\n\nPRESS ARTICLES (${articles.length} verified news sources):\n${articlesText}\n\n${userPromptInstructions[language as keyof typeof userPromptInstructions] || userPromptInstructions.en}`
           }
         ],
       }),
