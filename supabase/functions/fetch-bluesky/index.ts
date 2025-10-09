@@ -129,13 +129,6 @@ Deno.serve(async (req) => {
     searchUrl.searchParams.append('q', query);
     searchUrl.searchParams.append('type', 'statuses');
     searchUrl.searchParams.append('limit', limit.toString());
-    
-    // Add language filter in the query itself
-    let searchQuery = query;
-    if (language) {
-      searchQuery = `${query} language:${language}`;
-    }
-    searchUrl.searchParams.set('q', searchQuery);
 
     const response = await fetch(searchUrl.toString(), {
       method: 'GET',
