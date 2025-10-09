@@ -3,9 +3,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Mastodon API endpoint (no authentication needed for public search)
+// Mastodon API endpoints (no authentication needed for public timelines)
 const MASTODON_INSTANCE = 'https://mastodon.social';
-const MASTODON_API = `${MASTODON_INSTANCE}/api/v2/search`;
+const MASTODON_PUBLIC_API = `${MASTODON_INSTANCE}/api/v1/timelines/public`;
+const MASTODON_TAG_API = `${MASTODON_INSTANCE}/api/v1/timelines/tag`;
 
 interface MastodonAccount {
   id: string;
@@ -122,10 +123,23 @@ Deno.serve(async (req) => {
 
     console.log(`Fetching Mastodon posts for query: "${query}"${language ? ` in language: ${language}` : ''}`);
 
-    // Build Mastodon search URL
-    const searchUrl = new URL(MASTODON_API);
-    searchUrl.searchParams.append('q', query);
-    searchUrl.searchParams.append('type', 'statuses');
+    // Extract hashtag if present (with or without #)
+    const hashtagMatch = query.match(/#?(\w+)/);
+    const isHashtagSearch = query.startsWith('#') || query.includes('#');
+    
+    let searchUrl: URL;
+    
+    if (isHashtagSearch && hashtagMatch) {
+      // Use hashtag timeline API (more reliable for public access)
+      const hashtag = hashtagMatch[1]; // Extract without #
+      searchUrl = new URL(`${MASTODON_TAG_API}/${hashtag}`);
+      console.log(`Using hashtag API for: ${hashtag}`);
+    } else {
+      // Use public timeline API and filter client-side
+      searchUrl = new URL(MASTODON_PUBLIC_API);
+      console.log('Using public timeline API');
+    }
+    
     searchUrl.searchParams.append('limit', limit.toString());
 
     const response = await fetch(searchUrl.toString(), {
@@ -145,7 +159,18 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
-    const statuses: MastodonStatus[] = data.statuses || [];
+    // Timeline API returns array directly, not wrapped in object
+    let statuses: MastodonStatus[] = Array.isArray(data) ? data : (data.statuses || []);
+
+    // Filter by query text if using public timeline (client-side filtering)
+    if (!isHashtagSearch && query) {
+      const queryLower = query.toLowerCase();
+      statuses = statuses.filter(status => {
+        const content = status.content.toLowerCase();
+        const account = status.account.display_name.toLowerCase() + ' ' + status.account.username.toLowerCase();
+        return content.includes(queryLower) || account.includes(queryLower);
+      });
+    }
 
     console.log(`Found ${statuses.length} Mastodon posts`);
 
