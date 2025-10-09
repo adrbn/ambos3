@@ -3,8 +3,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// BlueSky (AT Protocol) public API
-const BLUESKY_API = 'https://public.api.bsky.app';
+// BlueSky (AT Protocol) API
+const BLUESKY_API = 'https://bsky.social';
 
 interface BlueskyPost {
   uri: string;
@@ -34,6 +34,36 @@ interface CredibilityFactors {
   engagement: number;
   verification: boolean;
   contentQuality: number;
+}
+
+// Authenticate and get access token
+async function authenticateBlueSky(): Promise<string | null> {
+  const identifier = Deno.env.get('BLUESKY_IDENTIFIER');
+  const password = Deno.env.get('BLUESKY_APP_PASSWORD');
+
+  if (!identifier || !password) {
+    console.warn('BlueSky credentials not configured. Set BLUESKY_IDENTIFIER and BLUESKY_APP_PASSWORD.');
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${BLUESKY_API}/xrpc/com.atproto.server.createSession`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier, password }),
+    });
+
+    if (!response.ok) {
+      console.error('BlueSky auth failed:', response.status, await response.text());
+      return null;
+    }
+
+    const data = await response.json();
+    return data.accessJwt;
+  } catch (error) {
+    console.error('BlueSky auth error:', error);
+    return null;
+  }
 }
 
 function calculateCredibilityScore(post: BlueskyPost): { score: number; factors: CredibilityFactors } {
@@ -111,6 +141,20 @@ Deno.serve(async (req) => {
 
     console.log(`Fetching BlueSky posts for query: "${query}"${language ? ` in language: ${language}` : ''}`);
 
+    // Authenticate with BlueSky
+    const accessToken = await authenticateBlueSky();
+    
+    if (!accessToken) {
+      console.error('BlueSky authentication required. Please configure BLUESKY_IDENTIFIER and BLUESKY_APP_PASSWORD.');
+      return new Response(
+        JSON.stringify({ 
+          error: 'BlueSky authentication required',
+          message: 'Configurez vos identifiants BlueSky dans les secrets Supabase : BLUESKY_IDENTIFIER (votre handle) et BLUESKY_APP_PASSWORD (créez un mot de passe d\'app dans les paramètres BlueSky)'
+        }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const searchUrl = new URL(`${BLUESKY_API}/xrpc/app.bsky.feed.searchPosts`);
     searchUrl.searchParams.append('q', query);
     searchUrl.searchParams.append('limit', Math.min(limit, 100).toString());
@@ -122,6 +166,7 @@ Deno.serve(async (req) => {
     const response = await fetch(searchUrl.toString(), {
       method: 'GET',
       headers: {
+        'Authorization': `Bearer ${accessToken}`,
         'Accept': 'application/json',
       },
     });
@@ -130,7 +175,7 @@ Deno.serve(async (req) => {
       const errorText = await response.text();
       console.error('BlueSky API error:', response.status, errorText);
       return new Response(
-        JSON.stringify({ error: `BlueSky API error: ${response.status}` }),
+        JSON.stringify({ error: `BlueSky API error: ${response.status}`, details: errorText }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
