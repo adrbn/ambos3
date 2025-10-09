@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Fetching Mastodon posts for query: "${query}" in language: ${language}`);
+    console.log(`Fetching Mastodon posts for query: "${query}"${language ? ` in language: ${language}` : ''}`);
 
     // Build Mastodon search URL
     const searchUrl = new URL(MASTODON_API);
