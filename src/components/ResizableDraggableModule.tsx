@@ -3,22 +3,22 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
 import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'; // useState est toujours nécessaire pour isMobile
 
 interface ResizableDraggableModuleProps {
   id: string;
   children: React.ReactNode;
-  // ⚠️ Renommés pour plus de clarté. Ils sont les tailles COURANTES/INITIALES
-  width: number;
-  height: number;
+  // Les props sont désormais la source unique de vérité pour la taille
+  width: number; 
+  height: number; 
   onResize?: (width: number, height: number) => void;
 }
 
 const ResizableDraggableModule = ({ 
   id, 
   children,
-  width, // Nouvelle prop: taille actuelle/initiale
-  height, // Nouvelle prop: taille actuelle/initiale
+  width, // Taille actuelle/initiale
+  height, // Taille actuelle/initiale
   onResize
 }: ResizableDraggableModuleProps) => {
   const {
@@ -30,14 +30,9 @@ const ResizableDraggableModule = ({ 
     isDragging,
   } = useSortable({ id });
 
-  // ⚠️ CORRECTION 1: L'état est maintenant utilisé UNIQUEMENT pour stocker la taille 
-  // activement ajustée par l'utilisateur lors du redimensionnement.
-  // Il est initialisé avec les props.
-  const [internalSize, setInternalSize] = useState({ width, height });
+  // Nous conservons un état interne uniquement pour isMobile.
+  // La taille n'est plus gérée par useState pour éviter le conflit.
   const [isMobile, setIsMobile] = useState(false);
-
-  // ⚠️ CORRECTION 2: Retire l'effet qui réinitialisait l'état après le premier chargement.
-  // On utilise plutôt les props directement.
 
   useEffect(() => {
     const checkMobile = () => {
@@ -48,27 +43,24 @@ const ResizableDraggableModule = ({ 
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // ⚠️ CORRECTION 3: Met à jour l'état interne pour qu'il corresponde aux props
-  // UNIQUEMENT lorsque le composant passe de non-contrôlé à contrôlé (initialisation).
-  // La ResizableBox utilisera les props directement, mais si une interaction (drag) commence,
-  // l'état interne prend le relais. C'est une stratégie de "contrôle hybride".
-  useEffect(() => {
-      setInternalSize({ width, height });
-  }, [width, height]);
-
-
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+    // ⚠️ La hauteur et la largeur sont implicitement contrôlées par ResizableBox 
+    // ou par le conteneur parent via DND-kit, mais nous gérons la taille ici.
+    // Laissez-le simple pour l'instant.
   };
-
+  
+  // La fonction de redimensionnement appelle simplement le callback pour que 
+  // le parent (qui utilise useLayoutConfig) puisse mettre à jour la source de vérité.
   const handleResize = (event: any, { size: newSize }: any) => {
-    setInternalSize(newSize); // Mise à jour de l'état pendant le redimensionnement
+    // Il n'y a plus de setSize(), car la source de vérité est la prop.
+    // Le parent doit appeler updateLayout avec les nouvelles tailles.
     onResize?.(newSize.width, newSize.height);
   };
 
-  // Sur mobile, pas de redimensionnement ni drag-and-drop
+  // Sur mobile
   if (isMobile) {
     return (
       <div
@@ -76,7 +68,7 @@ const ResizableDraggableModule = ({ 
         style={style}
         className="relative w-full"
       >
-        {/* Utilise la prop 'height' directement pour la taille initiale */}
+        {/* Utilise la prop 'height' directement */}
         <div className="w-full h-full" style={{ height: `${height}px` }}> 
           {children}
         </div>
@@ -84,7 +76,7 @@ const ResizableDraggableModule = ({ 
     );
   }
 
-  // Sur desktop, avec redimensionnement
+  // Sur desktop (ResizableBox)
   return (
     <div
       ref={setNodeRef}
@@ -101,12 +93,8 @@ const ResizableDraggableModule = ({ 
       </div>
       
       <ResizableBox
-        // ⚠️ CORRECTION 4: ResizableBox utilise les props (width/height)
-        // qui viennent du layout. L'état interne est géré par la librairie
-        // ResizableBox lors de l'interaction, via handleResize.
-        // On passe internalSize pour utiliser la taille stockée si disponible.
-        width={internalSize.width} 
-        height={internalSize.height}
+        width={width} // ⬅️ Utilise la PROP directement
+        height={height} // ⬅️ Utilise la PROP directement
         onResize={handleResize}
         minConstraints={[200, 150]}
         maxConstraints={[1200, 800]}
