@@ -24,7 +24,7 @@ const AMB2_LAYOUT: LayoutConfig = {
   moduleOrder: [
     'summary',
     'map',
-    'timeline', // Ordre corrigé
+    'timeline', 
     'predictions',
     'entities',
     'network-graph',
@@ -36,7 +36,6 @@ const AMB2_LAYOUT: LayoutConfig = {
     "network-graph": {"height": 345, "width": 448},
     "predictions": {"height": 345, "width": 460},
     "timeline": {"height": 345, "width": 486}
-    // Les autres modules prendront leur taille par défaut si non définis ici.
   }
 };
 
@@ -47,16 +46,41 @@ const STORAGE_KEY = 'ambos-layout-config';
 export const useLayoutConfig = () => {
   const [layout, setLayout] = useState<LayoutConfig>(() => {
     try {
-      // ⚠️ ASSUREZ-VOUS D'AVOIR VIDÉ LE localStorage AVANT DE TESTER
       const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : AMB2_LAYOUT;
+      
+      if (stored) {
+        const storedLayout = JSON.parse(stored) as Partial<LayoutConfig>;
+        
+        // 🚀 CORRECTION MAJEURE: Logique de FUSION
+        // Ceci garantit que toutes les tailles par défaut AMB2 sont présentes,
+        // même si l'ancien layout stocké était d'un format qui ne les incluait pas.
+        const layoutToUse: LayoutConfig = {
+          // Utilise l'ordre stocké ou l'ordre par défaut AMB2
+          moduleOrder: storedLayout.moduleOrder || AMB2_LAYOUT.moduleOrder, 
+          
+          // Fusionne les tailles: priorité aux tailles stockées si elles existent,
+          // sinon utilise les tailles AMB2.
+          moduleSizes: { 
+            ...AMB2_LAYOUT.moduleSizes, 
+            ...(storedLayout.moduleSizes || {})
+          }
+        };
+
+        return layoutToUse;
+
+      } else {
+        // Si rien n'est stocké, on utilise le défaut complet (ordre et tailles).
+        return AMB2_LAYOUT;
+      }
     } catch {
+      // Retourne AMB2_LAYOUT en cas d'erreur.
       return AMB2_LAYOUT;
     }
   });
 
   useEffect(() => {
     try {
+      // Stocke toujours le layout au nouveau format (avec les tailles)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
     } catch (error) {
       console.error('Failed to save layout:', error);
