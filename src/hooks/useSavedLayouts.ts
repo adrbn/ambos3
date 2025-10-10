@@ -50,14 +50,21 @@ export const useSavedLayouts = () => {
     moduleSizes: Record<string, { width: number; height: number }>
   ) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('You must be logged in to save layouts');
+        return;
+      }
+
       const { error } = await supabase
         .from('saved_layouts')
         .upsert({
+          user_id: user.id,
           name,
           module_order: moduleOrder,
           module_sizes: moduleSizes,
         }, {
-          onConflict: 'name'
+          onConflict: 'user_id,name'
         });
 
       if (error) throw error;
