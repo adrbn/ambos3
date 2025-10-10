@@ -9,23 +9,22 @@ export type ModuleId =
   | 'predictions'
   | 'datafeed';
 
-// Définition du type pour les tailles (basé sur vos données)
+// Définition du type pour les tailles
 export interface ModuleSizes {
   [moduleId: string]: { height: number; width: number };
 }
 
 interface LayoutConfig {
   moduleOrder: ModuleId[];
-  moduleSizes: ModuleSizes; // Ajout du support pour les tailles
+  moduleSizes: ModuleSizes; // Inclusion des tailles
 }
 
-// ⚠️ Configuration codée en dur pour "DEFAULT AMB 2"
-// Inclut l'ordre et les tailles de blocs
+// Configuration codée en dur pour "DEFAULT AMB 2" (Ordre et Tailles)
 const AMB2_LAYOUT: LayoutConfig = {
   moduleOrder: [
     'summary',
     'map',
-    'timeline',
+    'timeline', // Ordre corrigé
     'predictions',
     'entities',
     'network-graph',
@@ -37,10 +36,10 @@ const AMB2_LAYOUT: LayoutConfig = {
     "network-graph": {"height": 345, "width": 448},
     "predictions": {"height": 345, "width": 460},
     "timeline": {"height": 345, "width": 486}
+    // Les autres modules prendront leur taille par défaut si non définis ici.
   }
 };
 
-// Le layout de réinitialisation est le même que le défaut initial
 const DEFAULT_LAYOUT: LayoutConfig = AMB2_LAYOUT; 
 
 const STORAGE_KEY = 'ambos-layout-config';
@@ -48,18 +47,16 @@ const STORAGE_KEY = 'ambos-layout-config';
 export const useLayoutConfig = () => {
   const [layout, setLayout] = useState<LayoutConfig>(() => {
     try {
+      // ⚠️ ASSUREZ-VOUS D'AVOIR VIDÉ LE localStorage AVANT DE TESTER
       const stored = localStorage.getItem(STORAGE_KEY);
-      // Utilise le layout stocké OU le défaut AMB2_LAYOUT si rien n'est trouvé
       return stored ? JSON.parse(stored) : AMB2_LAYOUT;
     } catch {
-      // Retourne AMB2_LAYOUT en cas d'erreur (e.g. JSON mal formé)
       return AMB2_LAYOUT;
     }
   });
 
   useEffect(() => {
     try {
-      // Le layout stocké dans localStorage inclut désormais l'ordre ET les tailles
       localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
     } catch (error) {
       console.error('Failed to save layout:', error);
@@ -67,8 +64,7 @@ export const useLayoutConfig = () => {
   }, [layout]);
 
   /**
-   * Met à jour le layout.
-   * Conserve les tailles existantes si newSizes n'est pas fourni.
+   * Met à jour le layout (ordre et tailles).
    * @param newOrder Le nouvel ordre des modules.
    * @param newSizes Les nouvelles tailles de modules (optionnel).
    */
@@ -80,7 +76,6 @@ export const useLayoutConfig = () => {
   };
 
   const resetLayout = () => {
-    // Réinitialise à la configuration codée en dur "DEFAULT AMB 2"
     setLayout(DEFAULT_LAYOUT);
   };
 
