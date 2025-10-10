@@ -1,26 +1,28 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Roboto+Mono:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@300;400;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* AmbOS Intelligence HUD Theme */
+/* AmbOS Intelligence HUD Theme - Default */
 @layer base {
   :root {
     /* Core Colors - Pure Black Background, Bright Cyan */
-    --background: 0 0% 3%;           /* Almost pure black */
-    --foreground: 180 100% 90%;      /* Bright cyan-tinted white */
+    --background: 0 0% 3%;
+    --foreground: 180 100% 90%;
     
-    --card: 0 0% 5%;                 /* Very dark card */
+    --card: 0 0% 5%;
     --card-foreground: 180 100% 90%;
     
     --popover: 0 0% 5%;
     --popover-foreground: 180 100% 90%;
     
-    --primary: 188 100% 56%;         /* #00D9FF - Bright Cyan */
+    --primary: 188 100% 56%;
     --primary-foreground: 0 0% 3%;
+    --primary-glow: 188 100% 70%;
     
-    --secondary: 41 100% 60%;        /* #FFB800 - Bright Amber */
+    --secondary: 41 100% 60%;
     --secondary-foreground: 0 0% 3%;
     
     --muted: 0 0% 8%;
@@ -39,10 +41,78 @@
     --radius: 0.2rem;
     
     /* HUD Specific Colors */
-    --hud-glow: 188 100% 56%;        /* Cyan glow */
-    --hud-warning: 41 100% 60%;      /* Amber alerts */
-    --hud-grid: 188 60% 15%;         /* Subtle grid lines */
-    --hud-scanline: 188 100% 56%;    /* Scanline overlay */
+    --hud-glow: 188 100% 56%;
+    --hud-warning: 41 100% 60%;
+    --hud-grid: 188 60% 15%;
+    --hud-scanline: 188 100% 56%;
+  }
+
+  /* Light Minimalist Theme (Apple Style) */
+  [data-theme="light"] {
+    --background: 0 0% 98%;
+    --foreground: 0 0% 10%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    
+    --primary: 220 90% 55%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 220 90% 65%;
+    
+    --secondary: 220 10% 90%;
+    --secondary-foreground: 0 0% 10%;
+    
+    --muted: 220 10% 95%;
+    --muted-foreground: 0 0% 40%;
+    
+    --accent: 220 90% 55%;
+    --accent-foreground: 0 0% 98%;
+    
+    --destructive: 0 80% 55%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 220 10% 88%;
+    --input: 220 10% 95%;
+    --ring: 220 90% 55%;
+    
+    --radius: 0.5rem;
+  }
+
+  /* Girly Theme */
+  [data-theme="girly"] {
+    --background: 330 100% 98%;
+    --foreground: 330 50% 15%;
+    
+    --card: 330 100% 99%;
+    --card-foreground: 330 50% 15%;
+    
+    --popover: 330 100% 99%;
+    --popover-foreground: 330 50% 15%;
+    
+    --primary: 330 80% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 330 80% 75%;
+    
+    --secondary: 45 100% 70%;
+    --secondary-foreground: 330 50% 15%;
+    
+    --muted: 330 40% 95%;
+    --muted-foreground: 330 30% 50%;
+    
+    --accent: 280 80% 65%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 330 40% 88%;
+    --input: 330 40% 95%;
+    --ring: 330 80% 60%;
+    
+    --radius: 1rem;
   }
 }
 
@@ -54,16 +124,28 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Roboto Mono', monospace;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  [data-theme="default"] body {
     background-image: 
       linear-gradient(rgba(0, 217, 255, 0.02) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0, 217, 255, 0.02) 1px, transparent 1px);
     background-size: 40px 40px;
-    position: relative;
-    overflow-x: hidden;
   }
-  
-  /* Scanline Animation */
-  body::before {
+
+  [data-theme="light"] body {
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(to bottom, hsl(var(--background)), hsl(var(--muted)));
+  }
+
+  [data-theme="girly"] body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, hsl(330 100% 98%), hsl(280 100% 98%));
+  }
+
+  /* Scanline Animation - Only for default theme */
+  [data-theme="default"] body::before {
     content: '';
     position: fixed;
     top: 0;
@@ -86,27 +168,43 @@
   }
   
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Orbitron', sans-serif;
     font-weight: 700;
-    text-transform: uppercase;
     letter-spacing: 0.05em;
   }
+
+  [data-theme="default"] h1, 
+  [data-theme="default"] h2, 
+  [data-theme="default"] h3, 
+  [data-theme="default"] h4, 
+  [data-theme="default"] h5, 
+  [data-theme="default"] h6 {
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+  }
+
+  [data-theme="girly"] h1,
+  [data-theme="girly"] h2,
+  [data-theme="girly"] h3 {
+    font-family: 'Pacifico', cursive;
+    text-transform: none;
+    letter-spacing: normal;
+  }
   
-  /* Glow Effects */
-  .text-glow {
+  /* Glow Effects - Only for default theme */
+  [data-theme="default"] .text-glow {
     text-shadow: 
       0 0 10px hsl(var(--hud-glow) / 0.8),
       0 0 20px hsl(var(--hud-glow) / 0.5),
       0 0 30px hsl(var(--hud-glow) / 0.3);
   }
   
-  .border-glow {
+  [data-theme="default"] .border-glow {
     box-shadow: 
       0 0 10px hsl(var(--hud-glow) / 0.5),
       inset 0 0 10px hsl(var(--hud-glow) / 0.2);
   }
   
-  .warning-glow {
+  [data-theme="default"] .warning-glow {
     box-shadow: 
       0 0 10px hsl(var(--hud-warning) / 0.5),
       inset 0 0 10px hsl(var(--hud-warning) / 0.2);

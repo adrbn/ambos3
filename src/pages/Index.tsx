@@ -34,10 +34,14 @@ import { useLayoutConfig, ModuleId } from "@/hooks/useLayoutConfig";
 import { useSavedLayouts } from "@/hooks/useSavedLayouts";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
-import { ApiSource } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { LogOut, UserCog } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+type ApiSource = 'gnews' | 'newsapi' | 'mediastack' | 'mixed';
 
 const Index = () => {
   const [currentQuery, setCurrentQuery] = useState<string>("");
@@ -48,9 +52,16 @@ const Index = () => {
   const [selectedApi, setSelectedApi] = useState<ApiSource>('newsapi');
   const [sourceType, setSourceType] = useState<'news' | 'osint'>('news');
   const [osintSources, setOsintSources] = useState<string[]>(['mastodon', 'bluesky']);
+  const [theme, setTheme] = useState<'default' | 'light' | 'girly'>('default');
+  const { user, isAdmin, signOut } = useAuth();
+  const navigate = useNavigate();
   const [enableQueryEnrichment, setEnableQueryEnrichment] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("search");
   const [currentWatch, setCurrentWatch] = useState<any>(null);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
   const [currentLayoutName, setCurrentLayoutName] = useState<string | null>(null);
   const { t } = useTranslation(language);
   const { layout, updateLayout, resetLayout } = useLayoutConfig();
@@ -246,8 +257,32 @@ const Index = () => {
               language={language}
               enableQueryEnrichment={enableQueryEnrichment}
               onEnableQueryEnrichmentChange={setEnableQueryEnrichment}
+              theme={theme}
+              onThemeChange={setTheme}
             />
             <LanguageSelector language={language} onLanguageChange={handleLanguageChange} />
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/admin")}
+                className="h-8 gap-2"
+              >
+                <UserCog className="w-4 h-4" />
+                Admin
+              </Button>
+            )}
+            {user && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={signOut}
+                className="h-8 gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Déconnexion
+              </Button>
+            )}
             <div className="hidden sm:flex items-center gap-2 px-2 sm:px-3 py-1 bg-secondary/20 border border-secondary/40 rounded">
               <Activity className="w-3 h-3 text-secondary animate-pulse" />
               <span className="text-[10px] sm:text-xs text-secondary font-bold uppercase">{t('status')}</span>

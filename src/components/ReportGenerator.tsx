@@ -3,6 +3,7 @@ import { Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
+import jsPDF from "jspdf";
 
 interface ReportGeneratorProps {
   articles: any[];
@@ -319,6 +320,136 @@ const ReportGenerator = ({ articles, analysis, query, language }: ReportGenerato
     toast.success("Rapport HTML téléchargé !");
   };
 
+  const generatePDFReport = () => {
+    if (articles.length === 0) {
+      toast.error("Aucune donnée à exporter");
+      return;
+    }
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    let yPos = 20;
+
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor(44, 62, 80);
+    doc.text("🛡️ AMBOS - Rapport d'Analyse", pageWidth / 2, yPos, { align: "center" });
+    
+    yPos += 10;
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Requête: ${query}`, pageWidth / 2, yPos, { align: "center" });
+    yPos += 5;
+    doc.text(`Date: ${new Date().toLocaleString(language)}`, pageWidth / 2, yPos, { align: "center" });
+    yPos += 15;
+
+    // Stats
+    doc.setFontSize(12);
+    doc.setTextColor(44, 62, 80);
+    doc.text("📊 Statistiques", 15, yPos);
+    yPos += 8;
+    doc.setFontSize(10);
+    doc.text(`Posts analysés: ${articles.length}`, 20, yPos);
+    yPos += 6;
+    if (analysis?.entities?.length) {
+      doc.text(`Entités identifiées: ${analysis.entities.length}`, 20, yPos);
+      yPos += 6;
+    }
+    if (analysis?.predictions?.length) {
+      doc.text(`Prédictions: ${analysis.predictions.length}`, 20, yPos);
+      yPos += 6;
+    }
+    yPos += 10;
+
+    // Summary
+    if (analysis?.summary) {
+      if (yPos > pageHeight - 40) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.setFontSize(12);
+      doc.setTextColor(44, 62, 80);
+      doc.text("📝 Résumé IA", 15, yPos);
+      yPos += 8;
+      doc.setFontSize(9);
+      doc.setTextColor(60, 60, 60);
+      const summaryLines = doc.splitTextToSize(analysis.summary, pageWidth - 30);
+      summaryLines.forEach((line: string) => {
+        if (yPos > pageHeight - 20) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.text(line, 15, yPos);
+        yPos += 5;
+      });
+      yPos += 10;
+    }
+
+    // Predictions
+    if (analysis?.predictions?.length) {
+      if (yPos > pageHeight - 40) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.setFontSize(12);
+      doc.setTextColor(44, 62, 80);
+      doc.text("🔮 Prédictions", 15, yPos);
+      yPos += 8;
+      doc.setFontSize(9);
+      analysis.predictions.forEach((pred: any, idx: number) => {
+        if (yPos > pageHeight - 20) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.text(`${idx + 1}. ${pred.scenario || 'Prédiction'}`, 20, yPos);
+        yPos += 5;
+        doc.setTextColor(100, 100, 100);
+        doc.text(`   Probabilité: ${pred.probability || 'N/A'} | Horizon: ${pred.timeframe || 'N/A'}`, 20, yPos);
+        yPos += 7;
+        doc.setTextColor(60, 60, 60);
+      });
+      yPos += 10;
+    }
+
+    // Articles
+    if (yPos > pageHeight - 40) {
+      doc.addPage();
+      yPos = 20;
+    }
+    doc.setFontSize(12);
+    doc.setTextColor(44, 62, 80);
+    doc.text(`📰 Posts (${articles.length})`, 15, yPos);
+    yPos += 10;
+
+    articles.slice(0, 20).forEach((article: any, idx: number) => {
+      if (yPos > pageHeight - 40) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFontSize(10);
+      doc.setTextColor(44, 62, 80);
+      const titleLines = doc.splitTextToSize(`${idx + 1}. ${article.title || 'Sans titre'}`, pageWidth - 30);
+      titleLines.forEach((line: string) => {
+        if (yPos > pageHeight - 20) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.text(line, 20, yPos);
+        yPos += 5;
+      });
+      
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Source: ${article.source?.name || 'Inconnue'} | ${new Date(article.publishedAt).toLocaleDateString(language)}`, 20, yPos);
+      yPos += 10;
+    });
+
+    doc.save(`AMBOS_Report_${query.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+    toast.success("Rapport PDF téléchargé !");
+  };
+
   const generateJSONReport = () => {
     if (articles.length === 0) {
       toast.error("Aucune donnée à exporter");
@@ -364,22 +495,24 @@ const ReportGenerator = ({ articles, analysis, query, language }: ReportGenerato
   return (
     <div className="flex gap-2 flex-wrap">
       <Button
-        onClick={generateHTMLReport}
+        onClick={generatePDFReport}
         variant="outline"
         size="sm"
-        className="text-xs hud-button"
+        className="text-xs hud-button max-md:p-2"
+        title="Télécharger PDF"
       >
-        <FileText className="w-3 h-3 mr-1" />
-        Rapport HTML
+        <FileText className="w-3 h-3 md:mr-1" />
+        <span className="hidden md:inline">PDF</span>
       </Button>
       <Button
         onClick={generateJSONReport}
         variant="outline"
         size="sm"
-        className="text-xs hud-button"
+        className="text-xs hud-button max-md:p-2"
+        title="Télécharger JSON"
       >
-        <Download className="w-3 h-3 mr-1" />
-        Export JSON
+        <Download className="w-3 h-3 md:mr-1" />
+        <span className="hidden md:inline">JSON</span>
       </Button>
     </div>
   );

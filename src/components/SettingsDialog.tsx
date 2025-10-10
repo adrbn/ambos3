@@ -17,22 +17,26 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
 
 interface SettingsDialogProps {
-  selectedApi: 'gnews' | 'newsapi' | 'mediastack';
-  onApiChange: (api: 'gnews' | 'newsapi' | 'mediastack') => void;
+  selectedApi: 'gnews' | 'newsapi' | 'mediastack' | 'mixed';
+  onApiChange: (api: 'gnews' | 'newsapi' | 'mediastack' | 'mixed') => void;
   language: Language;
   enableQueryEnrichment: boolean;
   onEnableQueryEnrichmentChange: (enabled: boolean) => void;
+  theme: 'default' | 'light' | 'girly';
+  onThemeChange: (theme: 'default' | 'light' | 'girly') => void;
 }
 
-const SettingsDialog = ({ selectedApi, onApiChange, language, enableQueryEnrichment, onEnableQueryEnrichmentChange }: SettingsDialogProps) => {
+const SettingsDialog = ({ selectedApi, onApiChange, language, enableQueryEnrichment, onEnableQueryEnrichmentChange, theme, onThemeChange }: SettingsDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [tempApi, setTempApi] = useState<'gnews' | 'newsapi' | 'mediastack'>(selectedApi);
+  const [tempApi, setTempApi] = useState<'gnews' | 'newsapi' | 'mediastack' | 'mixed'>(selectedApi);
   const [tempEnrichment, setTempEnrichment] = useState(enableQueryEnrichment);
+  const [tempTheme, setTempTheme] = useState<'default' | 'light' | 'girly'>(theme);
   const { t } = useTranslation(language);
 
   const handleSave = () => {
     onApiChange(tempApi);
     onEnableQueryEnrichmentChange(tempEnrichment);
+    onThemeChange(tempTheme);
     setIsOpen(false);
     toast.success(t('settingsSaved'));
   };
@@ -58,7 +62,7 @@ const SettingsDialog = ({ selectedApi, onApiChange, language, enableQueryEnrichm
             </label>
             <Select 
               value={tempApi} 
-              onValueChange={(value: 'gnews' | 'newsapi' | 'mediastack') => setTempApi(value)}
+              onValueChange={(value: 'gnews' | 'newsapi' | 'mediastack' | 'mixed') => setTempApi(value)}
             >
               <SelectTrigger className="bg-card/50 border-primary/30">
                 <SelectValue />
@@ -67,11 +71,35 @@ const SettingsDialog = ({ selectedApi, onApiChange, language, enableQueryEnrichm
                 <SelectItem value="gnews">GNews API</SelectItem>
                 <SelectItem value="newsapi">NewsAPI</SelectItem>
                 <SelectItem value="mediastack">Mediastack API</SelectItem>
+                <SelectItem value="mixed">🔀 Mixte (toutes les APIs)</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-2">
               {t('searchApiDescription')}
             </p>
+          </div>
+
+          <Separator className="my-4" />
+
+          <Separator className="my-4" />
+
+          <div>
+            <label className="text-sm font-medium text-foreground mb-2 block">
+              Thème
+            </label>
+            <Select 
+              value={tempTheme} 
+              onValueChange={(value: 'default' | 'light' | 'girly') => setTempTheme(value)}
+            >
+              <SelectTrigger className="bg-card/50 border-primary/30">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">🛡️ Défaut (AMBOS)</SelectItem>
+                <SelectItem value="light">☀️ Clair (Minimaliste)</SelectItem>
+                <SelectItem value="girly">💖 Girly</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <Separator className="my-4" />

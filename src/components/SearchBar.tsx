@@ -13,7 +13,7 @@ interface SearchBarProps {
   language: Language;
   currentQuery: string;
   searchTrigger: number;
-  selectedApi: 'gnews' | 'newsapi' | 'mediastack';
+  selectedApi: 'gnews' | 'newsapi' | 'mediastack' | 'mixed';
   sourceType: 'news' | 'osint';
   onSourceTypeChange: (type: 'news' | 'osint') => void;
   osintSources: string[];
