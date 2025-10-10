@@ -114,6 +114,32 @@
     
     --radius: 1rem;
   }
+
+  /* Light theme specific map/graph styles */
+  [data-theme="light"] .hud-panel,
+  [data-theme="light"] .leaflet-container,
+  [data-theme="light"] canvas {
+    background: hsl(var(--card)) !important;
+    color: hsl(var(--foreground)) !important;
+    border-color: hsl(var(--border)) !important;
+  }
+
+  [data-theme="light"] .leaflet-tile-pane {
+    filter: brightness(1.05);
+  }
+
+  /* Girly theme specific map/graph styles */
+  [data-theme="girly"] .hud-panel,
+  [data-theme="girly"] .leaflet-container,
+  [data-theme="girly"] canvas {
+    background: hsl(var(--card)) !important;
+    color: hsl(var(--foreground)) !important;
+    border-color: hsl(var(--border)) !important;
+  }
+
+  [data-theme="girly"] .leaflet-tile-pane {
+    filter: brightness(1.1) saturate(1.3) hue-rotate(-5deg);
+  }
 }
 
 @layer base {

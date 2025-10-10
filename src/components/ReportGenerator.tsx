@@ -493,26 +493,24 @@ const ReportGenerator = ({ articles, analysis, query, language }: ReportGenerato
   }
 
   return (
-    <div className="flex gap-2 flex-wrap">
+    <div className="flex gap-1 sm:gap-2">
+      <Button
+        onClick={generateHTMLReport}
+        variant="outline"
+        size="sm"
+        className="h-8"
+      >
+        <FileText className="w-4 h-4 sm:mr-1" />
+        <span className="hidden sm:inline">HTML</span>
+      </Button>
       <Button
         onClick={generatePDFReport}
         variant="outline"
         size="sm"
-        className="text-xs hud-button max-md:p-2"
-        title="Télécharger PDF"
+        className="h-8"
       >
-        <FileText className="w-3 h-3 md:mr-1" />
-        <span className="hidden md:inline">PDF</span>
-      </Button>
-      <Button
-        onClick={generateJSONReport}
-        variant="outline"
-        size="sm"
-        className="text-xs hud-button max-md:p-2"
-        title="Télécharger JSON"
-      >
-        <Download className="w-3 h-3 md:mr-1" />
-        <span className="hidden md:inline">JSON</span>
+        <Download className="w-4 h-4 sm:mr-1" />
+        <span className="hidden sm:inline">PDF</span>
       </Button>
     </div>
   );

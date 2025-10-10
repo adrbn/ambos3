@@ -68,18 +68,16 @@ const SettingsDialog = ({ selectedApi, onApiChange, language, enableQueryEnrichm
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="mixed">🔀 Mixte (toutes les APIs)</SelectItem>
                 <SelectItem value="gnews">GNews API</SelectItem>
                 <SelectItem value="newsapi">NewsAPI</SelectItem>
                 <SelectItem value="mediastack">Mediastack API</SelectItem>
-                <SelectItem value="mixed">🔀 Mixte (toutes les APIs)</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-2">
               {t('searchApiDescription')}
             </p>
           </div>
-
-          <Separator className="my-4" />
 
           <Separator className="my-4" />
 

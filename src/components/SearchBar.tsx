@@ -77,6 +77,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
           const functionMap: Record<string, string> = {
             'mastodon': 'fetch-bluesky',
             'bluesky': 'fetch-bluesky-real',
+            'linkedin': 'fetch-linkedin',
           };
           
           const functionName = functionMap[source];
@@ -210,7 +211,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-mono mb-2">Sources OSINT actives:</p>
                 <div className="flex flex-col gap-2">
-                  {['mastodon', 'bluesky'].map((source) => (
+                  {['mastodon', 'bluesky', 'linkedin'].map((source) => (
                     <label
                       key={source}
                       className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"

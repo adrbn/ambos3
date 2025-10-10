@@ -49,12 +49,19 @@ const Index = () => {
   const [analysis, setAnalysis] = useState<any>(null);
   const [language, setLanguage] = useState<Language>("fr");
   const [searchTrigger, setSearchTrigger] = useState(0);
-  const [selectedApi, setSelectedApi] = useState<ApiSource>('newsapi');
+  const [selectedApi, setSelectedApi] = useState<ApiSource>('mixed');
   const [sourceType, setSourceType] = useState<'news' | 'osint'>('news');
-  const [osintSources, setOsintSources] = useState<string[]>(['mastodon', 'bluesky']);
+  const [osintSources, setOsintSources] = useState<string[]>(['mastodon', 'bluesky', 'linkedin']);
   const [theme, setTheme] = useState<'default' | 'light' | 'girly'>('default');
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, isLoading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, authLoading, navigate]);
   const [enableQueryEnrichment, setEnableQueryEnrichment] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("search");
   const [currentWatch, setCurrentWatch] = useState<any>(null);
@@ -208,6 +215,21 @@ const Index = () => {
         return null;
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Shield className="w-16 h-16 text-primary mx-auto mb-4 animate-pulse" />
+          <p className="text-muted-foreground">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
