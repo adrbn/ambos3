@@ -13,18 +13,6 @@ interface LayoutConfig {
   moduleOrder: ModuleId[];
 }
 
-const DEFAULT_LAYOUT: LayoutConfig = {
-  moduleOrder: [
-    'summary',
-    'map',
-    'entities',
-    'network-graph',
-    'predictions',
-    'timeline',
-    'datafeed',
-  ],
-};
-
 // AMB 2 Layout - Set as initial default
 const AMB2_LAYOUT: LayoutConfig = {
   moduleOrder: [
