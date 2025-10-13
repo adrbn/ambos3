@@ -15,13 +15,58 @@ const MILITARY_RSS_FEEDS = [
     language: 'it',
   },
   {
+    name: 'Ares Difesa',
+    url: 'https://aresdifesa.it/feed/',
+    language: 'it',
+  },
+  {
+    name: 'Aviation Report',
+    url: 'https://www.aviation-report.com/feed/',
+    language: 'it',
+  },
+  {
     name: 'Difesa Online',
-    url: 'https://www.difesaonline.it/rss.xml',
+    url: 'https://www.difesaonline.it/feed',
+    language: 'it',
+  },
+  {
+    name: 'Report Difesa',
+    url: 'https://www.reportdifesa.it/feed/',
     language: 'it',
   },
   {
     name: 'Rivista Italiana Difesa',
     url: 'https://www.rid.it/feed/',
+    language: 'it',
+  },
+  {
+    name: 'Ministero della Difesa',
+    url: 'https://www.difesa.it/RSS/Pagine/default.aspx',
+    language: 'it',
+  },
+  {
+    name: 'Stato Maggiore della Difesa',
+    url: 'https://www.difesa.it/SMD_/Comunicati/Pagine/default.aspx?tipo=Notizia&Rss=1',
+    language: 'it',
+  },
+  {
+    name: 'Esercito Italiano',
+    url: 'https://www.esercito.difesa.it/comunicazione/Pagine/default.aspx?Rss=1',
+    language: 'it',
+  },
+  {
+    name: 'Marina Militare',
+    url: 'https://www.marina.difesa.it/media-cultura/Notiziario-online/Pagine/default.aspx?Rss=1',
+    language: 'it',
+  },
+  {
+    name: 'Aeronautica Militare',
+    url: 'https://www.aeronautica.difesa.it/home/media-e-comunicazione/notizie/Pagine/default.aspx?Rss=1',
+    language: 'it',
+  },
+  {
+    name: 'Direzione Nazionale degli Armamenti',
+    url: 'https://www.difesa.it/SGD-DNA/Notizie/Pagine/default.aspx?tipo=Notizia&Rss=1',
     language: 'it',
   },
 ];
