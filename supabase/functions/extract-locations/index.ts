@@ -25,17 +25,20 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Préparer le contenu des articles pour l'analyse, en incluant les métadonnées OSINT
+    // Préparer le contenu des articles pour l'analyse - SEULEMENT les métadonnées de source
     const articlesText = articles.slice(0, 10).map((article: any, idx: number) => {
-      let text = `Article ${idx + 1}:\nTitle: ${article.title}\nDescription: ${article.description || ''}\nSource: ${article.source?.name || 'Unknown'}`;
+      let text = `Article ${idx + 1}:\nSource Name: ${article.source?.name || 'Unknown'}`;
       
-      // Pour les posts OSINT, ajouter des infos supplémentaires qui pourraient contenir des localisations
+      // Pour les posts OSINT, ajouter les infos d'auteur qui indiquent la localisation de la source
       if (article.osint) {
         if (article.author) text += `\nAuthor: ${article.author}`;
-        if (article.content && article.content !== article.description) {
-          text += `\nContent: ${article.content}`;
-        }
+        if (article.author_location) text += `\nAuthor Location: ${article.author_location}`;
+        if (article.location) text += `\nPost Location: ${article.location}`;
       }
+      
+      // Pour la presse, ajouter le pays/ville de publication si disponible
+      if (article.source?.country) text += `\nSource Country: ${article.source.country}`;
+      if (article.source?.location) text += `\nSource Location: ${article.source.location}`;
       
       return text;
     }).join('\n\n');
@@ -54,17 +57,21 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a geographic location extraction expert. Extract ALL mentioned locations from articles/posts including:
-- Locations explicitly mentioned in the text
-- Countries, cities, regions mentioned in any context
-- Places mentioned in usernames or author info
-- Geographic areas implied by context
+            content: `You are a geographic source location extraction expert. Your task is to identify ONLY the geographic origin of the SOURCE (publication, journal, author, organization) - NOT locations mentioned in content.
 
-Provide approximate coordinates for each location. Be thorough and extract even locations mentioned in passing.`
+IMPORTANT RULES:
+- Extract ONLY the location where the source/author/publication is based
+- DO NOT extract locations mentioned in article titles or descriptions
+- For news sources: identify the publication's headquarters or main location
+- For OSINT posts: identify the author's location if available
+- If source location cannot be determined, skip that article
+- One location per source maximum
+
+Provide accurate coordinates for source locations only.`
           },
           {
             role: 'user',
-            content: `Extract ALL geographic locations mentioned or implied in these articles/posts and provide their coordinates:\n\n${articlesText}`
+            content: `Extract ONLY the geographic location of the SOURCE (publisher/author) for each article/post - NOT locations mentioned in content:\n\n${articlesText}`
           }
         ],
         tools: [
@@ -72,7 +79,7 @@ Provide approximate coordinates for each location. Be thorough and extract even 
             type: 'function',
             function: {
               name: 'extract_locations',
-              description: 'Extract geographic locations with coordinates from the articles',
+              description: 'Extract ONLY source locations (where publisher/author is based) - NOT content locations',
               parameters: {
                 type: 'object',
                 properties: {
@@ -81,10 +88,10 @@ Provide approximate coordinates for each location. Be thorough and extract even 
                     items: {
                       type: 'object',
                       properties: {
-                        name: { type: 'string', description: 'Name of the location (city, country, region)' },
+                        name: { type: 'string', description: 'Name of the source location (city, country)' },
                         lat: { type: 'number', description: 'Latitude coordinate' },
                         lng: { type: 'number', description: 'Longitude coordinate' },
-                        relevance: { type: 'string', description: 'Why this location is relevant to the article' }
+                        relevance: { type: 'string', description: 'The name of the source (publisher/author/organization)' }
                       },
                       required: ['name', 'lat', 'lng', 'relevance'],
                       additionalProperties: false
