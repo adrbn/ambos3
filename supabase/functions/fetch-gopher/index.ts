@@ -20,16 +20,20 @@ serve(async (req) => {
       throw new Error('GOPHER_API_KEY not configured');
     }
 
-    // Gopher AI Data API endpoint - using searchbyquery for real-time data
-    const response = await fetch('https://data.gopher-ai.com/api/v1/twitter/searchbyquery', {
+    // Gopher AI unified search endpoint
+    const response = await fetch('https://data.gopher-ai.com/api/v1/search/live', {
       method: 'POST',
       headers: {
-        'X-API-KEY': GOPHER_API_KEY,
+        'Authorization': `Bearer ${GOPHER_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: query,
-        count: 50,
+        type: 'twitter',
+        arguments: {
+          type: 'searchbyquery',
+          query: query,
+          max_results: 50,
+        },
       }),
     });
 
@@ -40,29 +44,29 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('Gopher AI returned:', data.data?.length || 0, 'tweets');
+    console.log('Gopher AI returned:', data.data?.length || 0, 'results');
 
-    // Transform Gopher Twitter results to our article format
-    const articles = (data.data || []).map((tweet: any) => ({
-      title: tweet.full_text?.substring(0, 100) || tweet.text?.substring(0, 100) || 'Sans titre',
-      description: tweet.full_text || tweet.text || '',
-      url: `https://twitter.com/user/status/${tweet.id}`,
-      publishedAt: tweet.created_at || new Date().toISOString(),
+    // Transform Gopher results to our article format
+    const articles = (data.data || []).map((item: any) => ({
+      title: item.full_text?.substring(0, 100) || item.text?.substring(0, 100) || 'Sans titre',
+      description: item.full_text || item.text || '',
+      url: item.url || `https://twitter.com/user/status/${item.id}`,
+      publishedAt: item.created_at || new Date().toISOString(),
       source: {
-        name: `X/Twitter - ${tweet.user?.screen_name || 'Unknown'}`,
+        name: `X/Twitter - ${item.user?.screen_name || item.author || 'Unknown'}`,
         platform: 'twitter',
       },
-      author: tweet.user?.name || tweet.user?.screen_name || 'Unknown',
-      content: tweet.full_text || tweet.text || '',
+      author: item.user?.name || item.user?.screen_name || item.author || 'Unknown',
+      content: item.full_text || item.text || '',
       osint: true,
       platform: 'twitter',
       engagement: {
-        likes: tweet.favorite_count || 0,
-        shares: tweet.retweet_count || 0,
-        comments: tweet.reply_count || 0,
+        likes: item.favorite_count || item.likes || 0,
+        shares: item.retweet_count || item.shares || 0,
+        comments: item.reply_count || item.comments || 0,
       },
-      author_location: tweet.user?.location,
-      location: tweet.geo?.full_name || tweet.place?.full_name,
+      author_location: item.user?.location,
+      location: item.geo?.full_name || item.place?.full_name,
     }));
 
     return new Response(

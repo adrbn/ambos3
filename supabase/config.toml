@@ -2,3 +2,6 @@ project_id = "xxrnheknatbvtomldtwa"
 
 [functions.fetch-gopher]
 verify_jwt = false
+
+[functions.fetch-military-rss]
+verify_jwt = false
