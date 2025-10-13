@@ -1,1 +1,4 @@
 project_id = "xxrnheknatbvtomldtwa"
+
+[functions.fetch-gopher]
+verify_jwt = false
