@@ -37,6 +37,7 @@ serve(async (req) => {
     const hasOnlyWeb = webCount > 0 && socialCount === 0 && webCount === totalCount;
     const hasSocial = socialCount > 0;
     const hasWeb = webCount > 0;
+    const hasMixedSources = hasWeb && hasSocial;
 
     // Prompts
     const osintSocialSystem = {
@@ -64,9 +65,16 @@ Focus: polso comunità, narrazioni emergenti, divergenze/convergenze, segnali de
 
     let systemPrompts = pressSystem;
     if (sourceType === 'osint') {
-      if (hasOnlyWeb) systemPrompts = webSerpSystem;
-      else if (hasSocial) systemPrompts = osintSocialSystem;
-      else systemPrompts = pressSystem;
+      if (hasOnlyWeb) {
+        systemPrompts = webSerpSystem;
+      } else if (hasMixedSources) {
+        // Mixed sources: use social system but with note about web sources
+        systemPrompts = osintSocialSystem;
+      } else if (hasSocial) {
+        systemPrompts = osintSocialSystem;
+      } else {
+        systemPrompts = pressSystem;
+      }
     }
     
     const osintSocialUser = {
@@ -141,9 +149,16 @@ Focus: polso comunità, narrazioni emergenti, divergenze/convergenze, segnali de
 
     let userPromptInstructions = pressUser;
     if (sourceType === 'osint') {
-      if (hasOnlyWeb) userPromptInstructions = webSerpUser;
-      else if (hasSocial) userPromptInstructions = osintSocialUser;
-      else userPromptInstructions = pressUser;
+      if (hasOnlyWeb) {
+        userPromptInstructions = webSerpUser;
+      } else if (hasMixedSources) {
+        // Mixed sources: use social user prompt with special instruction
+        userPromptInstructions = osintSocialUser;
+      } else if (hasSocial) {
+        userPromptInstructions = osintSocialUser;
+      } else {
+        userPromptInstructions = pressUser;
+      }
     }
 
     const articlesText = (Array.isArray(articles) ? articles : []).map((a: any, i: number) => {
@@ -175,9 +190,12 @@ Focus: polso comunità, narrazioni emergenti, divergenze/convergenze, segnali de
                 sourceType === 'osint'
                   ? (hasOnlyWeb ? `WEB SEARCH RESULTS (${(articles || []).length} links):` : `OSINT RESULTS (${(articles || []).length} items):`)
                   : `PRESS ARTICLES (${(articles || []).length} sources):`;
-              const note = (sourceType === 'osint' && hasSocial && hasWeb)
-                ? '\n\nNOTE: For items where Platform is google/web, do NOT infer community sentiment. Treat them as neutral links/sources only. Compute sentiment ONLY from social-network posts.'
-                : '';
+              
+              let note = '';
+              if (sourceType === 'osint' && hasMixedSources) {
+                note = '\n\nIMPORTANT MIXED SOURCES INSTRUCTIONS:\n- For items where Platform is google/web/serp: these are WEB SEARCH RESULTS, NOT human opinions. Use them ONLY as factual context and to enrich your understanding of topics/entities.\n- For items from social platforms (BlueSky, Mastodon, X/Twitter, Reddit): analyze community sentiment, discourse patterns, emerging narratives.\n- DO NOT attribute sentiment to web search results. They supplement your analysis but should not be treated as community voices.';
+              }
+              
               const up = userPromptInstructions[language as keyof typeof userPromptInstructions] || userPromptInstructions.en;
               return `Query: "${query}"\n\n${label}\n${articlesText}${note}\n\n${up}`;
             })()

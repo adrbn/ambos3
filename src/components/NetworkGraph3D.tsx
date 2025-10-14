@@ -176,7 +176,10 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
             width={containerRef.current?.offsetWidth || 600}
             height={containerRef.current?.offsetHeight || 300}
             nodeLabel={(node: any) => `${node.name} (${node.type})`}
-            onNodeClick={(node: any) => setSelectedNode(node)}
+            onNodeClick={(node: any, event: MouseEvent) => {
+              event.stopPropagation();
+              setSelectedNode(node);
+            }}
             nodeCanvasObject={(node: any, ctx, globalScale) => {
               const label = node.name;
               const fontSize = 12 / globalScale;
@@ -203,9 +206,11 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
             }}
             nodePointerAreaPaint={(node: any, color, ctx) => {
               const nodeRadius = Math.sqrt(node.importance) * 3;
+              // Increase the clickable area by 50%
+              const clickableRadius = nodeRadius * 1.5;
               ctx.fillStyle = color;
               ctx.beginPath();
-              ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
+              ctx.arc(node.x, node.y, clickableRadius, 0, 2 * Math.PI, false);
               ctx.fill();
             }}
             linkLabel={(link: any) => link.relationship}
@@ -260,7 +265,11 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
                   alt={selectedNode.name}
                   className="w-full h-32 object-cover rounded border border-primary/30"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    // Remove the parent div as well
+                    const parent = target.closest('.w-full');
+                    if (parent) parent.remove();
                   }}
                 />
               </div>

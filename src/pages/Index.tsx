@@ -52,7 +52,7 @@ const Index = () => {
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [selectedApi, setSelectedApi] = useState<ApiSource>('mixed');
   const [sourceType, setSourceType] = useState<'news' | 'osint'>('news');
-  const [osintSources, setOsintSources] = useState<string[]>(['mastodon', 'bluesky']);
+  const [osintSources, setOsintSources] = useState<string[]>(['mastodon', 'bluesky', 'gopher', 'google']);
   const [theme, setTheme] = useState<'default' | 'light' | 'girly'>('default');
   const { user, isAdmin, isLoading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();

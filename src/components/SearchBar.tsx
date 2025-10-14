@@ -219,28 +219,38 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-mono mb-2">Sources OSINT actives:</p>
                 <div className="flex flex-col gap-2">
-                  {['mastodon', 'bluesky', 'gopher', 'google', 'military-rss'].map((source) => (
-                    <label
-                      key={source}
-                      className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={osintSources.includes(source)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            onOsintSourcesChange([...osintSources, source]);
-                          } else {
-                            onOsintSourcesChange(osintSources.filter(s => s !== source));
-                          }
-                        }}
-                        className="w-3 h-3"
-                      />
-                      <span className="text-xs font-mono capitalize flex-1">
-                        {source === 'military-rss' ? '🇮🇹 Military RSS (IT)' : source}
-                      </span>
-                    </label>
-                  ))}
+                  {['mastodon', 'bluesky', 'gopher', 'google', 'military-rss'].map((source) => {
+                    const sourceLabels: Record<string, string> = {
+                      'mastodon': 'Mastodon',
+                      'bluesky': 'BlueSky',
+                      'gopher': 'X/Twitter',
+                      'google': 'Google',
+                      'military-rss': '🇮🇹 Military RSS (IT)'
+                    };
+                    
+                    return (
+                      <label
+                        key={source}
+                        className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={osintSources.includes(source)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              onOsintSourcesChange([...osintSources, source]);
+                            } else {
+                              onOsintSourcesChange(osintSources.filter(s => s !== source));
+                            }
+                          }}
+                          className="w-3 h-3"
+                        />
+                        <span className="text-xs font-mono flex-1">
+                          {sourceLabels[source]}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
                 <p className="text-[10px] text-muted-foreground/70 mt-2">
                   ⚠️ Threads nécessite OAuth et validation d'app (non disponible)
