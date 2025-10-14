@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,10 @@ import AdminLogsViewer from "@/components/AdminLogsViewer";
 import AdminModuleConfig from "@/components/AdminModuleConfig";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import AdminApiKeys from "@/components/AdminApiKeys";
+import { Language } from "@/i18n/translations";
 
 const Admin = () => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -21,6 +24,7 @@ const Admin = () => {
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserName, setNewUserName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [language, setLanguage] = useState<Language>('fr');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -166,9 +170,15 @@ const Admin = () => {
     <div className="min-h-screen p-8 bg-gradient-to-br from-background via-background to-primary/5">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-            🛡️ Admin Dashboard
-          </h1>
+          <div className="flex items-center gap-4">
+            <Button variant="outline" onClick={() => navigate('/')} className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Retour
+            </Button>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+              🛡️ Admin Dashboard
+            </h1>
+          </div>
           <Button variant="outline" onClick={handleLogout} className="gap-2">
             <LogOut className="h-4 w-4" />
             Déconnexion
@@ -176,10 +186,11 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="users">Utilisateurs</TabsTrigger>
             <TabsTrigger value="modules">Modules</TabsTrigger>
             <TabsTrigger value="layouts">Layouts</TabsTrigger>
+            <TabsTrigger value="apikeys">API Keys</TabsTrigger>
             <TabsTrigger value="dev">
               <Terminal className="w-4 h-4 mr-2" />
               Dev
@@ -304,6 +315,10 @@ const Admin = () => {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="apikeys" className="space-y-6">
+            <AdminApiKeys language={language} />
           </TabsContent>
 
           <TabsContent value="dev" className="space-y-6">
