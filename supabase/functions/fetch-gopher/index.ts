@@ -58,34 +58,49 @@ serve(async (req) => {
       const uuid = (data as any).uuid as string;
       console.log('Gopher returned job uuid, polling results for', uuid);
       const MAX_TRIES = 8;
-      for (let i = 0; i < MAX_TRIES; i++) {
-        const res2 = await fetch(`https://data.gopher-ai.com/api/v1/search/live/twitter/result/${uuid}`, {
-          headers: { 'Authorization': `Bearer ${GOPHER_API_KEY}` }
-        });
-        if (!res2.ok) {
-          const t = await res2.text();
-          console.warn('Gopher result poll error', res2.status, t);
-        } else {
-          const data2 = await res2.json();
-          console.log('Gopher poll response snippet:', JSON.stringify(data2).substring(0, 400));
-          if (Array.isArray(data2)) {
-            results = data2;
-            break;
+        const pollUrls = [
+          `https://data.gopher-ai.com/api/v1/search/live/result/${uuid}`,
+          `https://data.gopher-ai.com/api/v1/search/live/twitter/result/${uuid}`,
+        ];
+        const MAX_TRIES = 8;
+        for (let i = 0; i < MAX_TRIES; i++) {
+          let gotResults = false;
+          for (const pollUrl of pollUrls) {
+            const res2 = await fetch(pollUrl, {
+              headers: {
+                'Authorization': `Bearer ${GOPHER_API_KEY}`,
+                'Accept': 'application/json',
+              }
+            });
+            if (!res2.ok) {
+              const t = await res2.text();
+              console.warn('Gopher result poll error', res2.status, t.substring(0, 300));
+              continue; // try next poll URL
+            } else {
+              const data2 = await res2.json();
+              console.log('Gopher poll response snippet:', JSON.stringify(data2).substring(0, 400));
+              if (Array.isArray(data2)) {
+                results = data2;
+                gotResults = true;
+                break;
+              }
+              if (data2 && Array.isArray((data2 as any).data)) {
+                results = (data2 as any).data;
+                gotResults = true;
+                break;
+              }
+              if ((data2 as any)?.status === 'done' && Array.isArray((data2 as any).data)) {
+                results = (data2 as any).data;
+                gotResults = true;
+                break;
+              }
+            }
           }
-          if (data2 && Array.isArray((data2 as any).data)) {
-            results = (data2 as any).data;
-            break;
-          }
-          // Some schemas return { status: 'pending' | 'done', data?: [] }
-          if ((data2 as any)?.status === 'done' && Array.isArray((data2 as any).data)) {
-            results = (data2 as any).data;
-            break;
-          }
+          if (gotResults) break;
+          // wait 1s before next poll
+          await new Promise((r) => setTimeout(r, 1000));
         }
-        // wait 1s before next poll
-        await new Promise((r) => setTimeout(r, 1000));
-      }
-      console.log('Polling finished, results:', Array.isArray(results) ? results.length : 0);
+        console.log('Polling finished, results:', Array.isArray(results) ? results.length : 0);
     } else {
       console.log('Gopher returned unexpected format:', typeof data);
       results = [];
