@@ -6,6 +6,154 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Feeds RSS militaires italiens
+const MILITARY_RSS_FEEDS = [
+  {
+    name: 'Analisi Difesa',
+    url: 'https://www.analisidifesa.it/feed/',
+    language: 'it',
+  },
+  {
+    name: 'Difesa Online',
+    url: 'https://www.difesaonline.it/feed',
+    language: 'it',
+  },
+  {
+    name: 'Report Difesa',
+    url: 'https://www.reportdifesa.it/feed/',
+    language: 'it',
+  },
+];
+
+async function parseRSSFeed(feedUrl: string, sourceName: string) {
+  console.log(`\n┌─────────────────────────────────────────┐`);
+  console.log(`│ 📡 Fetch: ${sourceName.padEnd(28)}│`);
+  console.log(`└─────────────────────────────────────────┘`);
+  console.log(`🔗 URL: ${feedUrl}`);
+  
+  try {
+    console.log('⏳ Envoi requête HTTP...');
+    const startTime = Date.now();
+    
+    const response = await fetch(feedUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+        'Accept-Language': 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7',
+      }
+    });
+    
+    const duration = Date.now() - startTime;
+    console.log(`⏱️  Réponse reçue en ${duration}ms`);
+    console.log(`📊 Status: ${response.status} ${response.statusText}`);
+    
+    if (!response.ok) {
+      console.error(`❌ HTTP Error ${response.status}`);
+      const errorBody = await response.text();
+      console.error(`📄 Error body (100 chars):`, errorBody.substring(0, 100));
+      return [];
+    }
+    
+    console.log('📖 Lecture du corps de la réponse...');
+    const xmlText = await response.text();
+    console.log(`📏 Taille XML: ${xmlText.length} caractères`);
+    console.log(`🔍 Premiers 200 chars:`, xmlText.substring(0, 200));
+    
+    // Simple regex-based parsing
+    console.log('🔨 Parsing XML...');
+    const articles: any[] = [];
+    
+    // Extract all <item> elements
+    const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
+    const items = xmlText.match(itemRegex) || [];
+    console.log(`📰 Items trouvés: ${items.length}`);
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      console.log(`  📄 Item ${i + 1}/${items.length}...`);
+      
+      try {
+        const title = extractTag(item, 'title');
+        const link = extractTag(item, 'link') || extractTag(item, 'guid');
+        const description = extractTag(item, 'description');
+        const pubDate = extractTag(item, 'pubDate');
+        const creator = extractTag(item, 'dc:creator') || extractTag(item, 'creator') || 'Unknown';
+        const content = extractTag(item, 'content:encoded') || description;
+        
+        console.log(`     Title: ${title.substring(0, 50)}...`);
+        console.log(`     Link: ${link}`);
+        
+        if (title && link) {
+          articles.push({
+            title: cleanHtml(title),
+            description: cleanHtml(description),
+            url: link.trim(),
+            publishedAt: parseDate(pubDate),
+            source: {
+              name: sourceName,
+              language: 'it',
+            },
+            author: cleanHtml(creator),
+            content: cleanHtml(content).substring(0, 500),
+            military: true,
+            rss: true,
+          });
+          console.log(`     ✅ Article ajouté`);
+        } else {
+          console.log(`     ⚠️  Skipped (missing title or link)`);
+        }
+      } catch (itemError) {
+        console.error(`     ❌ Error parsing item:`, itemError.message);
+      }
+    }
+    
+    console.log(`✅ ${sourceName}: ${articles.length} articles extraits\n`);
+    return articles;
+    
+  } catch (error) {
+    console.error(`💥 EXCEPTION pour ${sourceName}:`);
+    console.error(`   Type: ${error.constructor.name}`);
+    console.error(`   Message: ${error.message}`);
+    console.error(`   Stack: ${error.stack?.substring(0, 200)}`);
+    return [];
+  }
+}
+
+function extractTag(xml: string, tagName: string): string {
+  const cdataRegex = new RegExp(`<${tagName}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tagName}>`, 'i');
+  const cdataMatch = xml.match(cdataRegex);
+  if (cdataMatch) return cdataMatch[1].trim();
+  
+  const regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, 'i');
+  const match = xml.match(regex);
+  return match ? match[1].trim() : '';
+}
+
+function cleanHtml(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseDate(dateStr: string): string {
+  if (!dateStr) return new Date().toISOString();
+  try {
+    const parsed = new Date(dateStr);
+    return isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+  } catch {
+    return new Date().toISOString();
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -13,124 +161,71 @@ serve(async (req) => {
 
   try {
     const { query } = await req.json();
-    console.log('========================================');
-    console.log('🔍 GOPHER AI - Début fetch');
-    console.log('Query:', query);
-    console.log('========================================');
+    
+    console.log('\n╔═══════════════════════════════════════════════╗');
+    console.log('║       MILITARY RSS FEED AGGREGATOR            ║');
+    console.log('╚═══════════════════════════════════════════════╝');
+    console.log(`🔍 Query: "${query}"`);
+    console.log(`📅 Date: ${new Date().toISOString()}`);
+    console.log(`📡 Feeds: ${MILITARY_RSS_FEEDS.length}`);
+    console.log('');
 
-    const GOPHER_API_KEY = Deno.env.get('GOPHER_API_KEY');
-    if (!GOPHER_API_KEY) {
-      console.error('❌ GOPHER_API_KEY not configured');
-      throw new Error('GOPHER_API_KEY not configured');
+    // Fetch from all RSS feeds sequentially (pour avoir des logs clairs)
+    const allArticles: any[] = [];
+    
+    for (const feed of MILITARY_RSS_FEEDS) {
+      const articles = await parseRSSFeed(feed.url, feed.name);
+      allArticles.push(...articles);
     }
 
-    console.log('✅ API Key trouvée (longueur:', GOPHER_API_KEY.length, ')');
+    console.log('\n╔═══════════════════════════════════════════════╗');
+    console.log(`║  TOTAL BRUT: ${allArticles.length.toString().padStart(3)} articles                       ║`);
+    console.log('╚═══════════════════════════════════════════════╝');
 
-    const requestBody = {
-      type: 'twitter',
-      arguments: {
-        type: 'searchbyquery',
-        query: query,
-        max_results: 50,
-      },
-    };
+    // Filter by query if provided
+    let filteredArticles = allArticles;
+    if (query && query.trim()) {
+      const searchTerms = query.toLowerCase().split(' ').filter(t => t.length > 2);
+      console.log(`🔍 Filtrage avec: ${searchTerms.join(', ')}`);
+      
+      const beforeFilter = allArticles.length;
+      filteredArticles = allArticles.filter(article => {
+        const searchableText = `${article.title} ${article.description} ${article.content}`.toLowerCase();
+        const matches = searchTerms.some((term: string) => searchableText.includes(term));
+        return matches;
+      });
+      
+      console.log(`📊 Filtré: ${beforeFilter} → ${filteredArticles.length} articles`);
+    }
 
-    console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
-
-    const response = await fetch('https://data.gopher-ai.com/api/v1/search/live', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GOPHER_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
+    // Sort by date
+    filteredArticles.sort((a, b) => {
+      const dateA = new Date(a.publishedAt).getTime();
+      const dateB = new Date(b.publishedAt).getTime();
+      return dateB - dateA;
     });
 
-    console.log('📊 Response status:', response.status, response.statusText);
+    console.log('\n╔═══════════════════════════════════════════════╗');
+    console.log(`║  ✅ RETOUR FINAL: ${filteredArticles.length.toString().padStart(3)} articles               ║`);
+    console.log('╚═══════════════════════════════════════════════╝\n');
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Gopher API error:', response.status, errorText);
-      throw new Error(`Gopher API error: ${response.status} - ${errorText}`);
+    if (filteredArticles.length > 0) {
+      console.log('📌 Premiers articles:');
+      filteredArticles.slice(0, 3).forEach((a, i) => {
+        console.log(`   ${i + 1}. ${a.title.substring(0, 60)}...`);
+      });
     }
-
-    const data = await response.json();
-    console.log('📦 Response data structure:', JSON.stringify(Object.keys(data), null, 2));
-    
-    if (data.data) {
-      console.log('✅ data.data exists, length:', data.data.length);
-      if (data.data.length > 0) {
-        console.log('📌 Premier élément structure:', JSON.stringify(Object.keys(data.data[0]), null, 2));
-        console.log('📌 Premier élément complet:', JSON.stringify(data.data[0], null, 2));
-      }
-    } else {
-      console.log('⚠️  data.data n\'existe pas. Clés disponibles:', Object.keys(data));
-    }
-
-    // Vérifier plusieurs structures possibles
-    let rawResults = data.data || data.results || data.tweets || [];
-    
-    console.log(`🔢 Résultats bruts: ${rawResults.length} items`);
-
-    // Transform Gopher results to our article format
-    const articles = rawResults.map((item: any, index: number) => {
-      console.log(`\n--- Article ${index + 1} ---`);
-      console.log('Keys:', Object.keys(item));
-      
-      // Essayer différentes propriétés possibles
-      const text = item.full_text || item.text || item.tweet_text || item.content || '';
-      const username = item.user?.screen_name || item.user?.username || item.author || item.screen_name || 'Unknown';
-      const userId = item.user?.id || item.user_id || item.id || '';
-      const tweetId = item.id_str || item.id || item.tweet_id || '';
-      const createdAt = item.created_at || item.timestamp || item.date || new Date().toISOString();
-      const name = item.user?.name || item.name || username;
-      
-      console.log('Text:', text.substring(0, 50));
-      console.log('Username:', username);
-      console.log('Created:', createdAt);
-      
-      const article = {
-        title: text.substring(0, 100) || 'Sans titre',
-        description: text,
-        url: item.url || item.tweet_url || `https://twitter.com/${username}/status/${tweetId}`,
-        publishedAt: createdAt,
-        source: {
-          name: `X/Twitter - @${username}`,
-          platform: 'twitter',
-        },
-        author: name,
-        content: text,
-        osint: {
-          platform: 'twitter',
-          credibilityScore: 70, // Score par défaut, à ajuster
-          engagement: {
-            likes: item.favorite_count || item.likes || item.like_count || 0,
-            reposts: item.retweet_count || item.shares || item.retweets || 0,
-            replies: item.reply_count || item.comments || item.replies || 0,
-          },
-          verified: item.user?.verified || item.verified || false,
-          accountMetrics: {
-            followers: item.user?.followers_count || 0,
-            following: item.user?.friends_count || 0,
-          },
-        },
-        location: item.user?.location || item.location || null,
-        raw: item, // Garder l'objet brut pour debug
-      };
-      
-      return article;
-    });
-
-    console.log('\n========================================');
-    console.log(`✅ SUCCÈS: ${articles.length} articles transformés`);
-    console.log('========================================');
 
     return new Response(
       JSON.stringify({ 
-        articles,
-        totalResults: articles.length,
-        api: 'gopher',
-        sourceType: 'osint',
+        articles: filteredArticles,
+        totalResults: filteredArticles.length,
+        sources: MILITARY_RSS_FEEDS.map(f => f.name),
+        debug: {
+          totalFetched: allArticles.length,
+          filtered: filteredArticles.length,
+          query: query || 'none',
+        }
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -139,17 +234,19 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('========================================');
-    console.error('💥 ERREUR FATALE dans fetch-gopher:');
+    console.error('\n╔═══════════════════════════════════════════════╗');
+    console.error('║  💥 ERREUR FATALE                             ║');
+    console.error('╚═══════════════════════════════════════════════╝');
+    console.error('Type:', error.constructor.name);
     console.error('Message:', error.message);
     console.error('Stack:', error.stack);
-    console.error('========================================');
     
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ 
         error: errorMessage,
-        articles: [] 
+        articles: [],
+        stack: error.stack 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
