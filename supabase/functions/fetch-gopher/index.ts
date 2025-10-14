@@ -44,33 +44,46 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('Gopher AI returned:', data.data?.length || 0, 'results');
+    console.log('Raw Gopher API response:', JSON.stringify(data).substring(0, 500));
+    
+    // Gopher can return either an array directly OR an object with a data property
+    let results = [];
+    if (Array.isArray(data)) {
+      results = data;
+      console.log('Gopher returned array directly with', results.length, 'results');
+    } else if (data && Array.isArray(data.data)) {
+      results = data.data;
+      console.log('Gopher returned object with data property containing', results.length, 'results');
+    } else {
+      console.log('Gopher returned unexpected format:', typeof data);
+      results = [];
+    }
 
     // Transform Gopher results to our article format
-    const articles = (data.data || []).map((item: any) => {
-      const text = item.full_text || item.text || item.tweet_text || '';
-      const username = item.user?.screen_name || item.user?.username || item.author || 'Unknown';
+    const articles = results.map((item: any) => {
+      const content = item.content || '';
+      const metadata = item.metadata || {};
+      const username = metadata.username || 'Unknown';
+      const publicMetrics = metadata.public_metrics || {};
       
       return {
-        title: text.substring(0, 100) || 'Sans titre',
-        description: text,
-        url: item.url || item.tweet_url || `https://twitter.com/${username}/status/${item.id}`,
-        publishedAt: item.created_at || item.timestamp || new Date().toISOString(),
+        title: content.substring(0, 100) || 'Sans titre',
+        description: content,
+        url: `https://twitter.com/${username}/status/${item.id}`,
+        publishedAt: metadata.created_at || new Date().toISOString(),
         source: {
           name: `X/Twitter - @${username}`,
           platform: 'twitter',
         },
-        author: item.user?.name || username,
-        content: text,
+        author: username,
+        content: content,
         osint: true,
         platform: 'twitter',
         engagement: {
-          likes: item.favorite_count || item.likes || item.like_count || 0,
-          shares: item.retweet_count || item.shares || item.retweet_count || 0,
-          comments: item.reply_count || item.comments || item.reply_count || 0,
+          likes: publicMetrics.like_count || 0,
+          shares: publicMetrics.retweet_count || 0,
+          comments: publicMetrics.reply_count || 0,
         },
-        author_location: item.user?.location || item.location,
-        location: item.geo?.full_name || item.place?.full_name || item.geo,
       };
     });
 
