@@ -13,19 +13,20 @@ serve(async (req) => {
 
   try {
     const { query } = await req.json();
-    console.log('========================================');
-    console.log('🔍 GOPHER AI - Début fetch');
+    console.log('====================================');
+    console.log('🔍 GOPHER AI FETCH START');
     console.log('Query:', query);
-    console.log('========================================');
+    console.log('====================================');
 
     const GOPHER_API_KEY = Deno.env.get('GOPHER_API_KEY');
     if (!GOPHER_API_KEY) {
-      console.error('❌ GOPHER_API_KEY not configured');
+      console.error('❌ GOPHER_API_KEY NOT FOUND IN ENV');
       throw new Error('GOPHER_API_KEY not configured');
     }
 
-    console.log('✅ API Key trouvée (longueur:', GOPHER_API_KEY.length, ')');
+    console.log('✓ API Key found (length:', GOPHER_API_KEY.length, ')');
 
+    // Gopher AI unified search endpoint
     const requestBody = {
       type: 'twitter',
       arguments: {
@@ -35,7 +36,7 @@ serve(async (req) => {
       },
     };
 
-    console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
+    console.log('📤 Sending to Gopher:', JSON.stringify(requestBody, null, 2));
 
     const response = await fetch('https://data.gopher-ai.com/api/v1/search/live', {
       method: 'POST',
@@ -46,84 +47,60 @@ serve(async (req) => {
       body: JSON.stringify(requestBody),
     });
 
-    console.log('📊 Response status:', response.status, response.statusText);
+    console.log('📊 Gopher response status:', response.status, response.statusText);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Gopher API error:', response.status, errorText);
+      console.error('❌ GOPHER API ERROR:');
+      console.error('Status:', response.status);
+      console.error('Body:', errorText);
       throw new Error(`Gopher API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('📦 Response data structure:', JSON.stringify(Object.keys(data), null, 2));
-    
-    if (data.data) {
-      console.log('✅ data.data exists, length:', data.data.length);
-      if (data.data.length > 0) {
-        console.log('📌 Premier élément structure:', JSON.stringify(Object.keys(data.data[0]), null, 2));
-        console.log('📌 Premier élément complet:', JSON.stringify(data.data[0], null, 2));
-      }
-    } else {
-      console.log('⚠️  data.data n\'existe pas. Clés disponibles:', Object.keys(data));
+    console.log('📦 Gopher raw response keys:', Object.keys(data));
+    console.log('📊 Data array length:', data.data?.length || 0);
+
+    if (data.data && data.data.length > 0) {
+      console.log('✅ First result sample:', JSON.stringify(data.data[0], null, 2).substring(0, 300));
     }
 
-    // Vérifier plusieurs structures possibles
-    let rawResults = data.data || data.results || data.tweets || [];
-    
-    console.log(`🔢 Résultats bruts: ${rawResults.length} items`);
-
     // Transform Gopher results to our article format
-    const articles = rawResults.map((item: any, index: number) => {
-      console.log(`\n--- Article ${index + 1} ---`);
-      console.log('Keys:', Object.keys(item));
+    const articles = (data.data || []).map((item: any) => {
+      const text = item.full_text || item.text || item.tweet_text || '';
+      const username = item.user?.screen_name || item.user?.username || item.author || 'Unknown';
       
-      // Essayer différentes propriétés possibles
-      const text = item.full_text || item.text || item.tweet_text || item.content || '';
-      const username = item.user?.screen_name || item.user?.username || item.author || item.screen_name || 'Unknown';
-      const userId = item.user?.id || item.user_id || item.id || '';
-      const tweetId = item.id_str || item.id || item.tweet_id || '';
-      const createdAt = item.created_at || item.timestamp || item.date || new Date().toISOString();
-      const name = item.user?.name || item.name || username;
+      console.log('🔄 Processing tweet from @' + username);
       
-      console.log('Text:', text.substring(0, 50));
-      console.log('Username:', username);
-      console.log('Created:', createdAt);
-      
-      const article = {
+      return {
         title: text.substring(0, 100) || 'Sans titre',
         description: text,
-        url: item.url || item.tweet_url || `https://twitter.com/${username}/status/${tweetId}`,
-        publishedAt: createdAt,
+        url: item.url || item.tweet_url || `https://twitter.com/${username}/status/${item.id}`,
+        publishedAt: item.created_at || item.timestamp || new Date().toISOString(),
         source: {
           name: `X/Twitter - @${username}`,
           platform: 'twitter',
         },
-        author: name,
+        author: item.user?.name || username,
         content: text,
         osint: {
           platform: 'twitter',
-          credibilityScore: 70, // Score par défaut, à ajuster
+          credibilityScore: 70, // Default score
           engagement: {
             likes: item.favorite_count || item.likes || item.like_count || 0,
-            reposts: item.retweet_count || item.shares || item.retweets || 0,
-            replies: item.reply_count || item.comments || item.replies || 0,
-          },
-          verified: item.user?.verified || item.verified || false,
-          accountMetrics: {
-            followers: item.user?.followers_count || 0,
-            following: item.user?.friends_count || 0,
+            reposts: item.retweet_count || item.shares || item.retweet_count || 0,
+            replies: item.reply_count || item.comments || item.reply_count || 0,
           },
         },
-        location: item.user?.location || item.location || null,
-        raw: item, // Garder l'objet brut pour debug
+        author_location: item.user?.location || item.location,
+        location: item.geo?.full_name || item.place?.full_name || item.geo,
       };
-      
-      return article;
     });
 
-    console.log('\n========================================');
-    console.log(`✅ SUCCÈS: ${articles.length} articles transformés`);
-    console.log('========================================');
+    console.log('====================================');
+    console.log('✅ GOPHER FETCH COMPLETE');
+    console.log('Total articles:', articles.length);
+    console.log('====================================');
 
     return new Response(
       JSON.stringify({ 
@@ -139,17 +116,22 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('========================================');
-    console.error('💥 ERREUR FATALE dans fetch-gopher:');
-    console.error('Message:', error.message);
-    console.error('Stack:', error.stack);
-    console.error('========================================');
+    console.error('====================================');
+    console.error('💥 GOPHER FATAL ERROR');
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('====================================');
     
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ 
         error: errorMessage,
-        articles: [] 
+        articles: [],
+        debug: {
+          errorType: error.constructor.name,
+          hasApiKey: !!Deno.env.get('GOPHER_API_KEY'),
+        }
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
