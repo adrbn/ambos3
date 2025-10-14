@@ -82,6 +82,7 @@ export const translations = {
     mediumProbability: "Probabilité moyenne",
     lowProbability: "Probabilité faible",
     noTimelineData: "Aucune donnée de chronologie pour le moment",
+    apiKeys: "Clés API",
     
     // Settings Dialog
     settingsTitle: "Paramètres",
@@ -185,6 +186,7 @@ export const translations = {
     mediumProbability: "Medium probability",
     lowProbability: "Low probability",
     noTimelineData: "No timeline data yet",
+    apiKeys: "API Keys",
     
     // Settings Dialog
     settingsTitle: "Settings",
@@ -288,6 +290,7 @@ export const translations = {
     mediumProbability: "Media probabilità",
     lowProbability: "Bassa probabilità",
     noTimelineData: "Nessun dato della timeline ancora",
+    apiKeys: "Chiavi API",
     
     // Settings Dialog
     settingsTitle: "Impostazioni",
