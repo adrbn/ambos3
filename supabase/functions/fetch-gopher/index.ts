@@ -62,7 +62,6 @@ serve(async (req) => {
           `https://data.gopher-ai.com/api/v1/search/live/result/${uuid}`,
           `https://data.gopher-ai.com/api/v1/search/live/twitter/result/${uuid}`,
         ];
-        const MAX_TRIES = 8;
         for (let i = 0; i < MAX_TRIES; i++) {
           let gotResults = false;
           for (const pollUrl of pollUrls) {
