@@ -1,16 +1,27 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Feeds RSS militaires italiens
+// Italian military and defense RSS feeds
 const MILITARY_RSS_FEEDS = [
   {
     name: 'Analisi Difesa',
     url: 'https://www.analisidifesa.it/feed/',
+    language: 'it',
+  },
+  {
+    name: 'Ares Difesa',
+    url: 'https://aresdifesa.it/feed/',
+    language: 'it',
+  },
+  {
+    name: 'Aviation Report',
+    url: 'https://www.aviation-report.com/feed/',
     language: 'it',
   },
   {
@@ -23,152 +34,99 @@ const MILITARY_RSS_FEEDS = [
     url: 'https://www.reportdifesa.it/feed/',
     language: 'it',
   },
+  {
+    name: 'Rivista Italiana Difesa',
+    url: 'https://www.rid.it/feed/',
+    language: 'it',
+  },
+  {
+    name: 'Ministero della Difesa',
+    url: 'https://www.difesa.it/RSS/Pagine/default.aspx',
+    language: 'it',
+  },
+  {
+    name: 'Stato Maggiore della Difesa',
+    url: 'https://www.difesa.it/SMD_/Comunicati/Pagine/default.aspx?tipo=Notizia&Rss=1',
+    language: 'it',
+  },
+  {
+    name: 'Esercito Italiano',
+    url: 'https://www.esercito.difesa.it/comunicazione/Pagine/default.aspx?Rss=1',
+    language: 'it',
+  },
+  {
+    name: 'Marina Militare',
+    url: 'https://www.marina.difesa.it/media-cultura/Notiziario-online/Pagine/default.aspx?Rss=1',
+    language: 'it',
+  },
+  {
+    name: 'Aeronautica Militare',
+    url: 'https://www.aeronautica.difesa.it/home/media-e-comunicazione/notizie/Pagine/default.aspx?Rss=1',
+    language: 'it',
+  },
+  {
+    name: 'Direzione Nazionale degli Armamenti',
+    url: 'https://www.difesa.it/SGD-DNA/Notizie/Pagine/default.aspx?tipo=Notizia&Rss=1',
+    language: 'it',
+  },
 ];
 
 async function parseRSSFeed(feedUrl: string, sourceName: string) {
-  console.log(`\n┌─────────────────────────────────────`);
-  console.log(`│ 🔄 Fetching: ${sourceName}`);
-  console.log(`│ 📍 URL: ${feedUrl}`);
-  console.log(`└─────────────────────────────────────`);
-
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.log(`│ ⏰ TIMEOUT for ${sourceName}`);
-      controller.abort();
-    }, 15000);
-    
     const response = await fetch(feedUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-      },
-      signal: controller.signal,
+        'User-Agent': 'Mozilla/5.0 (compatible; NewsAggregator/1.0)',
+      }
     });
-    
-    clearTimeout(timeoutId);
-
-    console.log(`│ 📊 Status: ${response.status} ${response.statusText}`);
-    console.log(`│ 📄 Content-Type: ${response.headers.get('content-type')}`);
-
     if (!response.ok) {
-      console.log(`│ ❌ HTTP Error ${response.status}`);
+      console.error(`Failed to fetch ${sourceName}: ${response.status}`);
       return [];
     }
 
     const xmlText = await response.text();
-    console.log(`│ 📏 XML Size: ${xmlText.length} bytes`);
-    console.log(`│ 🔍 First 200 chars: ${xmlText.substring(0, 200).replace(/\n/g, ' ')}`);
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, 'text/xml');
     
-    const articles = parseXMLManually(xmlText, sourceName);
-    
-    console.log(`│ ✅ Parsed: ${articles.length} articles`);
-    if (articles.length > 0) {
-      console.log(`│ 📰 Sample: ${articles[0].title.substring(0, 60)}...`);
-    }
-    
-    return articles;
-    
-  } catch (error) {
-    console.log(`│ 💥 ERROR: ${error.message}`);
-    return [];
-  }
-}
-
-function parseXMLManually(xmlText: string, sourceName: string): any[] {
-  const articles: any[] = [];
-  
-  try {
-    // Extract all <item> blocks with more flexible regex
-    const itemMatches = xmlText.match(/<item[^>]*>[\s\S]*?<\/item>/gi);
-    
-    if (!itemMatches) {
-      console.log(`│ ⚠️  No <item> tags found in XML`);
+    if (!doc) {
+      console.error(`Failed to parse XML from ${sourceName}`);
       return [];
     }
 
-    console.log(`│ 📦 Found ${itemMatches.length} <item> blocks`);
-    
-    for (let i = 0; i < itemMatches.length; i++) {
-      const item = itemMatches[i];
-      
-      try {
-        const title = extractTag(item, 'title');
-        const link = extractTag(item, 'link');
-        const description = extractTag(item, 'description');
-        const pubDate = extractTag(item, 'pubDate');
-        const creator = extractTag(item, 'dc:creator') || extractTag(item, 'creator') || 'Unknown';
-        
-        if (!title || !link) {
-          console.log(`│   ⚠️  Item ${i+1}: Missing title or link`);
-          continue;
-        }
+    const items = doc.querySelectorAll('item');
+    const articles: any[] = [];
 
+    for (const item of items) {
+      const itemElement = item as any;
+      const title = itemElement.querySelector('title')?.textContent?.trim() || '';
+      const link = itemElement.querySelector('link')?.textContent?.trim() || '';
+      const description = itemElement.querySelector('description')?.textContent?.trim() || '';
+      const pubDate = itemElement.querySelector('pubDate')?.textContent?.trim() || '';
+      const creator = itemElement.querySelector('dc\\:creator')?.textContent?.trim() || 
+                     itemElement.querySelector('creator')?.textContent?.trim() || 'Unknown';
+
+      if (title && link) {
         articles.push({
-          title: cleanHtml(title),
-          description: cleanHtml(description),
-          url: link.trim(),
-          publishedAt: parseDate(pubDate),
+          title,
+          description: description.replace(/<[^>]*>/g, ''), // Strip HTML tags
+          url: link,
+          publishedAt: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
           source: {
             name: sourceName,
             language: 'it',
           },
-          author: cleanHtml(creator),
-          content: cleanHtml(description),
+          author: creator,
+          content: description.replace(/<[^>]*>/g, ''),
           military: true,
           rss: true,
         });
-
-        if (i === 0) {
-          console.log(`│   📰 First article: ${cleanHtml(title).substring(0, 50)}...`);
-        }
-      } catch (itemError) {
-        console.log(`│   ❌ Error parsing item ${i+1}: ${itemError.message}`);
       }
     }
+
+    console.log(`Fetched ${articles.length} articles from ${sourceName}`);
+    return articles;
   } catch (error) {
-    console.log(`│ 💥 Parse error: ${error.message}`);
-  }
-  
-  return articles;
-}
-
-function extractTag(xml: string, tagName: string): string {
-  // Try with namespace prefix
-  let regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, 'i');
-  let match = xml.match(regex);
-  
-  if (!match) {
-    // Try without namespace
-    const simpleName = tagName.split(':').pop();
-    regex = new RegExp(`<${simpleName}[^>]*>([\\s\\S]*?)<\\/${simpleName}>`, 'i');
-    match = xml.match(regex);
-  }
-  
-  return match ? match[1].trim() : '';
-}
-
-function cleanHtml(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/<!\[CDATA\[(.*?)\]\]>/gs, '$1')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function parseDate(dateStr: string): string {
-  if (!dateStr) return new Date().toISOString();
-  try {
-    return new Date(dateStr).toISOString();
-  } catch {
-    return new Date().toISOString();
+    console.error(`Error parsing RSS from ${sourceName}:`, error);
+    return [];
   }
 }
 
@@ -179,64 +137,36 @@ serve(async (req) => {
 
   try {
     const { query } = await req.json();
-    
-    console.log('\n╔═══════════════════════════════════════════╗');
-    console.log('║  🎖️  MILITARY RSS FETCH START           ║');
-    console.log('╚═══════════════════════════════════════════╝');
-    console.log(`📝 Query: "${query || 'ALL'}"`);
-    console.log(`🌐 Feeds: ${MILITARY_RSS_FEEDS.length}`);
+    console.log('Fetching from Italian military RSS feeds with query:', query);
 
-    // Fetch from all RSS feeds sequentially for better logging
-    let allArticles: any[] = [];
-    
-    for (const feed of MILITARY_RSS_FEEDS) {
-      const feedArticles = await parseRSSFeed(feed.url, feed.name);
-      allArticles = [...allArticles, ...feedArticles];
-      // Small delay between feeds
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
+    // Fetch from all RSS feeds in parallel
+    const fetchPromises = MILITARY_RSS_FEEDS.map(feed => 
+      parseRSSFeed(feed.url, feed.name)
+    );
 
-    console.log(`\n📊 Total articles before filter: ${allArticles.length}`);
+    const results = await Promise.all(fetchPromises);
+    let allArticles = results.flat();
 
     // Filter by query if provided
     if (query && query.trim()) {
-      const searchTerms = query.toLowerCase().split(' ').filter(t => t.length > 2);
-      console.log(`🔍 Filtering with terms: ${searchTerms.join(', ')}`);
-      
-      const beforeFilter = allArticles.length;
+      const searchTerms = query.toLowerCase().split(' ');
       allArticles = allArticles.filter(article => {
-        const searchableText = `${article.title} ${article.description}`.toLowerCase();
+      const searchableText = `${article.title} ${article.description} ${article.content}`.toLowerCase();
         return searchTerms.some((term: string) => searchableText.includes(term));
       });
-      
-      console.log(`✂️  Filtered: ${beforeFilter} → ${allArticles.length} articles`);
     }
 
-    // Sort by date
+    // Sort by date (most recent first)
     allArticles.sort((a, b) => {
-      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+      const dateA = new Date(a.publishedAt).getTime();
+      const dateB = new Date(b.publishedAt).getTime();
+      return dateB - dateA;
     });
 
-    console.log('\n╔═══════════════════════════════════════════╗');
-    console.log(`║  ✅ MILITARY RSS COMPLETE                ║`);
-    console.log(`║  📰 Returning: ${allArticles.length.toString().padStart(3)} articles              ║`);
-    console.log('╚═══════════════════════════════════════════╝\n');
-
-    if (allArticles.length > 0) {
-      console.log('📋 Sample articles:');
-      allArticles.slice(0, 3).forEach((a, i) => {
-        console.log(`  ${i+1}. [${a.source.name}] ${a.title.substring(0, 60)}...`);
-      });
-    }
+    console.log(`Returning ${allArticles.length} military RSS articles`);
 
     return new Response(
-      JSON.stringify({ 
-        articles: allArticles,
-        totalResults: allArticles.length,
-        sources: MILITARY_RSS_FEEDS.map(f => f.name),
-        api: 'military-rss',
-        sourceType: 'rss',
-      }),
+      JSON.stringify({ articles: allArticles }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
@@ -244,19 +174,12 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('\n╔═══════════════════════════════════════════╗');
-    console.error('║  💥 FATAL ERROR                          ║');
-    console.error('╚═══════════════════════════════════════════╝');
-    console.error('Error:', error.message);
-    console.error('Stack:', error.stack);
-    
+    console.error('Error in fetch-military-rss function:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        articles: [],
-        debug: {
-          errorType: error.constructor.name,
-        }
+        error: errorMessage,
+        articles: [] 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
