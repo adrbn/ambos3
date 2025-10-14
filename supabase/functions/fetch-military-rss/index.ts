@@ -1,132 +1,165 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Italian military and defense RSS feeds
+// Feeds RSS militaires italiens - URLs vérifiées et fonctionnelles
 const MILITARY_RSS_FEEDS = [
   {
     name: 'Analisi Difesa',
     url: 'https://www.analisidifesa.it/feed/',
     language: 'it',
-  },
-  {
-    name: 'Ares Difesa',
-    url: 'https://aresdifesa.it/feed/',
-    language: 'it',
-  },
-  {
-    name: 'Aviation Report',
-    url: 'https://www.aviation-report.com/feed/',
-    language: 'it',
+    active: true,
   },
   {
     name: 'Difesa Online',
     url: 'https://www.difesaonline.it/feed',
     language: 'it',
+    active: true,
   },
   {
     name: 'Report Difesa',
     url: 'https://www.reportdifesa.it/feed/',
     language: 'it',
+    active: true,
   },
   {
-    name: 'Rivista Italiana Difesa',
-    url: 'https://www.rid.it/feed/',
+    name: 'Aviation Report',
+    url: 'https://www.aviation-report.com/feed/',
     language: 'it',
+    active: true,
   },
   {
-    name: 'Ministero della Difesa',
-    url: 'https://www.difesa.it/RSS/Pagine/default.aspx',
+    name: 'Ares Difesa',
+    url: 'https://aresdifesa.it/feed/',
     language: 'it',
-  },
-  {
-    name: 'Stato Maggiore della Difesa',
-    url: 'https://www.difesa.it/SMD_/Comunicati/Pagine/default.aspx?tipo=Notizia&Rss=1',
-    language: 'it',
-  },
-  {
-    name: 'Esercito Italiano',
-    url: 'https://www.esercito.difesa.it/comunicazione/Pagine/default.aspx?Rss=1',
-    language: 'it',
-  },
-  {
-    name: 'Marina Militare',
-    url: 'https://www.marina.difesa.it/media-cultura/Notiziario-online/Pagine/default.aspx?Rss=1',
-    language: 'it',
-  },
-  {
-    name: 'Aeronautica Militare',
-    url: 'https://www.aeronautica.difesa.it/home/media-e-comunicazione/notizie/Pagine/default.aspx?Rss=1',
-    language: 'it',
-  },
-  {
-    name: 'Direzione Nazionale degli Armamenti',
-    url: 'https://www.difesa.it/SGD-DNA/Notizie/Pagine/default.aspx?tipo=Notizia&Rss=1',
-    language: 'it',
+    active: true,
   },
 ];
 
-async function parseRSSFeed(feedUrl: string, sourceName: string) {
+async function parseRSSFeed(feedUrl: string, sourceName: string, retries = 2): Promise<any[]> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      console.log(`[${sourceName}] Tentative ${attempt + 1}/${retries + 1}...`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
+      const response = await fetch(feedUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+          'Accept-Language': 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Cache-Control': 'no-cache',
+        },
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.error(`[${sourceName}] HTTP ${response.status}: ${response.statusText}`);
+        if (attempt < retries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+          continue;
+        }
+        return [];
+      }
+
+      const xmlText = await response.text();
+      
+      // Simple XML parsing without external dependencies
+      const articles = parseXMLManually(xmlText, sourceName);
+      
+      console.log(`[${sourceName}] ✓ ${articles.length} articles récupérés`);
+      return articles;
+      
+    } catch (error) {
+      console.error(`[${sourceName}] Erreur tentative ${attempt + 1}:`, error.message);
+      if (attempt < retries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      } else {
+        return [];
+      }
+    }
+  }
+  return [];
+}
+
+function parseXMLManually(xmlText: string, sourceName: string): any[] {
+  const articles: any[] = [];
+  
   try {
-    const response = await fetch(feedUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; NewsAggregator/1.0)',
-      }
-    });
-    if (!response.ok) {
-      console.error(`Failed to fetch ${sourceName}: ${response.status}`);
-      return [];
-    }
-
-    const xmlText = await response.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(xmlText, 'text/xml');
+    // Extract all <item> blocks
+    const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
+    const items = xmlText.match(itemRegex) || [];
     
-    if (!doc) {
-      console.error(`Failed to parse XML from ${sourceName}`);
-      return [];
-    }
-
-    const items = doc.querySelectorAll('item');
-    const articles: any[] = [];
-
     for (const item of items) {
-      const itemElement = item as any;
-      const title = itemElement.querySelector('title')?.textContent?.trim() || '';
-      const link = itemElement.querySelector('link')?.textContent?.trim() || '';
-      const description = itemElement.querySelector('description')?.textContent?.trim() || '';
-      const pubDate = itemElement.querySelector('pubDate')?.textContent?.trim() || '';
-      const creator = itemElement.querySelector('dc\\:creator')?.textContent?.trim() || 
-                     itemElement.querySelector('creator')?.textContent?.trim() || 'Unknown';
-
-      if (title && link) {
-        articles.push({
-          title,
-          description: description.replace(/<[^>]*>/g, ''), // Strip HTML tags
-          url: link,
-          publishedAt: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
-          source: {
-            name: sourceName,
-            language: 'it',
-          },
-          author: creator,
-          content: description.replace(/<[^>]*>/g, ''),
-          military: true,
-          rss: true,
-        });
+      try {
+        // Extract fields using regex
+        const title = extractTag(item, 'title');
+        const link = extractTag(item, 'link');
+        const description = extractTag(item, 'description');
+        const pubDate = extractTag(item, 'pubDate');
+        const creator = extractTag(item, 'dc:creator') || extractTag(item, 'creator') || 'Unknown';
+        const content = extractTag(item, 'content:encoded') || description;
+        
+        if (title && link) {
+          articles.push({
+            title: cleanHtml(title),
+            description: cleanHtml(description),
+            url: link.trim(),
+            publishedAt: parseDate(pubDate),
+            source: {
+              name: sourceName,
+              language: 'it',
+            },
+            author: cleanHtml(creator),
+            content: cleanHtml(content),
+            military: true,
+            rss: true,
+          });
+        }
+      } catch (itemError) {
+        console.error(`[${sourceName}] Error parsing item:`, itemError);
       }
     }
-
-    console.log(`Fetched ${articles.length} articles from ${sourceName}`);
-    return articles;
   } catch (error) {
-    console.error(`Error parsing RSS from ${sourceName}:`, error);
-    return [];
+    console.error(`[${sourceName}] Error in parseXMLManually:`, error);
+  }
+  
+  return articles;
+}
+
+function extractTag(xml: string, tagName: string): string {
+  const regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\/${tagName}>`, 'i');
+  const match = xml.match(regex);
+  return match ? match[1].trim() : '';
+}
+
+function cleanHtml(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
+}
+
+function parseDate(dateStr: string): string {
+  if (!dateStr) return new Date().toISOString();
+  try {
+    return new Date(dateStr).toISOString();
+  } catch {
+    return new Date().toISOString();
   }
 }
 
@@ -137,23 +170,30 @@ serve(async (req) => {
 
   try {
     const { query } = await req.json();
-    console.log('Fetching from Italian military RSS feeds with query:', query);
+    console.log('=== DEBUT FETCH MILITARY RSS ===');
+    console.log(`Query: "${query}"`);
 
     // Fetch from all RSS feeds in parallel
-    const fetchPromises = MILITARY_RSS_FEEDS.map(feed => 
-      parseRSSFeed(feed.url, feed.name)
-    );
+    const fetchPromises = MILITARY_RSS_FEEDS
+      .filter(feed => feed.active)
+      .map(feed => parseRSSFeed(feed.url, feed.name));
 
     const results = await Promise.all(fetchPromises);
     let allArticles = results.flat();
 
+    console.log(`Total articles avant filtre: ${allArticles.length}`);
+
     // Filter by query if provided
     if (query && query.trim()) {
-      const searchTerms = query.toLowerCase().split(' ');
+      const searchTerms = query.toLowerCase().split(' ').filter(t => t.length > 2);
+      const beforeFilter = allArticles.length;
+      
       allArticles = allArticles.filter(article => {
-      const searchableText = `${article.title} ${article.description} ${article.content}`.toLowerCase();
+        const searchableText = `${article.title} ${article.description} ${article.content}`.toLowerCase();
         return searchTerms.some((term: string) => searchableText.includes(term));
       });
+      
+      console.log(`Filtré de ${beforeFilter} à ${allArticles.length} articles pour "${query}"`);
     }
 
     // Sort by date (most recent first)
@@ -163,10 +203,14 @@ serve(async (req) => {
       return dateB - dateA;
     });
 
-    console.log(`Returning ${allArticles.length} military RSS articles`);
+    console.log(`=== FIN: ${allArticles.length} articles retournés ===`);
 
     return new Response(
-      JSON.stringify({ articles: allArticles }),
+      JSON.stringify({ 
+        articles: allArticles,
+        totalResults: allArticles.length,
+        sources: MILITARY_RSS_FEEDS.filter(f => f.active).map(f => f.name),
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
@@ -174,6 +218,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    console.error('=== ERREUR FATALE ===');
     console.error('Error in fetch-military-rss function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
