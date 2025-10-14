@@ -6,163 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Feeds RSS militaires italiens - URLs vérifiées et fonctionnelles
-const MILITARY_RSS_FEEDS = [
-  {
-    name: 'Analisi Difesa',
-    url: 'https://www.analisidifesa.it/feed/',
-    language: 'it',
-    active: true,
-  },
-  {
-    name: 'Difesa Online',
-    url: 'https://www.difesaonline.it/feed',
-    language: 'it',
-    active: true,
-  },
-  {
-    name: 'Report Difesa',
-    url: 'https://www.reportdifesa.it/feed/',
-    language: 'it',
-    active: true,
-  },
-  {
-    name: 'Aviation Report',
-    url: 'https://www.aviation-report.com/feed/',
-    language: 'it',
-    active: true,
-  },
-  {
-    name: 'Ares Difesa',
-    url: 'https://aresdifesa.it/feed/',
-    language: 'it',
-    active: true,
-  },
-];
-
-async function parseRSSFeed(feedUrl: string, sourceName: string, retries = 2): Promise<any[]> {
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      console.log(`[${sourceName}] Tentative ${attempt + 1}/${retries + 1}...`);
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-      
-      const response = await fetch(feedUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-          'Accept-Language': 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7',
-          'Cache-Control': 'no-cache',
-        },
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        console.error(`[${sourceName}] HTTP ${response.status}: ${response.statusText}`);
-        if (attempt < retries) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
-          continue;
-        }
-        return [];
-      }
-
-      const xmlText = await response.text();
-      
-      // Simple XML parsing without external dependencies
-      const articles = parseXMLManually(xmlText, sourceName);
-      
-      console.log(`[${sourceName}] ✓ ${articles.length} articles récupérés`);
-      return articles;
-      
-    } catch (error) {
-      console.error(`[${sourceName}] Erreur tentative ${attempt + 1}:`, error.message);
-      if (attempt < retries) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
-      } else {
-        return [];
-      }
-    }
-  }
-  return [];
-}
-
-function parseXMLManually(xmlText: string, sourceName: string): any[] {
-  const articles: any[] = [];
-  
-  try {
-    // Extract all <item> blocks
-    const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
-    const items = xmlText.match(itemRegex) || [];
-    
-    for (const item of items) {
-      try {
-        // Extract fields using regex
-        const title = extractTag(item, 'title');
-        const link = extractTag(item, 'link');
-        const description = extractTag(item, 'description');
-        const pubDate = extractTag(item, 'pubDate');
-        const creator = extractTag(item, 'dc:creator') || extractTag(item, 'creator') || 'Unknown';
-        const content = extractTag(item, 'content:encoded') || description;
-        
-        if (title && link) {
-          articles.push({
-            title: cleanHtml(title),
-            description: cleanHtml(description),
-            url: link.trim(),
-            publishedAt: parseDate(pubDate),
-            source: {
-              name: sourceName,
-              language: 'it',
-            },
-            author: cleanHtml(creator),
-            content: cleanHtml(content),
-            military: true,
-            rss: true,
-          });
-        }
-      } catch (itemError) {
-        console.error(`[${sourceName}] Error parsing item:`, itemError);
-      }
-    }
-  } catch (error) {
-    console.error(`[${sourceName}] Error in parseXMLManually:`, error);
-  }
-  
-  return articles;
-}
-
-function extractTag(xml: string, tagName: string): string {
-  const regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\/${tagName}>`, 'i');
-  const match = xml.match(regex);
-  return match ? match[1].trim() : '';
-}
-
-function cleanHtml(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .trim();
-}
-
-function parseDate(dateStr: string): string {
-  if (!dateStr) return new Date().toISOString();
-  try {
-    return new Date(dateStr).toISOString();
-  } catch {
-    return new Date().toISOString();
-  }
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -170,46 +13,124 @@ serve(async (req) => {
 
   try {
     const { query } = await req.json();
-    console.log('=== DEBUT FETCH MILITARY RSS ===');
-    console.log(`Query: "${query}"`);
+    console.log('========================================');
+    console.log('🔍 GOPHER AI - Début fetch');
+    console.log('Query:', query);
+    console.log('========================================');
 
-    // Fetch from all RSS feeds in parallel
-    const fetchPromises = MILITARY_RSS_FEEDS
-      .filter(feed => feed.active)
-      .map(feed => parseRSSFeed(feed.url, feed.name));
-
-    const results = await Promise.all(fetchPromises);
-    let allArticles = results.flat();
-
-    console.log(`Total articles avant filtre: ${allArticles.length}`);
-
-    // Filter by query if provided
-    if (query && query.trim()) {
-      const searchTerms = query.toLowerCase().split(' ').filter(t => t.length > 2);
-      const beforeFilter = allArticles.length;
-      
-      allArticles = allArticles.filter(article => {
-        const searchableText = `${article.title} ${article.description} ${article.content}`.toLowerCase();
-        return searchTerms.some((term: string) => searchableText.includes(term));
-      });
-      
-      console.log(`Filtré de ${beforeFilter} à ${allArticles.length} articles pour "${query}"`);
+    const GOPHER_API_KEY = Deno.env.get('GOPHER_API_KEY');
+    if (!GOPHER_API_KEY) {
+      console.error('❌ GOPHER_API_KEY not configured');
+      throw new Error('GOPHER_API_KEY not configured');
     }
 
-    // Sort by date (most recent first)
-    allArticles.sort((a, b) => {
-      const dateA = new Date(a.publishedAt).getTime();
-      const dateB = new Date(b.publishedAt).getTime();
-      return dateB - dateA;
+    console.log('✅ API Key trouvée (longueur:', GOPHER_API_KEY.length, ')');
+
+    const requestBody = {
+      type: 'twitter',
+      arguments: {
+        type: 'searchbyquery',
+        query: query,
+        max_results: 50,
+      },
+    };
+
+    console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
+
+    const response = await fetch('https://data.gopher-ai.com/api/v1/search/live', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GOPHER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
     });
 
-    console.log(`=== FIN: ${allArticles.length} articles retournés ===`);
+    console.log('📊 Response status:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Gopher API error:', response.status, errorText);
+      throw new Error(`Gopher API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('📦 Response data structure:', JSON.stringify(Object.keys(data), null, 2));
+    
+    if (data.data) {
+      console.log('✅ data.data exists, length:', data.data.length);
+      if (data.data.length > 0) {
+        console.log('📌 Premier élément structure:', JSON.stringify(Object.keys(data.data[0]), null, 2));
+        console.log('📌 Premier élément complet:', JSON.stringify(data.data[0], null, 2));
+      }
+    } else {
+      console.log('⚠️  data.data n\'existe pas. Clés disponibles:', Object.keys(data));
+    }
+
+    // Vérifier plusieurs structures possibles
+    let rawResults = data.data || data.results || data.tweets || [];
+    
+    console.log(`🔢 Résultats bruts: ${rawResults.length} items`);
+
+    // Transform Gopher results to our article format
+    const articles = rawResults.map((item: any, index: number) => {
+      console.log(`\n--- Article ${index + 1} ---`);
+      console.log('Keys:', Object.keys(item));
+      
+      // Essayer différentes propriétés possibles
+      const text = item.full_text || item.text || item.tweet_text || item.content || '';
+      const username = item.user?.screen_name || item.user?.username || item.author || item.screen_name || 'Unknown';
+      const userId = item.user?.id || item.user_id || item.id || '';
+      const tweetId = item.id_str || item.id || item.tweet_id || '';
+      const createdAt = item.created_at || item.timestamp || item.date || new Date().toISOString();
+      const name = item.user?.name || item.name || username;
+      
+      console.log('Text:', text.substring(0, 50));
+      console.log('Username:', username);
+      console.log('Created:', createdAt);
+      
+      const article = {
+        title: text.substring(0, 100) || 'Sans titre',
+        description: text,
+        url: item.url || item.tweet_url || `https://twitter.com/${username}/status/${tweetId}`,
+        publishedAt: createdAt,
+        source: {
+          name: `X/Twitter - @${username}`,
+          platform: 'twitter',
+        },
+        author: name,
+        content: text,
+        osint: {
+          platform: 'twitter',
+          credibilityScore: 70, // Score par défaut, à ajuster
+          engagement: {
+            likes: item.favorite_count || item.likes || item.like_count || 0,
+            reposts: item.retweet_count || item.shares || item.retweets || 0,
+            replies: item.reply_count || item.comments || item.replies || 0,
+          },
+          verified: item.user?.verified || item.verified || false,
+          accountMetrics: {
+            followers: item.user?.followers_count || 0,
+            following: item.user?.friends_count || 0,
+          },
+        },
+        location: item.user?.location || item.location || null,
+        raw: item, // Garder l'objet brut pour debug
+      };
+      
+      return article;
+    });
+
+    console.log('\n========================================');
+    console.log(`✅ SUCCÈS: ${articles.length} articles transformés`);
+    console.log('========================================');
 
     return new Response(
       JSON.stringify({ 
-        articles: allArticles,
-        totalResults: allArticles.length,
-        sources: MILITARY_RSS_FEEDS.filter(f => f.active).map(f => f.name),
+        articles,
+        totalResults: articles.length,
+        api: 'gopher',
+        sourceType: 'osint',
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -218,8 +139,12 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('=== ERREUR FATALE ===');
-    console.error('Error in fetch-military-rss function:', error);
+    console.error('========================================');
+    console.error('💥 ERREUR FATALE dans fetch-gopher:');
+    console.error('Message:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('========================================');
+    
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ 
