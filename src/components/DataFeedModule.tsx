@@ -123,6 +123,11 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     <span className="text-primary/70">{article.source?.name || 'Unknown'}</span>
+                    {article.webResult && (
+                      <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[9px] font-semibold">
+                        WEB
+                      </span>
+                    )}
                     {isOsint && (
                       <>
                         <span className="text-muted-foreground/50">•</span>
