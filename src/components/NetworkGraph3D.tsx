@@ -241,7 +241,7 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
       {/* Node Info Card */}
       {selectedNode && (
         <Card className="absolute top-4 right-4 p-4 max-w-sm bg-card/95 border-primary/50 shadow-lg overflow-y-auto max-h-[80vh]">
-          <div className="flex items-start justify-between mb-2">
+          <div className="flex items-start justify-between mb-3">
             <h3 className="text-sm font-bold text-primary uppercase">{selectedNode.name}</h3>
             <button
               onClick={() => setSelectedNode(null)}
@@ -250,7 +250,22 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
               <X className="w-4 h-4" />
             </button>
           </div>
+          
           <div className="space-y-3 text-xs">
+            {/* Image if available */}
+            {(selectedNode as any).image_url && (
+              <div className="w-full">
+                <img 
+                  src={(selectedNode as any).image_url} 
+                  alt={selectedNode.name}
+                  className="w-full h-32 object-cover rounded border border-primary/30"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Type:</span>
               <span className="ml-2 px-2 py-0.5 rounded" style={{ 
@@ -261,6 +276,7 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
                 {selectedNode.type}
               </span>
             </div>
+            
             <div>
               <span className="text-muted-foreground">Importance:</span>
               <div className="flex items-center gap-2 mt-1">
@@ -273,6 +289,15 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
                 <span className="text-foreground font-bold">{selectedNode.importance}/10</span>
               </div>
             </div>
+
+            {/* Additional Info */}
+            {(selectedNode as any).additional_info && (
+              <div className="p-2 rounded bg-primary/10 border border-primary/20">
+                <span className="text-[10px] text-muted-foreground uppercase">Info:</span>
+                <p className="mt-1 text-foreground/90">{(selectedNode as any).additional_info}</p>
+              </div>
+            )}
+            
             {selectedNode.description && (
               <div>
                 <span className="text-muted-foreground">Description:</span>

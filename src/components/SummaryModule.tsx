@@ -62,8 +62,8 @@ const SummaryModule = ({ summary, articles, query, language, onRegenerate }: Sum
         </Button>
       </div>
       <div className="flex-1 overflow-auto">
-        <p className="text-sm text-foreground leading-relaxed">
-          {summary || t('noArticles')}
+        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+          {summary ? summary.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#+/g, '') : t('noArticles')}
         </p>
       </div>
     </div>

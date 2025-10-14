@@ -79,7 +79,9 @@ serve(async (req) => {
                           minimum: 1,
                           maximum: 10
                         },
-                        description: { type: 'string', description: 'Brief description of the entity' }
+                        description: { type: 'string', description: 'Brief description of the entity and their role' },
+                        image_url: { type: 'string', description: 'Public image URL if available (e.g., Wikipedia, official sources)' },
+                        additional_info: { type: 'string', description: 'Additional context: title, position, country, etc.' }
                       },
                       required: ['id', 'name', 'type', 'importance'],
                       additionalProperties: false

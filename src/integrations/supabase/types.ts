@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      module_config: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          module_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          module_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          module_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null

@@ -73,7 +73,11 @@ const MILITARY_RSS_FEEDS = [
 
 async function parseRSSFeed(feedUrl: string, sourceName: string) {
   try {
-    const response = await fetch(feedUrl);
+    const response = await fetch(feedUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; NewsAggregator/1.0)',
+      }
+    });
     if (!response.ok) {
       console.error(`Failed to fetch ${sourceName}: ${response.status}`);
       return [];

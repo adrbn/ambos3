@@ -27,6 +27,7 @@ import SectorWatchesModule from "@/components/SectorWatchesModule";
 import SettingsDialog from "@/components/SettingsDialog";
 import StatusBar from "@/components/StatusBar";
 import LanguageSelector from "@/components/LanguageSelector";
+import ServiceStatusIndicator from "@/components/ServiceStatusIndicator";
 import ResizableDraggableModule from "@/components/ResizableDraggableModule";
 import LayoutManager from "@/components/LayoutManager";
 import ReportGenerator from "@/components/ReportGenerator";
@@ -51,7 +52,7 @@ const Index = () => {
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [selectedApi, setSelectedApi] = useState<ApiSource>('mixed');
   const [sourceType, setSourceType] = useState<'news' | 'osint'>('news');
-  const [osintSources, setOsintSources] = useState<string[]>(['mastodon', 'bluesky', 'linkedin']);
+  const [osintSources, setOsintSources] = useState<string[]>(['mastodon', 'bluesky']);
   const [theme, setTheme] = useState<'default' | 'light' | 'girly'>('default');
   const { user, isAdmin, isLoading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -283,6 +284,7 @@ const Index = () => {
               onThemeChange={setTheme}
             />
             <LanguageSelector language={language} onLanguageChange={handleLanguageChange} />
+            <ServiceStatusIndicator />
             {isAdmin && (
               <Button
                 variant="outline"

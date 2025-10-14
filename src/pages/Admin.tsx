@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { LogOut, Trash2, UserPlus } from "lucide-react";
+import { LogOut, Trash2, UserPlus, Terminal, Settings } from "lucide-react";
+import AdminLogsViewer from "@/components/AdminLogsViewer";
+import AdminModuleConfig from "@/components/AdminModuleConfig";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Admin = () => {
@@ -172,6 +175,19 @@ const Admin = () => {
           </Button>
         </div>
 
+        <Tabs defaultValue="users" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="users">Utilisateurs</TabsTrigger>
+            <TabsTrigger value="modules">Modules</TabsTrigger>
+            <TabsTrigger value="layouts">Layouts</TabsTrigger>
+            <TabsTrigger value="dev">
+              <Terminal className="w-4 h-4 mr-2" />
+              Dev
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="users" className="space-y-6">
+
         <Card>
           <CardHeader>
             <CardTitle>Créer un utilisateur</CardTitle>
@@ -236,6 +252,17 @@ const Admin = () => {
           </CardContent>
         </Card>
 
+          </TabsContent>
+
+          <TabsContent value="modules" className="space-y-6">
+            <Card className="min-h-[600px]">
+              <CardContent className="pt-6">
+                <AdminModuleConfig />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="layouts" className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Gestion des Layouts</CardTitle>
@@ -277,6 +304,16 @@ const Admin = () => {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="dev" className="space-y-6">
+            <Card className="min-h-[700px]">
+              <CardContent className="pt-6">
+                <AdminLogsViewer />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

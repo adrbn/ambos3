@@ -47,27 +47,32 @@ serve(async (req) => {
     console.log('Gopher AI returned:', data.data?.length || 0, 'results');
 
     // Transform Gopher results to our article format
-    const articles = (data.data || []).map((item: any) => ({
-      title: item.full_text?.substring(0, 100) || item.text?.substring(0, 100) || 'Sans titre',
-      description: item.full_text || item.text || '',
-      url: item.url || `https://twitter.com/user/status/${item.id}`,
-      publishedAt: item.created_at || new Date().toISOString(),
-      source: {
-        name: `X/Twitter - ${item.user?.screen_name || item.author || 'Unknown'}`,
+    const articles = (data.data || []).map((item: any) => {
+      const text = item.full_text || item.text || item.tweet_text || '';
+      const username = item.user?.screen_name || item.user?.username || item.author || 'Unknown';
+      
+      return {
+        title: text.substring(0, 100) || 'Sans titre',
+        description: text,
+        url: item.url || item.tweet_url || `https://twitter.com/${username}/status/${item.id}`,
+        publishedAt: item.created_at || item.timestamp || new Date().toISOString(),
+        source: {
+          name: `X/Twitter - @${username}`,
+          platform: 'twitter',
+        },
+        author: item.user?.name || username,
+        content: text,
+        osint: true,
         platform: 'twitter',
-      },
-      author: item.user?.name || item.user?.screen_name || item.author || 'Unknown',
-      content: item.full_text || item.text || '',
-      osint: true,
-      platform: 'twitter',
-      engagement: {
-        likes: item.favorite_count || item.likes || 0,
-        shares: item.retweet_count || item.shares || 0,
-        comments: item.reply_count || item.comments || 0,
-      },
-      author_location: item.user?.location,
-      location: item.geo?.full_name || item.place?.full_name,
-    }));
+        engagement: {
+          likes: item.favorite_count || item.likes || item.like_count || 0,
+          shares: item.retweet_count || item.shares || item.retweet_count || 0,
+          comments: item.reply_count || item.comments || item.reply_count || 0,
+        },
+        author_location: item.user?.location || item.location,
+        location: item.geo?.full_name || item.place?.full_name || item.geo,
+      };
+    });
 
     return new Response(
       JSON.stringify({ articles }),

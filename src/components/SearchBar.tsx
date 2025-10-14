@@ -50,10 +50,10 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
     setIsLoading(true);
 
     try {
-      // 1. Enrichir la requête via ChatGPT (adapté au type de source) - SEULEMENT SI ACTIVÉ
+      // 1. Enrichir la requête via ChatGPT (adapté au type de source) - SEULEMENT SI ACTIVÉ ET EN MODE NEWS
       let finalQuery = queryToUse;
       
-      if (enableQueryEnrichment) {
+      if (enableQueryEnrichment && sourceType === 'news') {
         toast.info("Enrichissement de la requête...", { duration: 2000 });
         const { data: enrichData, error: enrichError } = await supabase.functions.invoke('enrich-query', {
           body: { query: queryToUse, language, sourceType, osintPlatforms: osintSources }
@@ -71,13 +71,18 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
       // 2. Fetch from selected sources
       let allArticles: any[] = [];
       
+      if (sourceType === 'osint' && osintSources.length === 0) {
+        toast.error("Veuillez sélectionner au moins une source OSINT.");
+        setIsLoading(false);
+        return;
+      }
+      
       if (sourceType === 'osint') {
         // Fetch from multiple OSINT sources in parallel
         const fetchPromises = osintSources.map(async (source) => {
           const functionMap: Record<string, string> = {
             'mastodon': 'fetch-bluesky',
             'bluesky': 'fetch-bluesky-real',
-            'linkedin': 'fetch-linkedin',
             'gopher': 'fetch-gopher',
             'military-rss': 'fetch-military-rss',
           };
@@ -194,7 +199,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
                 : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
             }`}
           >
-            🔍 {t('socialOsint')}
+            🔍 OSINT
           </button>
           
           <Popover>
@@ -213,7 +218,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-mono mb-2">Sources OSINT actives:</p>
                 <div className="flex flex-col gap-2">
-                  {['mastodon', 'bluesky', 'linkedin', 'gopher', 'military-rss'].map((source) => (
+                  {['mastodon', 'bluesky', 'gopher', 'military-rss'].map((source) => (
                     <label
                       key={source}
                       className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
