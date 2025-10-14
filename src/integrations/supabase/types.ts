@@ -112,6 +112,7 @@ export type Database = {
           color: string | null
           created_at: string
           description: string | null
+          enabled_languages: string[] | null
           id: string
           language: string
           name: string
@@ -126,6 +127,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           description?: string | null
+          enabled_languages?: string[] | null
           id?: string
           language?: string
           name: string
@@ -140,6 +142,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           description?: string | null
+          enabled_languages?: string[] | null
           id?: string
           language?: string
           name?: string

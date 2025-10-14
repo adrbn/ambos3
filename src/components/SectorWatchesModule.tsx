@@ -82,12 +82,12 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
 
       if (error) throw error;
       // Cast language to Language type and parse enabled_languages
-      const watches = (data || []).map(watch => ({
-        ...watch,
-        language: watch.language as Language,
-        enabled_languages: (Array.isArray(watch.enabled_languages) 
-          ? watch.enabled_languages 
-          : ['fr', 'en', 'it']) as Language[]
+      const watches = (data || []).map((w: any) => ({
+        ...w,
+        language: w.language as Language,
+        enabled_languages: (Array.isArray((w as any).enabled_languages)
+          ? ((w as any).enabled_languages as Language[])
+          : (['fr', 'en', 'it'] as Language[]))
       })) as SectorWatch[];
       setWatches(watches);
     } catch (error: any) {

@@ -46,14 +46,46 @@ serve(async (req) => {
     const data = await response.json();
     console.log('Raw Gopher API response:', JSON.stringify(data).substring(0, 500));
     
-    // Gopher can return either an array directly OR an object with a data property
-    let results = [];
+    // Gopher can return: an array, an object with data[], or a job uuid to poll
+    let results: any[] = [];
     if (Array.isArray(data)) {
       results = data;
       console.log('Gopher returned array directly with', results.length, 'results');
-    } else if (data && Array.isArray(data.data)) {
-      results = data.data;
+    } else if (data && Array.isArray((data as any).data)) {
+      results = (data as any).data;
       console.log('Gopher returned object with data property containing', results.length, 'results');
+    } else if (data && (data as any).uuid) {
+      const uuid = (data as any).uuid as string;
+      console.log('Gopher returned job uuid, polling results for', uuid);
+      const MAX_TRIES = 8;
+      for (let i = 0; i < MAX_TRIES; i++) {
+        const res2 = await fetch(`https://data.gopher-ai.com/api/v1/search/live/twitter/result/${uuid}`, {
+          headers: { 'Authorization': `Bearer ${GOPHER_API_KEY}` }
+        });
+        if (!res2.ok) {
+          const t = await res2.text();
+          console.warn('Gopher result poll error', res2.status, t);
+        } else {
+          const data2 = await res2.json();
+          console.log('Gopher poll response snippet:', JSON.stringify(data2).substring(0, 400));
+          if (Array.isArray(data2)) {
+            results = data2;
+            break;
+          }
+          if (data2 && Array.isArray((data2 as any).data)) {
+            results = (data2 as any).data;
+            break;
+          }
+          // Some schemas return { status: 'pending' | 'done', data?: [] }
+          if ((data2 as any)?.status === 'done' && Array.isArray((data2 as any).data)) {
+            results = (data2 as any).data;
+            break;
+          }
+        }
+        // wait 1s before next poll
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+      console.log('Polling finished, results:', Array.isArray(results) ? results.length : 0);
     } else {
       console.log('Gopher returned unexpected format:', typeof data);
       results = [];
