@@ -4,45 +4,79 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface LogEntry {
   timestamp: string;
   level: 'info' | 'error' | 'warn';
   message: string;
   source: string;
+  function_id?: string;
 }
 
 const AdminLogsViewer = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [filter, setFilter] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Simuler des logs en temps réel (à remplacer par vrai système de logs)
+  const fetchRealLogs = async () => {
+    setIsLoading(true);
+    try {
+      const functions = ['fetch-news', 'analyze-news', 'enrich-query', 'fetch-gopher', 'fetch-military-rss', 'fetch-bluesky', 'fetch-bluesky-real', 'extract-entities', 'extract-locations'];
+      
+      const allLogs: LogEntry[] = [];
+      
+      // Récupérer les logs de chaque fonction en parallèle
+      const logPromises = functions.map(async (functionName) => {
+        try {
+          const { data, error } = await supabase.functions.invoke('_internal/logs', {
+            body: { 
+              function_name: functionName,
+              limit: 10 
+            }
+          });
+          
+          if (error) {
+            console.error(`Error fetching logs for ${functionName}:`, error);
+            return [];
+          }
+          
+          return (data?.logs || []).map((log: any) => ({
+            timestamp: log.timestamp || new Date().toISOString(),
+            level: log.level === 'error' ? 'error' : log.level === 'warn' ? 'warn' : 'info',
+            message: log.event_message || log.message || 'No message',
+            source: functionName,
+            function_id: log.function_id
+          }));
+        } catch (err) {
+          console.error(`Exception fetching logs for ${functionName}:`, err);
+          return [];
+        }
+      });
+      
+      const results = await Promise.all(logPromises);
+      const combinedLogs = results.flat();
+      
+      // Trier par timestamp (plus récent en premier)
+      combinedLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      setLogs(combinedLogs.slice(0, 100));
+    } catch (error) {
+      console.error('Error fetching logs:', error);
+      toast.error('Échec de la récupération des logs');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Charger les logs au montage et en auto-refresh
   useEffect(() => {
-    const generateMockLog = (): LogEntry => {
-      const levels: LogEntry['level'][] = ['info', 'error', 'warn'];
-      const sources = ['fetch-news', 'analyze-news', 'enrich-query', 'fetch-gopher', 'fetch-military-rss'];
-      const messages = [
-        'Request completed successfully',
-        'Rate limit exceeded',
-        'AI Gateway error: 429',
-        'Fetching data from source',
-        'Processing query enrichment'
-      ];
-
-      return {
-        timestamp: new Date().toISOString(),
-        level: levels[Math.floor(Math.random() * levels.length)],
-        message: messages[Math.floor(Math.random() * messages.length)],
-        source: sources[Math.floor(Math.random() * sources.length)]
-      };
-    };
-
+    fetchRealLogs();
+    
     if (autoRefresh) {
-      const interval = setInterval(() => {
-        setLogs(prev => [generateMockLog(), ...prev].slice(0, 100));
-      }, 3000);
-
+      const interval = setInterval(fetchRealLogs, 10000); // Refresh toutes les 10 secondes
       return () => clearInterval(interval);
     }
   }, [autoRefresh]);
@@ -65,7 +99,7 @@ const AdminLogsViewer = () => {
       <div className="flex items-center justify-between mb-3 gap-2">
         <h2 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
           <Terminal className="w-4 h-4" />
-          LOGS EN TEMPS RÉEL
+          LOGS EDGE FUNCTIONS {isLoading && '(Chargement...)'}
         </h2>
         <div className="flex items-center gap-2">
           <Button
@@ -73,8 +107,18 @@ const AdminLogsViewer = () => {
             size="sm"
             onClick={() => setAutoRefresh(!autoRefresh)}
             className="h-7 px-2"
+            disabled={isLoading}
           >
-            <RefreshCw className={`w-3 h-3 ${autoRefresh ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3 h-3 ${(autoRefresh || isLoading) ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchRealLogs}
+            disabled={isLoading}
+            className="h-7 px-2 text-xs"
+          >
+            Refresh
           </Button>
           <Button
             variant="outline"
