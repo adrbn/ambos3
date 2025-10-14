@@ -1,34 +1,7 @@
-project_id = "ifepqhmkaotvnkfwufzw"
-
-[functions.fetch-news]
-verify_jwt = false
-
-[functions.analyze-news]
-verify_jwt = false
-
-[functions.extract-entities]
-verify_jwt = false
-
-[functions.extract-locations]
-verify_jwt = false
-
-[functions.enrich-query]
-verify_jwt = false
-
-[functions.fetch-bluesky]
-verify_jwt = false
-
-[functions.fetch-bluesky-real]
-verify_jwt = false
+project_id = "xxrnheknatbvtomldtwa"
 
 [functions.fetch-gopher]
 verify_jwt = false
 
 [functions.fetch-military-rss]
 verify_jwt = false
-
-[functions.fetch-google]
-verify_jwt = false
-
-[functions.update-secret]
-verify_jwt = true

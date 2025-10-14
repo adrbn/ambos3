@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +22,6 @@ interface SectorWatch {
   api: string;
   description: string | null;
   color: string;
-  enabled_languages: Language[];
 }
 
 interface SectorWatchesModuleProps {
@@ -48,18 +46,16 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
     api: string;
     description: string;
     color: string;
-    enabled_languages: Language[];
   }>({
     name: "",
     sector: "",
     query: "",
     query_en: "",
     query_it: "",
-    language: language,
+    language: language, // Use current language as default
     api: "newsapi",
     description: "",
-    color: "#0ea5e9",
-    enabled_languages: ['fr', 'en', 'it'],
+    color: "#0ea5e9"
   });
 
   // Update default language when site language changes
@@ -81,14 +77,11 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
         .order('sector', { ascending: true });
 
       if (error) throw error;
-      // Cast language to Language type and parse enabled_languages
+      // Cast language to Language type
       const watches = (data || []).map(watch => ({
         ...watch,
-        language: watch.language as Language,
-        enabled_languages: (Array.isArray(watch.enabled_languages) 
-          ? watch.enabled_languages 
-          : ['fr', 'en', 'it']) as Language[]
-      })) as SectorWatch[];
+        language: watch.language as Language
+      }));
       setWatches(watches);
     } catch (error: any) {
       console.error('Error fetching watches:', error);
@@ -149,7 +142,7 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
 
   const openEditDialog = (watch: SectorWatch) => {
     setEditingWatch(watch);
-    setActiveQueryTab(language);
+    setActiveQueryTab(language); // Set active tab to current language
     setFormData({
       name: watch.name,
       sector: watch.sector,
@@ -159,8 +152,7 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
       language: watch.language,
       api: watch.api,
       description: watch.description || "",
-      color: watch.color,
-      enabled_languages: watch.enabled_languages || ['fr', 'en', 'it']
+      color: watch.color
     });
     setIsDialogOpen(true);
   };
@@ -177,8 +169,7 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
       language: language,
       api: "newsapi",
       description: "",
-      color: "#0ea5e9",
-      enabled_languages: ['fr', 'en', 'it']
+      color: "#0ea5e9"
     });
   };
 
@@ -317,37 +308,6 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
                   </Select>
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                <label className="text-xs text-muted-foreground mb-1 block">Langues actives</label>
-                <div className="flex gap-4">
-                  {(['fr', 'en', 'it'] as Language[]).map((lang) => (
-                    <div key={lang} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`lang-${lang}`}
-                        checked={formData.enabled_languages.includes(lang)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setFormData(prev => ({
-                              ...prev,
-                              enabled_languages: [...prev.enabled_languages, lang]
-                            }));
-                          } else {
-                            setFormData(prev => ({
-                              ...prev,
-                              enabled_languages: prev.enabled_languages.filter(l => l !== lang)
-                            }));
-                          }
-                        }}
-                      />
-                      <label htmlFor={`lang-${lang}`} className="text-sm cursor-pointer">
-                        {lang === 'fr' ? t('french') : lang === 'en' ? t('english') : t('italian')}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(false)}>
                   {t('cancel')}

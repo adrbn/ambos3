@@ -84,7 +84,6 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
             'mastodon': 'fetch-bluesky',
             'bluesky': 'fetch-bluesky-real',
             'gopher': 'fetch-gopher',
-            'google': 'fetch-google',
             'military-rss': 'fetch-military-rss',
           };
           
