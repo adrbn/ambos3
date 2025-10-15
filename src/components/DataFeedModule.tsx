@@ -12,6 +12,7 @@ interface DataFeedModuleProps {
 
 const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
   const [filter, setFilter] = useState<string>('all');
+  const [platformFilter, setPlatformFilter] = useState<string>('all');
   const { t } = useTranslation(language);
 
   const getCredibilityColor = (score: number) => {
@@ -20,20 +21,17 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
     return "text-red-500 border-red-500/50 bg-red-500/10";
   };
 
-  const detectPlatform = (article: any): 'mastodon' | 'bluesky' | string => {
-    // Check URL first
-    if (article.url?.includes('bsky.app') || article.url?.includes('bsky.brid.gy')) {
-      return 'bluesky';
-    }
-    // Check source name
-    if (article.source?.name?.includes('bsky.social') || article.source?.name?.includes('bsky.brid.gy')) {
-      return 'bluesky';
-    }
-    // Check osint.platform if available
-    if (article.osint?.platform) {
-      return article.osint.platform;
-    }
-    // Default to mastodon for OSINT posts
+  const detectPlatform = (article: any): string => {
+    // URL-based detection
+    const url = (article.url || '').toLowerCase();
+    const srcName = (article.source?.name || '').toLowerCase();
+
+    if (url.includes('bsky') || srcName.includes('bsky')) return 'bluesky';
+    if (url.includes('twitter.com') || url.includes('x.com') || srcName.includes('x/twitter') || srcName.includes('twitter') || srcName.includes('x/')) return 'twitter';
+    if (article.osint?.platform) return article.osint.platform;
+    // Web results
+    if (article.webResult) return 'web';
+    // Default
     return article.osint ? 'mastodon' : 'news';
   };
 
@@ -49,13 +47,35 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
     { id: 'trending', label: t('trending') },
   ];
 
+  const availablePlatforms = Array.from(new Set((articles || []).map(a => detectPlatform(a))));
+
   const getFilteredArticles = () => {
-    if (filter === 'recent') {
-      return [...articles].sort((a, b) => 
-        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-      ).slice(0, 10);
+    let list = [...articles];
+
+    // Platform filtering
+    if (platformFilter && platformFilter !== 'all') {
+      list = list.filter(a => detectPlatform(a) === platformFilter);
     }
-    return articles;
+
+    if (filter === 'recent') {
+      return list.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()).slice(0, 10);
+    }
+
+    if (filter === 'trending') {
+      // Calculate an engagement score for sorting
+      const scored = list.map(a => {
+        const e = a.osint?.engagement || a.engagement || {};
+        const likes = e.likes || 0;
+        const reposts = e.reposts || e.shares || 0;
+        const replies = e.replies || 0;
+        const score = likes + reposts * 2 + replies * 1.5;
+        return { a, score };
+      });
+      scored.sort((x, y) => y.score - x.score);
+      return scored.slice(0, 10).map(s => s.a);
+    }
+
+    return list;
   };
 
   const filteredArticles = getFilteredArticles();
@@ -79,8 +99,8 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
             onClick={() => setFilter(f.id)}
             className={`
               text-xs px-3 py-1 font-mono
-              ${filter === f.id 
-                ? 'bg-primary text-primary-foreground border-glow' 
+              ${filter === f.id
+                ? 'bg-primary text-primary-foreground border-glow'
                 : 'bg-card/50 text-primary/70 hover:text-primary border-primary/30'
               }
             `}
@@ -90,11 +110,35 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
         ))}
       </div>
 
+      {/* Platform tabs */}
+      <div className="flex gap-2 mb-3">
+        <Button
+          key="all-platforms"
+          variant={platformFilter === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setPlatformFilter('all')}
+          className="text-xs px-3 py-1 font-mono"
+        >
+          {t('allPlatforms')}
+        </Button>
+        {availablePlatforms.map((p) => (
+          <Button
+            key={p}
+            variant={platformFilter === p ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setPlatformFilter(p)}
+            className="text-xs px-3 py-1 font-mono"
+          >
+            {p.toUpperCase()}
+          </Button>
+        ))}
+      </div>
+
       <div className="flex-1 overflow-auto space-y-2">
         {filteredArticles.length > 0 ? (
           filteredArticles.map((article, index) => {
             const isOsint = article.osint !== undefined;
-            const credibilityScore = article.osint?.credibilityScore || 0;
+            const credibilityScore = article.osint?.credibilityScore ?? article.credibilityScore ?? (article.source?.platform === 'twitter' ? 60 : (article.webResult ? 65 : 85));
             
             return (
               <div
@@ -132,9 +176,13 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
                       <>
                         <span className="text-muted-foreground/50">•</span>
                         <Badge variant="secondary" className="text-xs py-0">
-                          {detectPlatform(article) === 'bluesky' 
-                            ? '🦋 BlueSky' 
-                            : '🐘 Mastodon'}
+                          {(() => {
+                          const p = detectPlatform(article);
+                          if (p === 'bluesky') return '🦋 BlueSky';
+                          if (p === 'twitter' || p === 'x') return '🔵 X/Twitter';
+                          if (p === 'mastodon') return '🐘 Mastodon';
+                          return p.toUpperCase();
+                        })()}
                         </Badge>
                         {article.osint.verified && (
                           <span className="text-green-500 text-xs">✓</span>

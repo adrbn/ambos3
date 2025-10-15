@@ -49,6 +49,9 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
     description: string;
     color: string;
     enabled_languages: Language[];
+    // runtime-only meta (stored in localStorage to avoid DB migrations)
+    sourceType: 'news' | 'osint';
+    osintSources: string[];
   }>({
     name: "",
     sector: "",
@@ -60,6 +63,8 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
     description: "",
     color: "#0ea5e9",
     enabled_languages: ['fr', 'en', 'it'],
+    sourceType: 'news',
+    osintSources: ['mastodon','bluesky','gopher','google','military-rss'],
   });
 
   // Update default language when site language changes
@@ -82,13 +87,33 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
 
       if (error) throw error;
       // Cast language to Language type and parse enabled_languages
-      const watches = (data || []).map((w: any) => ({
-        ...w,
-        language: w.language as Language,
-        enabled_languages: (Array.isArray((w as any).enabled_languages)
-          ? ((w as any).enabled_languages as Language[])
-          : (['fr', 'en', 'it'] as Language[]))
-      })) as SectorWatch[];
+      const watches = (data || []).map((w: any) => {
+        const base = {
+          ...w,
+          language: w.language as Language,
+          enabled_languages: (Array.isArray((w as any).enabled_languages)
+            ? ((w as any).enabled_languages as Language[])
+            : (['fr', 'en', 'it'] as Language[]))
+        } as any;
+
+        // Merge runtime meta from localStorage (source selection) if present
+        try {
+          const metaRaw = localStorage.getItem(`watch_meta_${w.id}`);
+          if (metaRaw) {
+            const meta = JSON.parse(metaRaw);
+            base.sourceType = meta.sourceType || 'news';
+            base.osintSources = meta.osintSources || ['mastodon','bluesky','gopher','google','military-rss'];
+          } else {
+            base.sourceType = 'news';
+            base.osintSources = ['mastodon','bluesky','gopher','google','military-rss'];
+          }
+        } catch (err) {
+          base.sourceType = 'news';
+          base.osintSources = ['mastodon','bluesky','gopher','google','military-rss'];
+        }
+
+        return base as SectorWatch & { sourceType?: 'news' | 'osint'; osintSources?: string[] };
+      }) as SectorWatch[];
       setWatches(watches);
     } catch (error: any) {
       console.error('Error fetching watches:', error);
@@ -106,19 +131,52 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
 
     try {
       if (editingWatch) {
+        // Only persist known DB fields to avoid schema issues
+        const payload: any = {
+          name: formData.name,
+          sector: formData.sector,
+          query: formData.query,
+          query_en: formData.query_en,
+          query_it: formData.query_it,
+          language: formData.language,
+          api: formData.api,
+          description: formData.description,
+          color: formData.color,
+          enabled_languages: formData.enabled_languages,
+        };
+
         const { error } = await supabase
           .from('sector_watches')
-          .update(formData)
+          .update(payload)
           .eq('id', editingWatch.id);
 
         if (error) throw error;
+        // Persist runtime meta locally (no DB migration needed)
+        localStorage.setItem(`watch_meta_${editingWatch.id}`, JSON.stringify({ sourceType: formData.sourceType, osintSources: formData.osintSources }));
         toast.success(t('watchUpdated'));
       } else {
-        const { error } = await supabase
+        const { data: inserted, error } = await supabase
           .from('sector_watches')
-          .insert([formData]);
+          .insert([{
+            name: formData.name,
+            sector: formData.sector,
+            query: formData.query,
+            query_en: formData.query_en,
+            query_it: formData.query_it,
+            language: formData.language,
+            api: formData.api,
+            description: formData.description,
+            color: formData.color,
+            enabled_languages: formData.enabled_languages,
+          }])
+          .select();
 
         if (error) throw error;
+        // Save runtime meta locally using the inserted id
+        const insertedId = inserted?.[0]?.id;
+        if (insertedId) {
+          localStorage.setItem(`watch_meta_${insertedId}`, JSON.stringify({ sourceType: formData.sourceType, osintSources: formData.osintSources }));
+        }
         toast.success(t('watchCreated'));
       }
 
@@ -160,7 +218,9 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
       api: watch.api,
       description: watch.description || "",
       color: watch.color,
-      enabled_languages: watch.enabled_languages || ['fr', 'en', 'it']
+      enabled_languages: watch.enabled_languages || ['fr', 'en', 'it'],
+      sourceType: (watch as any).sourceType || 'news',
+      osintSources: (watch as any).osintSources || ['mastodon','bluesky','gopher','google','military-rss']
     });
     setIsDialogOpen(true);
   };
@@ -178,7 +238,9 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
       api: "newsapi",
       description: "",
       color: "#0ea5e9",
-      enabled_languages: ['fr', 'en', 'it']
+      enabled_languages: ['fr', 'en', 'it'],
+      sourceType: 'news',
+      osintSources: ['mastodon','bluesky','gopher','google','military-rss']
     });
   };
 
@@ -317,7 +379,38 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
                   </Select>
                 </div>
               </div>
-              
+
+              {/* Source selection: news or OSINT + OSINT sources (stored locally) */}
+              <div className="mt-3">
+                <label className="text-xs text-muted-foreground mb-1 block">{t('sourceSelection')}</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setFormData(prev => ({ ...prev, sourceType: 'news' }))}
+                    className={`px-3 py-2 rounded-md text-xs font-mono transition-all ${formData.sourceType === 'news' ? 'bg-primary text-primary-foreground' : 'bg-card/50 text-muted-foreground'}`}>
+                    📰 News
+                  </button>
+                  <button
+                    onClick={() => setFormData(prev => ({ ...prev, sourceType: 'osint' }))}
+                    className={`px-3 py-2 rounded-md text-xs font-mono transition-all ${formData.sourceType === 'osint' ? 'bg-primary text-primary-foreground' : 'bg-card/50 text-muted-foreground'}`}>
+                    🔍 OSINT
+                  </button>
+                </div>
+
+                {formData.sourceType === 'osint' && (
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {['mastodon','bluesky','gopher','google','military-rss'].map((source) => (
+                      <label key={source} className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer">
+                        <input type="checkbox" checked={formData.osintSources.includes(source)} onChange={(e) => {
+                          if (e.target.checked) setFormData(prev => ({ ...prev, osintSources: [...prev.osintSources, source] }));
+                          else setFormData(prev => ({ ...prev, osintSources: prev.osintSources.filter(s => s !== source) }));
+                        }} className="w-3 h-3" />
+                        <span className="text-xs font-mono">{source}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground mb-1 block">Langues actives</label>
                 <div className="flex gap-4">
@@ -410,7 +503,23 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onLaunchWatch(watch)}
+                    onClick={() => {
+                      // Merge meta from localStorage if available
+                      try {
+                        const metaRaw = localStorage.getItem(`watch_meta_${watch.id}`);
+                        if (metaRaw) {
+                          (watch as any).sourceType = JSON.parse(metaRaw).sourceType || (watch as any).sourceType || 'news';
+                          (watch as any).osintSources = JSON.parse(metaRaw).osintSources || (watch as any).osintSources || ['mastodon','bluesky','gopher','google','military-rss'];
+                        } else {
+                          (watch as any).sourceType = (watch as any).sourceType || 'news';
+                          (watch as any).osintSources = (watch as any).osintSources || ['mastodon','bluesky','gopher','google','military-rss'];
+                        }
+                      } catch (err) {
+                        (watch as any).sourceType = (watch as any).sourceType || 'news';
+                        (watch as any).osintSources = (watch as any).osintSources || ['mastodon','bluesky','gopher','google','military-rss'];
+                      }
+                      onLaunchWatch(watch as SectorWatch & { sourceType?: 'news' | 'osint'; osintSources?: string[] });
+                    }}
                     className="h-7 px-2 text-xs hud-button"
                   >
                     <Play className="w-3 h-3 mr-1" />

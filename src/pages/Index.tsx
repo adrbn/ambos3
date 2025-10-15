@@ -66,10 +66,12 @@ const Index = () => {
   const [enableQueryEnrichment, setEnableQueryEnrichment] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("search");
   const [currentWatch, setCurrentWatch] = useState<any>(null);
+  const [searchMode, setSearchMode] = useState<'general' | 'press' | 'osint'>('general');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
   const [currentLayoutName, setCurrentLayoutName] = useState<string | null>(null);
   const { t } = useTranslation(language);
   const { layout, updateLayout, resetLayout } = useLayoutConfig();
@@ -166,19 +168,48 @@ const Index = () => {
     const targetLanguage = language; // Use current language selection
     setSelectedApi(watch.api);
     setCurrentWatch(watch); // Store the watch for language changes
-    
+
+    // Apply source selection meta if present (from localStorage or watch)
+    const sourceTypeFromWatch = (watch.sourceType as 'news' | 'osint') || (() => {
+      try {
+        const meta = localStorage.getItem(`watch_meta_${watch.id}`);
+        if (meta) return JSON.parse(meta).sourceType as 'news' | 'osint';
+      } catch (e) {}
+      return 'news';
+    })();
+
+    const osintSourcesFromWatch: string[] = (watch.osintSources && Array.isArray(watch.osintSources))
+      ? watch.osintSources
+      : (() => {
+        try {
+          const meta = localStorage.getItem(`watch_meta_${watch.id}`);
+          if (meta) return JSON.parse(meta).osintSources as string[];
+        } catch (e) {}
+        return osintSources;
+      })();
+
+    setSourceType(sourceTypeFromWatch);
+    if (sourceTypeFromWatch === 'osint') {
+      setOsintSources(osintSourcesFromWatch);
+    }
+
     // Select the appropriate query based on the current language
-    let queryToUse = watch.query; // Default to FR
+    let queryToUse = watch.query; // Default FR
     if (targetLanguage === 'en' && watch.query_en) {
       queryToUse = watch.query_en;
     } else if (targetLanguage === 'it' && watch.query_it) {
       queryToUse = watch.query_it;
     }
-    
+
     setCurrentQuery(queryToUse);
+
+    // Ensure we switch to the search tab and select mode according to the watch
     setActiveTab("search"); // Switch to search tab
+    // map watch sourceType to searchMode
+    const mode = sourceTypeFromWatch === 'osint' ? 'osint' : (watch.api === 'mixed' || (watch.sourceType && (watch.sourceType === 'mixed')) ? 'general' : 'press');
+    setSearchMode(mode as 'general' | 'press' | 'osint');
     toast.info(`${t('launchingWatch')}: ${watch.name} (${targetLanguage.toUpperCase()})`);
-    
+
     // Trigger search with the watch parameters
     setTimeout(() => {
       const searchButton = document.querySelector('[data-search-button]') as HTMLButtonElement;
@@ -339,7 +370,7 @@ const Index = () => {
           <TabsList className="grid w-full grid-cols-2 mb-3">
             <TabsTrigger value="search" className="flex items-center gap-2">
               <Search className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('classicSearch')}</span>
+              <span className="hidden sm:inline">{t('search')}</span>
               <span className="sm:hidden">{t('search')}</span>
             </TabsTrigger>
             <TabsTrigger value="watches" className="flex items-center gap-2">
@@ -348,20 +379,24 @@ const Index = () => {
               <span className="sm:hidden">{t('watches')}</span>
             </TabsTrigger>
           </TabsList>
+
           <TabsContent value="search" className="mt-0">
-            <SearchBar 
-              onSearch={handleSearch} 
-              language={language} 
-              currentQuery={currentQuery} 
+            <SearchBar
+              onSearch={handleSearch}
+              language={language}
+              currentQuery={currentQuery}
               searchTrigger={searchTrigger}
-              selectedApi={selectedApi}
-              sourceType={sourceType}
+              selectedApi={searchMode === 'general' ? 'mixed' : selectedApi}
+              sourceType={searchMode === 'osint' ? 'osint' : 'news'}
               onSourceTypeChange={setSourceType}
               osintSources={osintSources}
               onOsintSourcesChange={setOsintSources}
               enableQueryEnrichment={enableQueryEnrichment}
+              topLevelMode={searchMode}
+              onTopLevelModeChange={(m) => setSearchMode(m)}
             />
           </TabsContent>
+
           <TabsContent value="watches" className="mt-0">
             <div className="h-[400px] sm:h-[500px]">
               <SectorWatchesModule onLaunchWatch={handleLaunchWatch} language={language} />

@@ -19,12 +19,19 @@ interface SearchBarProps {
   osintSources: string[];
   onOsintSourcesChange: (sources: string[]) => void;
   enableQueryEnrichment: boolean;
+  // New: top-level enforced mode from parent (mutually exclusive)
+  topLevelMode?: 'general' | 'press' | 'osint';
+  // Parent can receive mode changes
+  onTopLevelModeChange?: (mode: 'general' | 'press' | 'osint') => void;
 }
 
-const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi, sourceType, onSourceTypeChange, osintSources, onOsintSourcesChange, enableQueryEnrichment }: SearchBarProps) => {
+const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi, sourceType, onSourceTypeChange, osintSources, onOsintSourcesChange, enableQueryEnrichment, topLevelMode, onTopLevelModeChange }: SearchBarProps) => {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation(language);
+
+  // Current effective mode for UI: 'mixed' (general), 'news' (press) or 'osint'
+  const currentMode = topLevelMode ? (topLevelMode === 'general' ? 'mixed' : (topLevelMode === 'press' ? 'news' : 'osint')) : sourceType;
 
   // Sync query with currentQuery prop
   useEffect(() => {
@@ -50,13 +57,16 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
     setIsLoading(true);
 
     try {
-      // 1. Enrichir la requête via ChatGPT (adapté au type de source) - SEULEMENT SI ACTIVÉ ET EN MODE NEWS
+      // Effective mode based on topLevelMode
+      const effectiveSelectedApi = topLevelMode === 'general' ? 'mixed' : (topLevelMode === 'press' && selectedApi === 'mixed' ? 'newsapi' : selectedApi);
+      const effectiveSourceType = topLevelMode === 'osint' ? 'osint' : (topLevelMode === 'press' ? 'news' : sourceType);
+
+      // 1. Enrichissement
       let finalQuery = queryToUse;
-      
-      if (enableQueryEnrichment && sourceType === 'news') {
+      if (enableQueryEnrichment && (effectiveSourceType === 'news' || effectiveSelectedApi === 'mixed')) {
         toast.info("Enrichissement de la requête...", { duration: 2000 });
         const { data: enrichData, error: enrichError } = await supabase.functions.invoke('enrich-query', {
-          body: { query: queryToUse, language, sourceType, osintPlatforms: osintSources }
+          body: { query: queryToUse, language, sourceType: (effectiveSelectedApi === 'mixed' ? 'mixed' : effectiveSourceType), osintPlatforms: osintSources }
         });
 
         if (enrichError || !enrichData?.enrichedQuery) {
@@ -68,17 +78,60 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
         }
       }
 
-      // 2. Fetch from selected sources
+      // 2. Fetch selon mode effectif
       let allArticles: any[] = [];
-      
-      if (sourceType === 'osint' && osintSources.length === 0) {
-        toast.error("Veuillez sélectionner au moins une source OSINT.");
-        setIsLoading(false);
-        return;
-      }
-      
-      if (sourceType === 'osint') {
-        // Fetch from multiple OSINT sources in parallel
+
+      if (effectiveSelectedApi === 'mixed') {
+        // news + osint in parallel
+        const newsPromise = supabase.functions.invoke('fetch-news', {
+          body: { query: finalQuery, language, api: 'newsapi' }
+        }).then(res => res.data?.articles || []).catch((err) => {
+          console.error('Error fetching news for mixed:', err);
+          return [];
+        });
+
+        const osintPromise = (async () => {
+          if (osintSources.length === 0) return [];
+          const fetchPromises = osintSources.map(async (source) => {
+            const functionMap: Record<string, string> = {
+              'mastodon': 'fetch-bluesky',
+              'bluesky': 'fetch-bluesky-real',
+              'gopher': 'fetch-gopher',
+              'google': 'fetch-google',
+              'military-rss': 'fetch-military-rss',
+            };
+            const functionName = functionMap[source];
+            if (!functionName) return [];
+            try {
+              const { data, error } = await supabase.functions.invoke(functionName, {
+                body: { query: finalQuery, language, limit: 50 }
+              });
+              if (error) return [];
+              if (data?.error) return [];
+              return data.articles || [];
+            } catch (err) {
+              console.error(`Exception fetching from ${source}:`, err);
+              return [];
+            }
+          });
+          const results = await Promise.all(fetchPromises);
+          return results.flat();
+        })();
+
+        const [newsArticles, osintArticles] = await Promise.all([newsPromise, osintPromise]);
+        allArticles = [...newsArticles, ...osintArticles];
+
+        if (allArticles.length === 0) {
+          toast.error("Aucun article trouvé dans les sources mixtes.");
+          setIsLoading(false);
+          return;
+        }
+      } else if (effectiveSourceType === 'osint') {
+        if (osintSources.length === 0) {
+          toast.error("Veuillez sélectionner au moins une source OSINT.");
+          setIsLoading(false);
+          return;
+        }
         const fetchPromises = osintSources.map(async (source) => {
           const functionMap: Record<string, string> = {
             'mastodon': 'fetch-bluesky',
@@ -87,76 +140,144 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
             'google': 'fetch-google',
             'military-rss': 'fetch-military-rss',
           };
-          
           const functionName = functionMap[source];
           if (!functionName) return { articles: [] };
-          
           try {
             const { data, error } = await supabase.functions.invoke(functionName, {
               body: { query: finalQuery, language, limit: 50 }
             });
-            
-            if (error) {
-              console.error(`Error fetching from ${source}:`, error);
-              toast.error(`Erreur ${source}: ${error.message}`);
-              return { articles: [] };
-            }
-            
-            // Check for error in response data
-            if (data?.error) {
-              console.error(`${source} returned error:`, data);
-              toast.warning(`${source}: ${data.error}`);
-              return { articles: [] };
-            }
-            
+            if (error) return { articles: [] };
+            if (data?.error) return { articles: [] };
             return data || { articles: [] };
           } catch (err) {
             console.error(`Exception fetching from ${source}:`, err);
             return { articles: [] };
           }
         });
-        
         const results = await Promise.all(fetchPromises);
-        allArticles = results.flatMap(result => result.articles || []);
-        
+        allArticles = results.flatMap(r => r.articles || []);
         if (allArticles.length === 0) {
           toast.error("Aucun article trouvé sur les sources sélectionnées.");
           setIsLoading(false);
           return;
         }
       } else {
-        // Fetch from news API
+        // news only
         const { data: newsData, error: newsError } = await supabase.functions.invoke('fetch-news', {
           body: { query: finalQuery, language, api: selectedApi }
         });
-        
-        if (newsError) {
-          throw newsError;
-        }
-        
+        if (newsError) throw newsError;
         if (newsData?.error) {
-          toast.error(newsData.error, {
-            duration: newsData.isRateLimitError ? 10000 : 6000
-          });
+          toast.error(newsData.error, { duration: newsData.isRateLimitError ? 10000 : 6000 });
           setIsLoading(false);
           return;
         }
-        
         allArticles = newsData?.articles || [];
       }
-      
-      // 3. Gestion de l'absence d'articles
+
       if (allArticles.length === 0) {
         toast.error(`Aucun post trouvé. Essayez d'autres mots-clés ou sources.`, { duration: 6000 });
         setIsLoading(false);
         return;
       }
 
-      toast.success(`Trouvé ${allArticles.length} post${allArticles.length > 1 ? 's' : ''} sur ${sourceType === 'osint' ? osintSources.join(', ') : 'news APIs'}`);
+      // -----------------------
+      // Filter irrelevant / noisy sources
+      // -----------------------
+      const filterIrrelevant = (article: any) => {
+        const title = (article.title || '').toLowerCase();
+        const desc = (article.description || '')?.toLowerCase() || '';
+        const content = (article.content || '')?.toLowerCase() || '';
+        const sourceName = (article.source?.name || '')?.toLowerCase() || '';
 
-      // 4. Analyse des articles avec l'IA
+        const combined = `${title} ${desc} ${content} ${sourceName}`;
+        const tokens = queryToUse.toLowerCase().split(/\s+/).map(t => t.replace(/[^a-z0-9àâäéèêëïîôöùûüç-]/g,'')).filter(Boolean);
+        // Require at least one token match in combined text
+        const hasToken = tokens.length === 0 ? true : tokens.some(tok => combined.includes(tok));
+        if (!hasToken) return false;
+
+        // Heuristic remove: if source looks like a thin domain (e.g., 'example.com') and article very short
+        const isDomain = /\w+\.[a-z]{2,}/.test(sourceName);
+        const contentLen = (desc + content).length + (title.length || 0);
+        if (isDomain && contentLen < 80 && (title.split(/\s+/).length <= 3)) return false;
+
+        // Remove obvious CDN/static or unrelated domains (common noise)
+        const noisyDomains = ['cdn', 'static', 'amazonaws', 'doubleclick', 'googlesyndication', 'facebook', 'instagram', 'youtube', 'tiktok'];
+        if (noisyDomains.some(d => sourceName.includes(d))) return false;
+
+        return true;
+      };
+
+      const preFilterCount = allArticles.length;
+      allArticles = allArticles.filter(filterIrrelevant);
+      const filteredOut = preFilterCount - allArticles.length;
+      if (filteredOut > 0) {
+        console.log(`Filtered out ${filteredOut} noisy/irrelevant articles`);
+      }
+
+      if (allArticles.length === 0) {
+        toast.error(`Aucun post pertinent trouvé après filtrage. Essayez d'autres mots-clés ou sources.`, { duration: 6000 });
+        setIsLoading(false);
+        return;
+      }
+
+      toast.success(`Trouvé ${allArticles.length} post${allArticles.length > 1 ? 's' : ''}`);
+
+      // Analysis: send effective type
+      const analysisSourceType = effectiveSelectedApi === 'mixed' ? 'mixed' : effectiveSourceType;
+
+      // Make sure articles from Mastodon/BlueSky are present when requested; if missing, log and attempt retry per-source
+      const requiredOsint = (effectiveSourceType === 'osint' || effectiveSelectedApi === 'mixed') ? osintSources : [];
+      const presentPlatforms = new Set(allArticles.map(a => (a.osint?.platform || a.platform || a.source?.platform || '').toLowerCase()));
+      const missing = requiredOsint.filter(s => !presentPlatforms.has(s));
+      if (missing.length > 0) {
+        console.warn('OSINT platforms missing results:', missing);
+        // Attempt one-shot retry for missing OSINT platforms (best-effort)
+        await Promise.all(missing.map(async (source) => {
+          try {
+            const functionMap: Record<string, string> = {
+              'mastodon': 'fetch-bluesky',
+              'bluesky': 'fetch-bluesky-real',
+              'gopher': 'fetch-gopher',
+              'google': 'fetch-google',
+              'military-rss': 'fetch-military-rss',
+            };
+            const fn = functionMap[source];
+            if (!fn) return;
+            const { data } = await supabase.functions.invoke(fn, { body: { query: finalQuery, language, limit: 50 } });
+            if (data?.articles && Array.isArray(data.articles)) {
+              const newArticles = data.articles.filter(filterIrrelevant);
+              if (newArticles.length > 0) {
+                allArticles.push(...newArticles);
+                console.log(`Retry added ${newArticles.length} articles from ${source}`);
+              }
+            }
+          } catch (err) {
+            console.error('Retry fetch error for', source, err);
+          }
+        }));
+      }
+
+      // final check
+      if (allArticles.length === 0) {
+        toast.error(`Aucun post pertinent trouvé après filtrage/retry.`, { duration: 6000 });
+        setIsLoading(false);
+        return;
+      }
+
+      // Deduplicate by url
+      const seen = new Set<string>();
+      allArticles = allArticles.filter(a => {
+        const url = (a.url || '').split('?')[0];
+        if (!url) return true;
+        if (seen.has(url)) return false;
+        seen.add(url);
+        return true;
+      });
+
+      // proceed to analysis
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-news', {
-        body: { articles: allArticles, query: queryToUse, language, sourceType }
+        body: { articles: allArticles, query: queryToUse, language, sourceType: analysisSourceType }
       });
 
       if (analysisError) {
@@ -168,7 +289,6 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
         onSearch(queryToUse, allArticles, analysisData);
       }
     } catch (error: any) {
-      // Catch final pour toutes les erreurs lancées
       console.error('Échec de la recherche (Catch final):', error);
       toast.error(error.message || "La recherche a échoué.");
     } finally {
@@ -178,88 +298,98 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
 
   return (
     <div className="w-full space-y-3">
-      {/* Source Type Toggle */}
-      <div className="flex gap-2 p-1 bg-card/30 rounded-lg border border-primary/20">
-        <button
-          onClick={() => onSourceTypeChange('news')}
-          className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all ${
-            sourceType === 'news'
-              ? 'bg-primary text-primary-foreground shadow-lg'
-              : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
-          }`}
+      {/* Mode selector: Global on its own line, Press and OSINT below (full-width visuals) */}
+  <div className="flex flex-col gap-2">
+    <Button
+      variant={currentMode === 'mixed' ? 'default' : 'outline'}
+      size="sm"
+      onClick={() => onTopLevelModeChange ? onTopLevelModeChange('general') : (onSourceTypeChange('news'))}
+      className="text-sm h-10 w-full justify-center px-4 flex items-center"
+    >
+      <span className="inline-flex items-center gap-2">
+        <span>🌐</span>
+        <span className="font-semibold">{t('generalSearch') || 'Global'}</span>
+        <span className="text-[11px] text-muted-foreground ml-2">({t('newsApis') || 'Presse'} + {t('socialOsint') || 'OSINT'})</span>
+      </span>
+    </Button>
+
+    <div className="flex gap-2">
+      <Button
+        variant={currentMode === 'news' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => onTopLevelModeChange ? onTopLevelModeChange('press') : onSourceTypeChange('news')}
+        className="text-sm h-10 flex-1 justify-center px-4 flex items-center"
+      >
+        <span className="inline-flex items-center gap-2">📰 <span className="font-semibold">{t('newsApis')}</span></span>
+      </Button>
+
+      <div className="flex items-center gap-2 flex-1">
+        <Button
+          variant={currentMode === 'osint' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => onTopLevelModeChange ? onTopLevelModeChange('osint') : onSourceTypeChange('osint')}
+          className="text-sm h-10 flex-1 justify-center px-4 flex items-center"
         >
-          📰 {t('newsApis')}
-        </button>
-        
-        <div className="flex flex-1 gap-1">
-          <button
-            onClick={() => onSourceTypeChange('osint')}
-            className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all ${
-              sourceType === 'osint'
-                ? 'bg-primary text-primary-foreground shadow-lg'
-                : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
-            }`}
-          >
-            🔍 OSINT
-          </button>
-          
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                className={`px-2 py-2 rounded-md text-xs transition-all border border-primary/30 ${
-                  sourceType === 'osint'
-                    ? 'bg-primary/20 text-primary hover:bg-primary/30'
-                    : 'bg-card/50 text-muted-foreground hover:text-foreground hover:bg-card/70'
-                }`}
-              >
-                <Settings2 className="w-3 h-3" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-72 bg-card border-primary/30 p-3" align="end">
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-mono mb-2">Sources OSINT actives:</p>
-                <div className="flex flex-col gap-2">
-                  {['mastodon', 'bluesky', 'gopher', 'google', 'military-rss'].map((source) => {
-                    const sourceLabels: Record<string, string> = {
-                      'mastodon': 'Mastodon',
-                      'bluesky': 'BlueSky',
-                      'gopher': 'X/Twitter',
-                      'google': 'Google',
-                      'military-rss': '🇮🇹 Military RSS (IT)'
-                    };
-                    
-                    return (
-                      <label
-                        key={source}
-                        className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={osintSources.includes(source)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              onOsintSourcesChange([...osintSources, source]);
-                            } else {
-                              onOsintSourcesChange(osintSources.filter(s => s !== source));
-                            }
-                          }}
-                          className="w-3 h-3"
-                        />
-                        <span className="text-xs font-mono flex-1">
-                          {sourceLabels[source]}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-                <p className="text-[10px] text-muted-foreground/70 mt-2">
-                  ⚠️ Threads nécessite OAuth et validation d'app (non disponible)
-                </p>
+          <span className="inline-flex items-center gap-2">🔍 <span className="font-semibold">{t('socialOsint') || 'OSINT'}</span></span>
+        </Button>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              className={`px-2 py-2 rounded-md text-xs transition-all border border-primary/30 ${
+                currentMode === 'osint'
+                  ? 'bg-primary/20 text-primary hover:bg-primary/30'
+                  : 'bg-card/50 text-muted-foreground hover:text-foreground hover:bg-card/70'
+              } ${topLevelMode === 'press' ? 'opacity-60 pointer-events-none' : ''}`}
+              aria-label="OSINT settings"
+            >
+              <Settings2 className="w-4 h-4" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-72 bg-card border-primary/30 p-3" align="end">
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground font-mono mb-2">Sources OSINT actives:</p>
+              <div className="flex flex-col gap-2">
+                {['mastodon', 'bluesky', 'gopher', 'google', 'military-rss'].map((source) => {
+                  const sourceLabels: Record<string, string> = {
+                    'mastodon': 'Mastodon',
+                    'bluesky': 'BlueSky',
+                    'gopher': 'X/Twitter',
+                    'google': 'Google',
+                    'military-rss': '🇮🇹 Military RSS (IT)'
+                  };
+
+                  return (
+                    <label
+                      key={source}
+                      className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={osintSources.includes(source)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            onOsintSourcesChange([...osintSources, source]);
+                          } else {
+                            onOsintSourcesChange(osintSources.filter(s => s !== source));
+                          }
+                        }}
+                        className="w-3 h-3"
+                      />
+                      <span className="text-xs font-mono flex-1">
+                        {sourceLabels[source]}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
-            </PopoverContent>
-          </Popover>
-        </div>
+              <p className="text-[10px] text-muted-foreground/70 mt-2">⚠️ Threads nécessite OAuth et validation d'app (non disponible)</p>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
+    </div>
+  </div>
 
       <div className="relative">
         <Input

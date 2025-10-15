@@ -14,14 +14,15 @@ export const translations = {
     sectorWatches: "Veilles sectorielles",
     search: "Recherche",
     watches: "Veilles",
-    
+    generalSearch: "Global",
+
     // Search
     searchPlaceholder: "Entrez votre requête (ex: 'guerre Ukraine', 'changement climatique')...",
     searchButton: "RECHERCHER",
     searching: "Recherche en cours...",
     sourceType: "Type de source",
     newsApis: "Presse",
-    socialOsint: "OSINT réseaux sociaux",
+    socialOsint: "OSINT",
     credibilityScore: "Fiabilité",
     verified: "Vérifié",
     engagement: "Engagement",
@@ -118,14 +119,15 @@ export const translations = {
     sectorWatches: "Sector Watches",
     search: "Search",
     watches: "Watches",
-    
+    generalSearch: "Global",
+
     // Search
     searchPlaceholder: "Enter your query (e.g., 'Ukraine war', 'climate change')...",
     searchButton: "SEARCH",
     searching: "Searching...",
     sourceType: "Source Type",
     newsApis: "Press",
-    socialOsint: "Social Networks OSINT",
+    socialOsint: "OSINT",
     credibilityScore: "Credibility",
     verified: "Verified",
     engagement: "Engagement",
@@ -222,14 +224,15 @@ export const translations = {
     sectorWatches: "Monitoraggi Settoriali",
     search: "Ricerca",
     watches: "Monitoraggi",
-    
+    generalSearch: "Global",
+
     // Search
     searchPlaceholder: "Inserisci la tua query (es: 'guerra Ucraina', 'cambiamento climatico')...",
     searchButton: "CERCA",
     searching: "Ricerca in corso...",
     sourceType: "Tipo di fonte",
     newsApis: "Stampa",
-    socialOsint: "OSINT social network",
+    socialOsint: "OSINT",
     credibilityScore: "Affidabilità",
     verified: "Verificato",
     engagement: "Coinvolgimento",
