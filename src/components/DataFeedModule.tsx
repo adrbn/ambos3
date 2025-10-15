@@ -91,7 +91,7 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
         {filteredArticles.length > 0 ? (
           filteredArticles.map((article, index) => {
             const isOsint = article.osint !== undefined;
-            const credibilityScore = article.osint?.credibilityScore || 0;
+            const credibilityScore = article.osint?.credibilityScore ?? article.credibilityScore ?? (article.source?.platform === 'twitter' ? 60 : (article.webResult ? 65 : 85));
             
             return (
               <div
@@ -161,7 +161,7 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
                   <div className="mt-2 pt-2 border-t border-primary/10 flex gap-3 text-xs text-muted-foreground">
                     <span>❤️ {article.osint.engagement.likes}</span>
                     <span>🔄 {article.osint.engagement.reposts}</span>
-                    <span>💬 {article.osint.engagement.replies}</span>
+                    <span>���� {article.osint.engagement.replies}</span>
                   </div>
                 )}
               </div>
