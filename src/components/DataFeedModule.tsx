@@ -129,9 +129,13 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
                       <>
                         <span className="text-muted-foreground/50">•</span>
                         <Badge variant="secondary" className="text-xs py-0">
-                          {detectPlatform(article) === 'bluesky' 
-                            ? '🦋 BlueSky' 
-                            : '🐘 Mastodon'}
+                          {(() => {
+                          const p = detectPlatform(article);
+                          if (p === 'bluesky') return '🦋 BlueSky';
+                          if (p === 'twitter' || p === 'x') return '🔵 X/Twitter';
+                          if (p === 'mastodon') return '🐘 Mastodon';
+                          return p.toUpperCase();
+                        })()}
                         </Badge>
                         {article.osint.verified && (
                           <span className="text-green-500 text-xs">✓</span>
@@ -161,7 +165,7 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
                   <div className="mt-2 pt-2 border-t border-primary/10 flex gap-3 text-xs text-muted-foreground">
                     <span>❤️ {article.osint.engagement.likes}</span>
                     <span>🔄 {article.osint.engagement.reposts}</span>
-                    <span>���� {article.osint.engagement.replies}</span>
+                    <span>💬 {article.osint.engagement.replies}</span>
                   </div>
                 )}
               </div>
