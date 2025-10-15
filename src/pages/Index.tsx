@@ -203,8 +203,11 @@ const Index = () => {
 
     setCurrentQuery(queryToUse);
 
-    // Ensure we switch to the search tab (and specifically OSINT mode if needed)
+    // Ensure we switch to the search tab and select mode according to the watch
     setActiveTab("search"); // Switch to search tab
+    // map watch sourceType to searchMode
+    const mode = sourceTypeFromWatch === 'osint' ? 'osint' : (watch.sourceType === 'mixed' ? 'general' : 'press');
+    setSearchMode(mode as 'general' | 'press' | 'osint');
     toast.info(`${t('launchingWatch')}: ${watch.name} (${targetLanguage.toUpperCase()})`);
 
     // Trigger search with the watch parameters
