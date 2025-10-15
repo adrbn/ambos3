@@ -20,20 +20,17 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
     return "text-red-500 border-red-500/50 bg-red-500/10";
   };
 
-  const detectPlatform = (article: any): 'mastodon' | 'bluesky' | string => {
-    // Check URL first
-    if (article.url?.includes('bsky.app') || article.url?.includes('bsky.brid.gy')) {
-      return 'bluesky';
-    }
-    // Check source name
-    if (article.source?.name?.includes('bsky.social') || article.source?.name?.includes('bsky.brid.gy')) {
-      return 'bluesky';
-    }
-    // Check osint.platform if available
-    if (article.osint?.platform) {
-      return article.osint.platform;
-    }
-    // Default to mastodon for OSINT posts
+  const detectPlatform = (article: any): string => {
+    // URL-based detection
+    const url = (article.url || '').toLowerCase();
+    const srcName = (article.source?.name || '').toLowerCase();
+
+    if (url.includes('bsky') || srcName.includes('bsky')) return 'bluesky';
+    if (url.includes('twitter.com') || url.includes('x.com') || srcName.includes('x/twitter') || srcName.includes('twitter') || srcName.includes('x/')) return 'twitter';
+    if (article.osint?.platform) return article.osint.platform;
+    // Web results
+    if (article.webResult) return 'web';
+    // Default
     return article.osint ? 'mastodon' : 'news';
   };
 
