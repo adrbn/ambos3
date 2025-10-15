@@ -383,21 +383,32 @@ const Index = () => {
           <TabsContent value="search" className="mt-0">
             {/* Sub-mode selector inside Search: General / Press / OSINT */}
             <div className="flex gap-2 mb-3">
-              <button
+              <Button
+                variant={searchMode === 'general' ? 'default' : 'outline'}
+                size="sm"
                 onClick={() => setSearchMode('general')}
-                className={`px-3 py-1 text-xs rounded ${searchMode === 'general' ? 'bg-primary text-primary-foreground' : 'bg-card/50'}`}>
-                {t('generalSearch') || 'Général'}
-              </button>
-              <button
+                className="text-xs h-8"
+              >
+                🌐 {t('generalSearch') || 'Général'}
+              </Button>
+
+              <Button
+                variant={searchMode === 'press' ? 'default' : 'outline'}
+                size="sm"
                 onClick={() => setSearchMode('press')}
-                className={`px-3 py-1 text-xs rounded ${searchMode === 'press' ? 'bg-primary text-primary-foreground' : 'bg-card/50'}`}>
-                {t('press') || 'Presse'}
-              </button>
-              <button
+                className="text-xs h-8"
+              >
+                📰 {t('press') || 'Presse'}
+              </Button>
+
+              <Button
+                variant={searchMode === 'osint' ? 'default' : 'outline'}
+                size="sm"
                 onClick={() => setSearchMode('osint')}
-                className={`px-3 py-1 text-xs rounded ${searchMode === 'osint' ? 'bg-primary text-primary-foreground' : 'bg-card/50'}`}>
-                {t('osint') || 'OSINT'}
-              </button>
+                className="text-xs h-8"
+              >
+                🔍 {t('osint') || 'OSINT'}
+              </Button>
             </div>
 
             <SearchBar
