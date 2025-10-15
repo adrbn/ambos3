@@ -56,7 +56,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
 
     try {
       // Effective mode based on topLevelMode
-      const effectiveSelectedApi = topLevelMode === 'general' ? 'mixed' : selectedApi;
+      const effectiveSelectedApi = topLevelMode === 'general' ? 'mixed' : (topLevelMode === 'press' && selectedApi === 'mixed' ? 'newsapi' : selectedApi);
       const effectiveSourceType = topLevelMode === 'osint' ? 'osint' : (topLevelMode === 'press' ? 'news' : sourceType);
 
       // 1. Enrichissement
