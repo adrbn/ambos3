@@ -52,14 +52,16 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
     setIsLoading(true);
 
     try {
-      // 1. Enrichir la requête via ChatGPT (adapté au type de source) - SEULEMENT SI ACTIVÉ ET EN MODE NEWS
+      // Effective mode based on topLevelMode
+      const effectiveSelectedApi = topLevelMode === 'general' ? 'mixed' : selectedApi;
+      const effectiveSourceType = topLevelMode === 'osint' ? 'osint' : (topLevelMode === 'press' ? 'news' : sourceType);
+
+      // 1. Enrichissement
       let finalQuery = queryToUse;
-      
-      // Enrichissement: appliquer pour recherches presse ou pour recherche mixte (mode général)
-      if (enableQueryEnrichment && (sourceType === 'news' || selectedApi === 'mixed')) {
+      if (enableQueryEnrichment && (effectiveSourceType === 'news' || effectiveSelectedApi === 'mixed')) {
         toast.info("Enrichissement de la requête...", { duration: 2000 });
         const { data: enrichData, error: enrichError } = await supabase.functions.invoke('enrich-query', {
-          body: { query: queryToUse, language, sourceType: (selectedApi === 'mixed' ? 'mixed' : sourceType), osintPlatforms: osintSources }
+          body: { query: queryToUse, language, sourceType: (effectiveSelectedApi === 'mixed' ? 'mixed' : effectiveSourceType), osintPlatforms: osintSources }
         });
 
         if (enrichError || !enrichData?.enrichedQuery) {
@@ -71,11 +73,11 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
         }
       }
 
-      // 2. Fetch from selected sources
+      // 2. Fetch selon mode effectif
       let allArticles: any[] = [];
 
-      if (selectedApi === 'mixed') {
-        // Run news fetch and OSINT fetches in parallel (news + selected OSINT platforms)
+      if (effectiveSelectedApi === 'mixed') {
+        // news + osint in parallel
         const newsPromise = supabase.functions.invoke('fetch-news', {
           body: { query: finalQuery, language, api: 'newsapi' }
         }).then(res => res.data?.articles || []).catch((err) => {
@@ -99,14 +101,8 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
               const { data, error } = await supabase.functions.invoke(functionName, {
                 body: { query: finalQuery, language, limit: 50 }
               });
-              if (error) {
-                console.error(`Error fetching from ${source}:`, error);
-                return [];
-              }
-              if (data?.error) {
-                console.warn(`${source} returned error:`, data);
-                return [];
-              }
+              if (error) return [];
+              if (data?.error) return [];
               return data.articles || [];
             } catch (err) {
               console.error(`Exception fetching from ${source}:`, err);
@@ -125,14 +121,12 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
           setIsLoading(false);
           return;
         }
-      } else if (sourceType === 'osint') {
-        // Fetch from multiple OSINT sources in parallel
+      } else if (effectiveSourceType === 'osint') {
         if (osintSources.length === 0) {
           toast.error("Veuillez sélectionner au moins une source OSINT.");
           setIsLoading(false);
           return;
         }
-
         const fetchPromises = osintSources.map(async (source) => {
           const functionMap: Record<string, string> = {
             'mastodon': 'fetch-bluesky',
@@ -141,75 +135,51 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
             'google': 'fetch-google',
             'military-rss': 'fetch-military-rss',
           };
-
           const functionName = functionMap[source];
           if (!functionName) return { articles: [] };
-
           try {
             const { data, error } = await supabase.functions.invoke(functionName, {
               body: { query: finalQuery, language, limit: 50 }
             });
-
-            if (error) {
-              console.error(`Error fetching from ${source}:`, error);
-              toast.error(`Erreur ${source}: ${error.message}`);
-              return { articles: [] };
-            }
-
-            // Check for error in response data
-            if (data?.error) {
-              console.error(`${source} returned error:`, data);
-              toast.warning(`${source}: ${data.error}`);
-              return { articles: [] };
-            }
-
+            if (error) return { articles: [] };
+            if (data?.error) return { articles: [] };
             return data || { articles: [] };
           } catch (err) {
             console.error(`Exception fetching from ${source}:`, err);
             return { articles: [] };
           }
         });
-
         const results = await Promise.all(fetchPromises);
-        allArticles = results.flatMap(result => result.articles || []);
-
+        allArticles = results.flatMap(r => r.articles || []);
         if (allArticles.length === 0) {
           toast.error("Aucun article trouvé sur les sources sélectionnées.");
           setIsLoading(false);
           return;
         }
       } else {
-        // Fetch from news API
+        // news only
         const { data: newsData, error: newsError } = await supabase.functions.invoke('fetch-news', {
           body: { query: finalQuery, language, api: selectedApi }
         });
-
-        if (newsError) {
-          throw newsError;
-        }
-
+        if (newsError) throw newsError;
         if (newsData?.error) {
-          toast.error(newsData.error, {
-            duration: newsData.isRateLimitError ? 10000 : 6000
-          });
+          toast.error(newsData.error, { duration: newsData.isRateLimitError ? 10000 : 6000 });
           setIsLoading(false);
           return;
         }
-
         allArticles = newsData?.articles || [];
       }
-      
-      // 3. Gestion de l'absence d'articles
+
       if (allArticles.length === 0) {
         toast.error(`Aucun post trouvé. Essayez d'autres mots-clés ou sources.`, { duration: 6000 });
         setIsLoading(false);
         return;
       }
 
-      toast.success(`Trouvé ${allArticles.length} post${allArticles.length > 1 ? 's' : ''} sur ${sourceType === 'osint' ? osintSources.join(', ') : 'news APIs'}`);
+      toast.success(`Trouvé ${allArticles.length} post${allArticles.length > 1 ? 's' : ''}`);
 
-      // 4. Analyse des articles avec l'IA
-      const analysisSourceType = selectedApi === 'mixed' ? 'mixed' : sourceType;
+      // Analysis: send effective type
+      const analysisSourceType = effectiveSelectedApi === 'mixed' ? 'mixed' : effectiveSourceType;
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-news', {
         body: { articles: allArticles, query: queryToUse, language, sourceType: analysisSourceType }
       });
@@ -223,7 +193,6 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
         onSearch(queryToUse, allArticles, analysisData);
       }
     } catch (error: any) {
-      // Catch final pour toutes les erreurs lancées
       console.error('Échec de la recherche (Catch final):', error);
       toast.error(error.message || "La recherche a échoué.");
     } finally {
