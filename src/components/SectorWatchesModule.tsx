@@ -238,7 +238,9 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
       api: "newsapi",
       description: "",
       color: "#0ea5e9",
-      enabled_languages: ['fr', 'en', 'it']
+      enabled_languages: ['fr', 'en', 'it'],
+      sourceType: 'news',
+      osintSources: ['mastodon','bluesky','gopher','google','military-rss']
     });
   };
 
