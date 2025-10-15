@@ -14,14 +14,15 @@ export const translations = {
     sectorWatches: "Veilles sectorielles",
     search: "Recherche",
     watches: "Veilles",
-    
+    generalSearch: "Global",
+
     // Search
     searchPlaceholder: "Entrez votre requête (ex: 'guerre Ukraine', 'changement climatique')...",
     searchButton: "RECHERCHER",
     searching: "Recherche en cours...",
     sourceType: "Type de source",
     newsApis: "Presse",
-    socialOsint: "OSINT réseaux sociaux",
+    socialOsint: "OSINT",
     credibilityScore: "Fiabilité",
     verified: "Vérifié",
     engagement: "Engagement",
