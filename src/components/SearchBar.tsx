@@ -181,10 +181,101 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
         return;
       }
 
+      // -----------------------
+      // Filter irrelevant / noisy sources
+      // -----------------------
+      const filterIrrelevant = (article: any) => {
+        const title = (article.title || '').toLowerCase();
+        const desc = (article.description || '')?.toLowerCase() || '';
+        const content = (article.content || '')?.toLowerCase() || '';
+        const sourceName = (article.source?.name || '')?.toLowerCase() || '';
+
+        const combined = `${title} ${desc} ${content} ${sourceName}`;
+        const tokens = queryToUse.toLowerCase().split(/\s+/).map(t => t.replace(/[^a-z0-9àâäéèêëïîôöùûüç-]/g,'')).filter(Boolean);
+        // Require at least one token match in combined text
+        const hasToken = tokens.length === 0 ? true : tokens.some(tok => combined.includes(tok));
+        if (!hasToken) return false;
+
+        // Heuristic remove: if source looks like a thin domain (e.g., 'example.com') and article very short
+        const isDomain = /\w+\.[a-z]{2,}/.test(sourceName);
+        const contentLen = (desc + content).length + (title.length || 0);
+        if (isDomain && contentLen < 80 && (title.split(/\s+/).length <= 3)) return false;
+
+        // Remove obvious CDN/static or unrelated domains (common noise)
+        const noisyDomains = ['cdn', 'static', 'amazonaws', 'doubleclick', 'googlesyndication', 'facebook', 'instagram', 'youtube', 'tiktok'];
+        if (noisyDomains.some(d => sourceName.includes(d))) return false;
+
+        return true;
+      };
+
+      const preFilterCount = allArticles.length;
+      allArticles = allArticles.filter(filterIrrelevant);
+      const filteredOut = preFilterCount - allArticles.length;
+      if (filteredOut > 0) {
+        console.log(`Filtered out ${filteredOut} noisy/irrelevant articles`);
+      }
+
+      if (allArticles.length === 0) {
+        toast.error(`Aucun post pertinent trouvé après filtrage. Essayez d'autres mots-clés ou sources.`, { duration: 6000 });
+        setIsLoading(false);
+        return;
+      }
+
       toast.success(`Trouvé ${allArticles.length} post${allArticles.length > 1 ? 's' : ''}`);
 
       // Analysis: send effective type
       const analysisSourceType = effectiveSelectedApi === 'mixed' ? 'mixed' : effectiveSourceType;
+
+      // Make sure articles from Mastodon/BlueSky are present when requested; if missing, log and attempt retry per-source
+      const requiredOsint = (effectiveSourceType === 'osint' || effectiveSelectedApi === 'mixed') ? osintSources : [];
+      const presentPlatforms = new Set(allArticles.map(a => (a.osint?.platform || a.platform || a.source?.platform || '').toLowerCase()));
+      const missing = requiredOsint.filter(s => !presentPlatforms.has(s));
+      if (missing.length > 0) {
+        console.warn('OSINT platforms missing results:', missing);
+        // Attempt one-shot retry for missing OSINT platforms (best-effort)
+        await Promise.all(missing.map(async (source) => {
+          try {
+            const functionMap: Record<string, string> = {
+              'mastodon': 'fetch-bluesky',
+              'bluesky': 'fetch-bluesky-real',
+              'gopher': 'fetch-gopher',
+              'google': 'fetch-google',
+              'military-rss': 'fetch-military-rss',
+            };
+            const fn = functionMap[source];
+            if (!fn) return;
+            const { data } = await supabase.functions.invoke(fn, { body: { query: finalQuery, language, limit: 50 } });
+            if (data?.articles && Array.isArray(data.articles)) {
+              const newArticles = data.articles.filter(filterIrrelevant);
+              if (newArticles.length > 0) {
+                allArticles.push(...newArticles);
+                console.log(`Retry added ${newArticles.length} articles from ${source}`);
+              }
+            }
+          } catch (err) {
+            console.error('Retry fetch error for', source, err);
+          }
+        }));
+      }
+
+      // final check
+      if (allArticles.length === 0) {
+        toast.error(`Aucun post pertinent trouvé après filtrage/retry.`, { duration: 6000 });
+        setIsLoading(false);
+        return;
+      }
+
+      // Deduplicate by url
+      const seen = new Set<string>();
+      allArticles = allArticles.filter(a => {
+        const url = (a.url || '').split('?')[0];
+        if (!url) return true;
+        if (seen.has(url)) return false;
+        seen.add(url);
+        return true;
+      });
+
+      // proceed to analysis
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-news', {
         body: { articles: allArticles, query: queryToUse, language, sourceType: analysisSourceType }
       });
