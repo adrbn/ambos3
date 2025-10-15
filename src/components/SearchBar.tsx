@@ -19,6 +19,8 @@ interface SearchBarProps {
   osintSources: string[];
   onOsintSourcesChange: (sources: string[]) => void;
   enableQueryEnrichment: boolean;
+  // New: top-level enforced mode from parent (mutually exclusive)
+  topLevelMode?: 'general' | 'press' | 'osint';
 }
 
 const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi, sourceType, onSourceTypeChange, osintSources, onOsintSourcesChange, enableQueryEnrichment }: SearchBarProps) => {
