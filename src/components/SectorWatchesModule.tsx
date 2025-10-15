@@ -503,7 +503,23 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onLaunchWatch(watch)}
+                    onClick={() => {
+                      // Merge meta from localStorage if available
+                      try {
+                        const metaRaw = localStorage.getItem(`watch_meta_${watch.id}`);
+                        if (metaRaw) {
+                          (watch as any).sourceType = JSON.parse(metaRaw).sourceType || (watch as any).sourceType || 'news';
+                          (watch as any).osintSources = JSON.parse(metaRaw).osintSources || (watch as any).osintSources || ['mastodon','bluesky','gopher','google','military-rss'];
+                        } else {
+                          (watch as any).sourceType = (watch as any).sourceType || 'news';
+                          (watch as any).osintSources = (watch as any).osintSources || ['mastodon','bluesky','gopher','google','military-rss'];
+                        }
+                      } catch (err) {
+                        (watch as any).sourceType = (watch as any).sourceType || 'news';
+                        (watch as any).osintSources = (watch as any).osintSources || ['mastodon','bluesky','gopher','google','military-rss'];
+                      }
+                      onLaunchWatch(watch as SectorWatch & { sourceType?: 'news' | 'osint'; osintSources?: string[] });
+                    }}
                     className="h-7 px-2 text-xs hud-button"
                   >
                     <Play className="w-3 h-3 mr-1" />
