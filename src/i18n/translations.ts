@@ -119,14 +119,15 @@ export const translations = {
     sectorWatches: "Sector Watches",
     search: "Search",
     watches: "Watches",
-    
+    generalSearch: "Global",
+
     // Search
     searchPlaceholder: "Enter your query (e.g., 'Ukraine war', 'climate change')...",
     searchButton: "SEARCH",
     searching: "Searching...",
     sourceType: "Source Type",
     newsApis: "Press",
-    socialOsint: "Social Networks OSINT",
+    socialOsint: "OSINT",
     credibilityScore: "Credibility",
     verified: "Verified",
     engagement: "Engagement",
