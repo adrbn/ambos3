@@ -166,19 +166,45 @@ const Index = () => {
     const targetLanguage = language; // Use current language selection
     setSelectedApi(watch.api);
     setCurrentWatch(watch); // Store the watch for language changes
-    
+
+    // Apply source selection meta if present (from localStorage or watch)
+    const sourceTypeFromWatch = (watch.sourceType as 'news' | 'osint') || (() => {
+      try {
+        const meta = localStorage.getItem(`watch_meta_${watch.id}`);
+        if (meta) return JSON.parse(meta).sourceType as 'news' | 'osint';
+      } catch (e) {}
+      return 'news';
+    })();
+
+    const osintSourcesFromWatch: string[] = (watch.osintSources && Array.isArray(watch.osintSources))
+      ? watch.osintSources
+      : (() => {
+        try {
+          const meta = localStorage.getItem(`watch_meta_${watch.id}`);
+          if (meta) return JSON.parse(meta).osintSources as string[];
+        } catch (e) {}
+        return osintSources;
+      })();
+
+    setSourceType(sourceTypeFromWatch);
+    if (sourceTypeFromWatch === 'osint') {
+      setOsintSources(osintSourcesFromWatch);
+    }
+
     // Select the appropriate query based on the current language
-    let queryToUse = watch.query; // Default to FR
+    let queryToUse = watch.query; // Default FR
     if (targetLanguage === 'en' && watch.query_en) {
       queryToUse = watch.query_en;
     } else if (targetLanguage === 'it' && watch.query_it) {
       queryToUse = watch.query_it;
     }
-    
+
     setCurrentQuery(queryToUse);
+
+    // Ensure we switch to the search tab (and specifically OSINT mode if needed)
     setActiveTab("search"); // Switch to search tab
     toast.info(`${t('launchingWatch')}: ${watch.name} (${targetLanguage.toUpperCase()})`);
-    
+
     // Trigger search with the watch parameters
     setTimeout(() => {
       const searchButton = document.querySelector('[data-search-button]') as HTMLButtonElement;
