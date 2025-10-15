@@ -123,81 +123,108 @@ const MapModule = ({ articles, language }: MapModuleProps) => {
 
     if (articles.length === 0) return;
 
-    // Extraire les localisations via AI
+    // Extract locations prefering local metadata (author_location/coords) and fallback to AI extraction
     const extractLocations = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-locations`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ articles }),
+        const localLocations: any[] = [];
+        const missingArticles: any[] = [];
+
+        // First, collect any explicit coordinates provided by sources (OSINT posts sometimes include coords)
+        articles.forEach((art: any, idx: number) => {
+          // Prioritize explicit coords
+          if (art.osint && art.osint.coords && art.osint.coords.lat && art.osint.coords.lng) {
+            localLocations.push({
+              name: art.osint.location_name || art.source?.name || art.author || 'OSINT',
+              lat: art.osint.coords.lat,
+              lng: art.osint.coords.lng,
+              relevance: art.source?.name || art.author || '',
+              _articleIndex: idx,
+            });
+          } else if (art.author_location && art.author_location.lat && art.author_location.lng) {
+            localLocations.push({
+              name: art.author_location.name || art.author || art.source?.name || 'Author Location',
+              lat: art.author_location.lat,
+              lng: art.author_location.lng,
+              relevance: art.author || art.source?.name || '',
+              _articleIndex: idx,
+            });
+          } else if (art.location && art.location.lat && art.location.lng) {
+            localLocations.push({
+              name: art.location.name || art.source?.name || 'Location',
+              lat: art.location.lat,
+              lng: art.location.lng,
+              relevance: art.location.name || art.source?.name || '',
+              _articleIndex: idx,
+            });
+          } else {
+            // No explicit coords - candidate for AI extraction
+            missingArticles.push({ art, idx });
+          }
         });
 
-        if (!response.ok) {
-          console.error('Error extracting locations:', response.statusText);
-          return;
-        }
-
-        const { locations } = await response.json();
-        
-        if (!locations || locations.length === 0) {
-          console.log('No locations extracted');
-          return;
-        }
-
-        // Ajouter les marqueurs pour chaque localisation
-        locations.forEach((location: any, index: number) => {
+        let aiLocations: any[] = [];
+        if (missingArticles.length > 0) {
           try {
-            const article = articles[index] || articles[0];
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-locations`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+              },
+              body: JSON.stringify({ articles: missingArticles.map(m => m.art) }),
+            });
+
+            if (response.ok) {
+              const { locations } = await response.json();
+              if (Array.isArray(locations) && locations.length > 0) {
+                // Map back AI locations to original articles using heuristics (relevance field)
+                aiLocations = locations.map((loc: any, i: number) => {
+                  const sourceMeta = missingArticles[i];
+                  return {
+                    name: loc.name,
+                    lat: loc.lat,
+                    lng: loc.lng,
+                    relevance: loc.relevance || sourceMeta.art.source?.name || sourceMeta.art.author || '',
+                    _articleIndex: sourceMeta.idx,
+                  };
+                });
+              }
+            } else {
+              console.warn('extract-locations returned non-ok', response.status);
+            }
+          } catch (err) {
+            console.error('AI extraction failed:', err);
+          }
+        }
+
+        const locations = [...localLocations, ...aiLocations];
+        if (locations.length === 0) {
+          console.log('No locations to add to map');
+          return;
+        }
+
+        // Add markers using matched article for popup content
+        locations.forEach((location: any) => {
+          try {
+            const article = articles[location._articleIndex] || articles[0];
             const marker = L.marker([location.lat, location.lng], { icon: customIcon })
               .bindPopup(`
                 <div style="
-                  font-size: 12px; 
+                  font-size: 12px;
                   max-width: 250px;
                   background: rgba(10, 10, 10, 0.95);
                   border: 1px solid rgba(0, 217, 255, 0.3);
                   border-radius: 4px;
                   padding: 12px;
                 ">
-                  <h3 style="
-                    font-weight: bold; 
-                    color: #00D9FF; 
-                    margin: 0 0 8px 0;
-                    text-transform: uppercase;
-                    font-size: 11px;
-                    letter-spacing: 0.5px;
-                  ">${location.name}</h3>
-                  <p style="
-                    margin: 0 0 4px 0; 
-                    font-style: italic; 
-                    font-size: 10px;
-                    color: rgba(0, 217, 255, 0.7);
-                  ">${location.relevance}</p>
-                  <p style="
-                    margin: 0 0 8px 0;
-                    color: rgba(255, 255, 255, 0.9);
-                    line-height: 1.4;
-                  ">${article.title}</p>
-                  <a href="${article.url}" target="_blank" rel="noopener noreferrer" style="
-                    color: #00D9FF; 
-                    text-decoration: none;
-                    font-size: 10px;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    border: 1px solid rgba(0, 217, 255, 0.3);
-                    padding: 4px 8px;
-                    border-radius: 2px;
-                    display: inline-block;
-                    transition: all 0.2s;
-                  " onmouseover="this.style.borderColor='#00D9FF'; this.style.backgroundColor='rgba(0, 217, 255, 0.1)'" onmouseout="this.style.borderColor='rgba(0, 217, 255, 0.3)'; this.style.backgroundColor='transparent'">
-                    ${t('readArticle')} →
-                  </a>
+                  <h3 style="font-weight: bold; color: #00D9FF; margin: 0 0 8px 0; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">${location.name}</h3>
+                  <p style="margin: 0 0 4px 0; font-style: italic; font-size: 10px; color: rgba(0, 217, 255, 0.7);">${location.relevance}</p>
+                  <p style="margin: 0 0 8px 0; color: rgba(255, 255, 255, 0.9); line-height: 1.4;">${article.title}</p>
+                  <a href="${article.url}" target="_blank" rel="noopener noreferrer" style="color: #00D9FF; text-decoration: none; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid rgba(0, 217, 255, 0.3); padding: 4px 8px; border-radius: 2px; display: inline-block; transition: all 0.2s;">${t('readArticle')} →</a>
                 </div>
               `)
               .addTo(mapRef.current!);
-            
+
             markersRef.current.push(marker);
           } catch (error) {
             console.error('Error adding marker:', error);
