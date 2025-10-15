@@ -49,6 +49,9 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
     description: string;
     color: string;
     enabled_languages: Language[];
+    // runtime-only meta (stored in localStorage to avoid DB migrations)
+    sourceType: 'news' | 'osint';
+    osintSources: string[];
   }>({
     name: "",
     sector: "",
@@ -60,6 +63,8 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
     description: "",
     color: "#0ea5e9",
     enabled_languages: ['fr', 'en', 'it'],
+    sourceType: 'news',
+    osintSources: ['mastodon','bluesky','gopher','google','military-rss'],
   });
 
   // Update default language when site language changes
