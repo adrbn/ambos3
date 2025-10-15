@@ -66,6 +66,7 @@ const Index = () => {
   const [enableQueryEnrichment, setEnableQueryEnrichment] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("search");
   const [currentWatch, setCurrentWatch] = useState<any>(null);
+  const [searchMode, setSearchMode] = useState<'general' | 'press' | 'osint'>('general');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
