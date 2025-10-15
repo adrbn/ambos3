@@ -208,36 +208,38 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
       {/* Source Type Toggle */}
       <div className="flex gap-2 p-1 bg-card/30 rounded-lg border border-primary/20">
         <button
-          onClick={() => onSourceTypeChange('news')}
+          onClick={() => !topLevelMode && onSourceTypeChange('news')}
+          disabled={!!topLevelMode}
           className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all ${
-            sourceType === 'news'
+            currentMode === 'news' || currentMode === 'mixed'
               ? 'bg-primary text-primary-foreground shadow-lg'
               : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
-          }`}
+          } ${topLevelMode ? 'opacity-80 cursor-not-allowed' : ''}`}
         >
           📰 {t('newsApis')}
         </button>
-        
+
         <div className="flex flex-1 gap-1">
           <button
-            onClick={() => onSourceTypeChange('osint')}
+            onClick={() => !topLevelMode && onSourceTypeChange('osint')}
+            disabled={!!topLevelMode}
             className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all ${
-              sourceType === 'osint'
+              currentMode === 'osint'
                 ? 'bg-primary text-primary-foreground shadow-lg'
                 : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
-            }`}
+            } ${topLevelMode ? 'opacity-80 cursor-not-allowed' : ''}`}
           >
             🔍 OSINT
           </button>
-          
+
           <Popover>
             <PopoverTrigger asChild>
               <button
                 className={`px-2 py-2 rounded-md text-xs transition-all border border-primary/30 ${
-                  sourceType === 'osint'
+                  currentMode === 'osint'
                     ? 'bg-primary/20 text-primary hover:bg-primary/30'
                     : 'bg-card/50 text-muted-foreground hover:text-foreground hover:bg-card/70'
-                }`}
+                } ${topLevelMode === 'press' ? 'opacity-60 pointer-events-none' : ''}`}
               >
                 <Settings2 className="w-3 h-3" />
               </button>
