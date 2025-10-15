@@ -362,7 +362,12 @@ const Index = () => {
       {/* Tabs: Search and Sector Watches */}
       <div className="px-2 sm:px-4 py-2 sm:py-3">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-3">
+          <TabsList className="grid w-full grid-cols-3 mb-3">
+            <TabsTrigger value="general" className="flex items-center gap-2">
+              <Search className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('generalSearch') || 'Général'}</span>
+              <span className="sm:hidden">{t('general') || 'G'}</span>
+            </TabsTrigger>
             <TabsTrigger value="search" className="flex items-center gap-2">
               <Search className="w-4 h-4" />
               <span className="hidden sm:inline">{t('classicSearch')}</span>
@@ -374,11 +379,28 @@ const Index = () => {
               <span className="sm:hidden">{t('watches')}</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* General mixed search - top-level: launches mixed news + OSINT searches */}
+          <TabsContent value="general" className="mt-0">
+            <SearchBar
+              onSearch={handleSearch}
+              language={language}
+              currentQuery={currentQuery}
+              searchTrigger={searchTrigger}
+              selectedApi={'mixed'}
+              sourceType={sourceType}
+              onSourceTypeChange={setSourceType}
+              osintSources={osintSources}
+              onOsintSourcesChange={setOsintSources}
+              enableQueryEnrichment={enableQueryEnrichment}
+            />
+          </TabsContent>
+
           <TabsContent value="search" className="mt-0">
-            <SearchBar 
-              onSearch={handleSearch} 
-              language={language} 
-              currentQuery={currentQuery} 
+            <SearchBar
+              onSearch={handleSearch}
+              language={language}
+              currentQuery={currentQuery}
               searchTrigger={searchTrigger}
               selectedApi={selectedApi}
               sourceType={sourceType}
