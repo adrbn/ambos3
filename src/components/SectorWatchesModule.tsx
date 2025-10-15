@@ -131,19 +131,52 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
 
     try {
       if (editingWatch) {
+        // Only persist known DB fields to avoid schema issues
+        const payload: any = {
+          name: formData.name,
+          sector: formData.sector,
+          query: formData.query,
+          query_en: formData.query_en,
+          query_it: formData.query_it,
+          language: formData.language,
+          api: formData.api,
+          description: formData.description,
+          color: formData.color,
+          enabled_languages: formData.enabled_languages,
+        };
+
         const { error } = await supabase
           .from('sector_watches')
-          .update(formData)
+          .update(payload)
           .eq('id', editingWatch.id);
 
         if (error) throw error;
+        // Persist runtime meta locally (no DB migration needed)
+        localStorage.setItem(`watch_meta_${editingWatch.id}`, JSON.stringify({ sourceType: formData.sourceType, osintSources: formData.osintSources }));
         toast.success(t('watchUpdated'));
       } else {
-        const { error } = await supabase
+        const { data: inserted, error } = await supabase
           .from('sector_watches')
-          .insert([formData]);
+          .insert([{
+            name: formData.name,
+            sector: formData.sector,
+            query: formData.query,
+            query_en: formData.query_en,
+            query_it: formData.query_it,
+            language: formData.language,
+            api: formData.api,
+            description: formData.description,
+            color: formData.color,
+            enabled_languages: formData.enabled_languages,
+          }])
+          .select();
 
         if (error) throw error;
+        // Save runtime meta locally using the inserted id
+        const insertedId = inserted?.[0]?.id;
+        if (insertedId) {
+          localStorage.setItem(`watch_meta_${insertedId}`, JSON.stringify({ sourceType: formData.sourceType, osintSources: formData.osintSources }));
+        }
         toast.success(t('watchCreated'));
       }
 
