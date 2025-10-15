@@ -207,90 +207,93 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
 
   return (
     <div className="w-full space-y-3">
-      {/* Source Type Toggle */}
-      <div className="flex gap-2 p-1 bg-card/30 rounded-lg border border-primary/20">
-        <button
-          onClick={() => !topLevelMode && onSourceTypeChange('news')}
-          disabled={!!topLevelMode}
-          className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all ${
-            currentMode === 'news' || currentMode === 'mixed'
-              ? 'bg-primary text-primary-foreground shadow-lg'
-              : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
-          } ${topLevelMode ? 'opacity-80 cursor-not-allowed' : ''}`}
-        >
-          📰 {t('newsApis')}
-        </button>
+      {/* Mode selector: General / Press / OSINT (placed same level as previous two-button group) */}
+  <div className="flex gap-2 p-1 bg-card/30 rounded-lg border border-primary/20">
+    <Button
+      variant={currentMode === 'mixed' ? 'default' : 'outline'}
+      size="sm"
+      onClick={() => onTopLevelModeChange ? onTopLevelModeChange('general') : (onSourceTypeChange('news'))}
+      className="text-xs h-8"
+    >
+      🌐 {t('generalSearch') || 'Général'}
+    </Button>
 
-        <div className="flex flex-1 gap-1">
+    <Button
+      variant={currentMode === 'news' ? 'default' : 'outline'}
+      size="sm"
+      onClick={() => onTopLevelModeChange ? onTopLevelModeChange('press') : onSourceTypeChange('news')}
+      className="text-xs h-8"
+    >
+      📰 {t('newsApis')}
+    </Button>
+
+    <div className="flex items-center gap-1">
+      <Button
+        variant={currentMode === 'osint' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => onTopLevelModeChange ? onTopLevelModeChange('osint') : onSourceTypeChange('osint')}
+        className="text-xs h-8"
+      >
+        🔍 {t('socialOsint') || 'OSINT'}
+      </Button>
+
+      <Popover>
+        <PopoverTrigger asChild>
           <button
-            onClick={() => !topLevelMode && onSourceTypeChange('osint')}
-            disabled={!!topLevelMode}
-            className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all ${
+            className={`px-2 py-2 rounded-md text-xs transition-all border border-primary/30 ${
               currentMode === 'osint'
-                ? 'bg-primary text-primary-foreground shadow-lg'
-                : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
-            } ${topLevelMode ? 'opacity-80 cursor-not-allowed' : ''}`}
+                ? 'bg-primary/20 text-primary hover:bg-primary/30'
+                : 'bg-card/50 text-muted-foreground hover:text-foreground hover:bg-card/70'
+            } ${topLevelMode === 'press' ? 'opacity-60 pointer-events-none' : ''}`}
           >
-            🔍 OSINT
+            <Settings2 className="w-3 h-3" />
           </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72 bg-card border-primary/30 p-3" align="end">
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground font-mono mb-2">Sources OSINT actives:</p>
+            <div className="flex flex-col gap-2">
+              {['mastodon', 'bluesky', 'gopher', 'google', 'military-rss'].map((source) => {
+                const sourceLabels: Record<string, string> = {
+                  'mastodon': 'Mastodon',
+                  'bluesky': 'BlueSky',
+                  'gopher': 'X/Twitter',
+                  'google': 'Google',
+                  'military-rss': '🇮🇹 Military RSS (IT)'
+                };
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                className={`px-2 py-2 rounded-md text-xs transition-all border border-primary/30 ${
-                  currentMode === 'osint'
-                    ? 'bg-primary/20 text-primary hover:bg-primary/30'
-                    : 'bg-card/50 text-muted-foreground hover:text-foreground hover:bg-card/70'
-                } ${topLevelMode === 'press' ? 'opacity-60 pointer-events-none' : ''}`}
-              >
-                <Settings2 className="w-3 h-3" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-72 bg-card border-primary/30 p-3" align="end">
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-mono mb-2">Sources OSINT actives:</p>
-                <div className="flex flex-col gap-2">
-                  {['mastodon', 'bluesky', 'gopher', 'google', 'military-rss'].map((source) => {
-                    const sourceLabels: Record<string, string> = {
-                      'mastodon': 'Mastodon',
-                      'bluesky': 'BlueSky',
-                      'gopher': 'X/Twitter',
-                      'google': 'Google',
-                      'military-rss': '🇮🇹 Military RSS (IT)'
-                    };
-                    
-                    return (
-                      <label
-                        key={source}
-                        className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={osintSources.includes(source)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              onOsintSourcesChange([...osintSources, source]);
-                            } else {
-                              onOsintSourcesChange(osintSources.filter(s => s !== source));
-                            }
-                          }}
-                          className="w-3 h-3"
-                        />
-                        <span className="text-xs font-mono flex-1">
-                          {sourceLabels[source]}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-                <p className="text-[10px] text-muted-foreground/70 mt-2">
-                  ⚠️ Threads nécessite OAuth et validation d'app (non disponible)
-                </p>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
+                return (
+                  <label
+                    key={source}
+                    className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={osintSources.includes(source)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          onOsintSourcesChange([...osintSources, source]);
+                        } else {
+                          onOsintSourcesChange(osintSources.filter(s => s !== source));
+                        }
+                      }}
+                      className="w-3 h-3"
+                    />
+                    <span className="text-xs font-mono flex-1">
+                      {sourceLabels[source]}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-muted-foreground/70 mt-2">
+              ⚠️ Threads nécessite OAuth et validation d'app (non disponible)
+            </p>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  </div>
 
       <div className="relative">
         <Input
