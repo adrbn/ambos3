@@ -224,14 +224,15 @@ export const translations = {
     sectorWatches: "Monitoraggi Settoriali",
     search: "Ricerca",
     watches: "Monitoraggi",
-    
+    generalSearch: "Global",
+
     // Search
     searchPlaceholder: "Inserisci la tua query (es: 'guerra Ucraina', 'cambiamento climatico')...",
     searchButton: "CERCA",
     searching: "Ricerca in corso...",
     sourceType: "Tipo di fonte",
     newsApis: "Stampa",
-    socialOsint: "OSINT social network",
+    socialOsint: "OSINT",
     credibilityScore: "Affidabilità",
     verified: "Verificato",
     engagement: "Coinvolgimento",
