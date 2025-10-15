@@ -207,8 +207,9 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
       toast.success(`Trouvé ${allArticles.length} post${allArticles.length > 1 ? 's' : ''} sur ${sourceType === 'osint' ? osintSources.join(', ') : 'news APIs'}`);
 
       // 4. Analyse des articles avec l'IA
+      const analysisSourceType = selectedApi === 'mixed' ? 'mixed' : sourceType;
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-news', {
-        body: { articles: allArticles, query: queryToUse, language, sourceType }
+        body: { articles: allArticles, query: queryToUse, language, sourceType: analysisSourceType }
       });
 
       if (analysisError) {
