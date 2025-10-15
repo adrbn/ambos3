@@ -53,10 +53,11 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
       // 1. Enrichir la requête via ChatGPT (adapté au type de source) - SEULEMENT SI ACTIVÉ ET EN MODE NEWS
       let finalQuery = queryToUse;
       
-      if (enableQueryEnrichment && sourceType === 'news') {
+      // Enrichissement: appliquer pour recherches presse ou pour recherche mixte (mode général)
+      if (enableQueryEnrichment && (sourceType === 'news' || selectedApi === 'mixed')) {
         toast.info("Enrichissement de la requête...", { duration: 2000 });
         const { data: enrichData, error: enrichError } = await supabase.functions.invoke('enrich-query', {
-          body: { query: queryToUse, language, sourceType, osintPlatforms: osintSources }
+          body: { query: queryToUse, language, sourceType: (selectedApi === 'mixed' ? 'mixed' : sourceType), osintPlatforms: osintSources }
         });
 
         if (enrichError || !enrichData?.enrichedQuery) {
