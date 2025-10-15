@@ -393,6 +393,7 @@ const Index = () => {
               onOsintSourcesChange={setOsintSources}
               enableQueryEnrichment={enableQueryEnrichment}
               topLevelMode={searchMode}
+              onTopLevelModeChange={(m) => setSearchMode(m)}
             />
           </TabsContent>
 
