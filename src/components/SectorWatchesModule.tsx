@@ -87,13 +87,33 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
 
       if (error) throw error;
       // Cast language to Language type and parse enabled_languages
-      const watches = (data || []).map((w: any) => ({
-        ...w,
-        language: w.language as Language,
-        enabled_languages: (Array.isArray((w as any).enabled_languages)
-          ? ((w as any).enabled_languages as Language[])
-          : (['fr', 'en', 'it'] as Language[]))
-      })) as SectorWatch[];
+      const watches = (data || []).map((w: any) => {
+        const base = {
+          ...w,
+          language: w.language as Language,
+          enabled_languages: (Array.isArray((w as any).enabled_languages)
+            ? ((w as any).enabled_languages as Language[])
+            : (['fr', 'en', 'it'] as Language[]))
+        } as any;
+
+        // Merge runtime meta from localStorage (source selection) if present
+        try {
+          const metaRaw = localStorage.getItem(`watch_meta_${w.id}`);
+          if (metaRaw) {
+            const meta = JSON.parse(metaRaw);
+            base.sourceType = meta.sourceType || 'news';
+            base.osintSources = meta.osintSources || ['mastodon','bluesky','gopher','google','military-rss'];
+          } else {
+            base.sourceType = 'news';
+            base.osintSources = ['mastodon','bluesky','gopher','google','military-rss'];
+          }
+        } catch (err) {
+          base.sourceType = 'news';
+          base.osintSources = ['mastodon','bluesky','gopher','google','military-rss'];
+        }
+
+        return base as SectorWatch & { sourceType?: 'news' | 'osint'; osintSources?: string[] };
+      }) as SectorWatch[];
       setWatches(watches);
     } catch (error: any) {
       console.error('Error fetching watches:', error);
