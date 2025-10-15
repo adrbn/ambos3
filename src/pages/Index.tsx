@@ -363,15 +363,10 @@ const Index = () => {
       {/* Tabs: Search and Sector Watches */}
       <div className="px-2 sm:px-4 py-2 sm:py-3">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-3">
-            <TabsTrigger value="general" className="flex items-center gap-2">
-              <Search className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('generalSearch') || 'Général'}</span>
-              <span className="sm:hidden">{t('general') || 'G'}</span>
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 mb-3">
             <TabsTrigger value="search" className="flex items-center gap-2">
               <Search className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('classicSearch')}</span>
+              <span className="hidden sm:inline">{t('search')}</span>
               <span className="sm:hidden">{t('search')}</span>
             </TabsTrigger>
             <TabsTrigger value="watches" className="flex items-center gap-2">
@@ -381,36 +376,41 @@ const Index = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* General mixed search - top-level: launches mixed news + OSINT searches */}
-          <TabsContent value="general" className="mt-0">
+          <TabsContent value="search" className="mt-0">
+            {/* Sub-mode selector inside Search: General / Press / OSINT */}
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => setSearchMode('general')}
+                className={`px-3 py-1 text-xs rounded ${searchMode === 'general' ? 'bg-primary text-primary-foreground' : 'bg-card/50'}`}>
+                {t('generalSearch') || 'Général'}
+              </button>
+              <button
+                onClick={() => setSearchMode('press')}
+                className={`px-3 py-1 text-xs rounded ${searchMode === 'press' ? 'bg-primary text-primary-foreground' : 'bg-card/50'}`}>
+                {t('press') || 'Presse'}
+              </button>
+              <button
+                onClick={() => setSearchMode('osint')}
+                className={`px-3 py-1 text-xs rounded ${searchMode === 'osint' ? 'bg-primary text-primary-foreground' : 'bg-card/50'}`}>
+                {t('osint') || 'OSINT'}
+              </button>
+            </div>
+
             <SearchBar
               onSearch={handleSearch}
               language={language}
               currentQuery={currentQuery}
               searchTrigger={searchTrigger}
-              selectedApi={'mixed'}
-              sourceType={sourceType}
+              selectedApi={searchMode === 'general' ? 'mixed' : selectedApi}
+              sourceType={searchMode === 'osint' ? 'osint' : 'news'}
               onSourceTypeChange={setSourceType}
               osintSources={osintSources}
               onOsintSourcesChange={setOsintSources}
               enableQueryEnrichment={enableQueryEnrichment}
+              topLevelMode={searchMode}
             />
           </TabsContent>
 
-          <TabsContent value="search" className="mt-0">
-            <SearchBar
-              onSearch={handleSearch}
-              language={language}
-              currentQuery={currentQuery}
-              searchTrigger={searchTrigger}
-              selectedApi={selectedApi}
-              sourceType={sourceType}
-              onSourceTypeChange={setSourceType}
-              osintSources={osintSources}
-              onOsintSourcesChange={setOsintSources}
-              enableQueryEnrichment={enableQueryEnrichment}
-            />
-          </TabsContent>
           <TabsContent value="watches" className="mt-0">
             <div className="h-[400px] sm:h-[500px]">
               <SectorWatchesModule onLaunchWatch={handleLaunchWatch} language={language} />
