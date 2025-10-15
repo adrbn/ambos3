@@ -381,36 +381,6 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="search" className="mt-0">
-            {/* Sub-mode selector inside Search: General / Press / OSINT */}
-            <div className="flex gap-2 mb-3">
-              <Button
-                variant={searchMode === 'general' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSearchMode('general')}
-                className="text-xs h-8"
-              >
-                🌐 {t('generalSearch') || 'Général'}
-              </Button>
-
-              <Button
-                variant={searchMode === 'press' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSearchMode('press')}
-                className="text-xs h-8"
-              >
-                📰 {t('press') || 'Presse'}
-              </Button>
-
-              <Button
-                variant={searchMode === 'osint' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSearchMode('osint')}
-                className="text-xs h-8"
-              >
-                🔍 {t('osint') || 'OSINT'}
-              </Button>
-            </div>
-
             <SearchBar
               onSearch={handleSearch}
               language={language}
