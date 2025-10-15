@@ -28,6 +28,9 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation(language);
 
+  // Current effective mode for UI: 'mixed' (general), 'news' (press) or 'osint'
+  const currentMode = topLevelMode ? (topLevelMode === 'general' ? 'mixed' : (topLevelMode === 'press' ? 'news' : 'osint')) : sourceType;
+
   // Sync query with currentQuery prop
   useEffect(() => {
     if (currentQuery) {
