@@ -379,7 +379,38 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
                   </Select>
                 </div>
               </div>
-              
+
+              {/* Source selection: news or OSINT + OSINT sources (stored locally) */}
+              <div className="mt-3">
+                <label className="text-xs text-muted-foreground mb-1 block">{t('sourceSelection')}</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setFormData(prev => ({ ...prev, sourceType: 'news' }))}
+                    className={`px-3 py-2 rounded-md text-xs font-mono transition-all ${formData.sourceType === 'news' ? 'bg-primary text-primary-foreground' : 'bg-card/50 text-muted-foreground'}`}>
+                    📰 News
+                  </button>
+                  <button
+                    onClick={() => setFormData(prev => ({ ...prev, sourceType: 'osint' }))}
+                    className={`px-3 py-2 rounded-md text-xs font-mono transition-all ${formData.sourceType === 'osint' ? 'bg-primary text-primary-foreground' : 'bg-card/50 text-muted-foreground'}`}>
+                    🔍 OSINT
+                  </button>
+                </div>
+
+                {formData.sourceType === 'osint' && (
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {['mastodon','bluesky','gopher','google','military-rss'].map((source) => (
+                      <label key={source} className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer">
+                        <input type="checkbox" checked={formData.osintSources.includes(source)} onChange={(e) => {
+                          if (e.target.checked) setFormData(prev => ({ ...prev, osintSources: [...prev.osintSources, source] }));
+                          else setFormData(prev => ({ ...prev, osintSources: prev.osintSources.filter(s => s !== source) }));
+                        }} className="w-3 h-3" />
+                        <span className="text-xs font-mono">{source}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground mb-1 block">Langues actives</label>
                 <div className="flex gap-4">
