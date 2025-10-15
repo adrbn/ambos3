@@ -25,7 +25,7 @@ interface SearchBarProps {
   onTopLevelModeChange?: (mode: 'general' | 'press' | 'osint') => void;
 }
 
-const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi, sourceType, onSourceTypeChange, osintSources, onOsintSourcesChange, enableQueryEnrichment, topLevelMode }: SearchBarProps) => {
+const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi, sourceType, onSourceTypeChange, osintSources, onOsintSourcesChange, enableQueryEnrichment, topLevelMode, onTopLevelModeChange }: SearchBarProps) => {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation(language);
