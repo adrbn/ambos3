@@ -304,9 +304,13 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
       variant={currentMode === 'mixed' ? 'default' : 'outline'}
       size="sm"
       onClick={() => onTopLevelModeChange ? onTopLevelModeChange('general') : (onSourceTypeChange('news'))}
-      className="text-sm h-10 w-full justify-start px-4"
+      className="text-sm h-10 w-full justify-center px-4 flex items-center"
     >
-      🌐 {t('generalSearch') || 'Global'}
+      <span className="inline-flex items-center gap-2">
+        <span>🌐</span>
+        <span className="font-semibold">{t('generalSearch') || 'Global'}</span>
+        <span className="text-[11px] text-muted-foreground ml-2">({t('newsApis') || 'Presse'} + {t('socialOsint') || 'OSINT'})</span>
+      </span>
     </Button>
 
     <div className="flex gap-2">
@@ -314,9 +318,9 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
         variant={currentMode === 'news' ? 'default' : 'outline'}
         size="sm"
         onClick={() => onTopLevelModeChange ? onTopLevelModeChange('press') : onSourceTypeChange('news')}
-        className="text-sm h-10 flex-1 justify-start px-4"
+        className="text-sm h-10 flex-1 justify-center px-4 flex items-center"
       >
-        📰 {t('newsApis')}
+        <span className="inline-flex items-center gap-2">📰 <span className="font-semibold">{t('newsApis')}</span></span>
       </Button>
 
       <div className="flex items-center gap-2 flex-1">
@@ -324,9 +328,9 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
           variant={currentMode === 'osint' ? 'default' : 'outline'}
           size="sm"
           onClick={() => onTopLevelModeChange ? onTopLevelModeChange('osint') : onSourceTypeChange('osint')}
-          className="text-sm h-10 flex-1 justify-start px-4"
+          className="text-sm h-10 flex-1 justify-center px-4 flex items-center"
         >
-          🔍 {t('socialOsint') || 'OSINT'}
+          <span className="inline-flex items-center gap-2">🔍 <span className="font-semibold">{t('socialOsint') || 'OSINT'}</span></span>
         </Button>
 
         <Popover>
