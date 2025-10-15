@@ -70,6 +70,13 @@ const Index = () => {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  // When user switches to the top-level general tab, force mixed API mode
+  useEffect(() => {
+    if (activeTab === 'general') {
+      setSelectedApi('mixed');
+    }
+  }, [activeTab]);
   const [currentLayoutName, setCurrentLayoutName] = useState<string | null>(null);
   const { t } = useTranslation(language);
   const { layout, updateLayout, resetLayout } = useLayoutConfig();
