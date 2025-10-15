@@ -12,6 +12,7 @@ interface DataFeedModuleProps {
 
 const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
   const [filter, setFilter] = useState<string>('all');
+  const [platformFilter, setPlatformFilter] = useState<string>('all');
   const { t } = useTranslation(language);
 
   const getCredibilityColor = (score: number) => {
@@ -46,13 +47,35 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
     { id: 'trending', label: t('trending') },
   ];
 
+  const availablePlatforms = Array.from(new Set((articles || []).map(a => detectPlatform(a))));
+
   const getFilteredArticles = () => {
-    if (filter === 'recent') {
-      return [...articles].sort((a, b) => 
-        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-      ).slice(0, 10);
+    let list = [...articles];
+
+    // Platform filtering
+    if (platformFilter && platformFilter !== 'all') {
+      list = list.filter(a => detectPlatform(a) === platformFilter);
     }
-    return articles;
+
+    if (filter === 'recent') {
+      return list.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()).slice(0, 10);
+    }
+
+    if (filter === 'trending') {
+      // Calculate an engagement score for sorting
+      const scored = list.map(a => {
+        const e = a.osint?.engagement || a.engagement || {};
+        const likes = e.likes || 0;
+        const reposts = e.reposts || e.shares || 0;
+        const replies = e.replies || 0;
+        const score = likes + reposts * 2 + replies * 1.5;
+        return { a, score };
+      });
+      scored.sort((x, y) => y.score - x.score);
+      return scored.slice(0, 10).map(s => s.a);
+    }
+
+    return list;
   };
 
   const filteredArticles = getFilteredArticles();
@@ -76,13 +99,37 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
             onClick={() => setFilter(f.id)}
             className={`
               text-xs px-3 py-1 font-mono
-              ${filter === f.id 
-                ? 'bg-primary text-primary-foreground border-glow' 
+              ${filter === f.id
+                ? 'bg-primary text-primary-foreground border-glow'
                 : 'bg-card/50 text-primary/70 hover:text-primary border-primary/30'
               }
             `}
           >
             {f.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Platform tabs */}
+      <div className="flex gap-2 mb-3">
+        <Button
+          key="all-platforms"
+          variant={platformFilter === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setPlatformFilter('all')}
+          className="text-xs px-3 py-1 font-mono"
+        >
+          {t('allPlatforms')}
+        </Button>
+        {availablePlatforms.map((p) => (
+          <Button
+            key={p}
+            variant={platformFilter === p ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setPlatformFilter(p)}
+            className="text-xs px-3 py-1 font-mono"
+          >
+            {p.toUpperCase()}
           </Button>
         ))}
       </div>
