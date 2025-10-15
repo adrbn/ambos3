@@ -70,15 +70,66 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
 
       // 2. Fetch from selected sources
       let allArticles: any[] = [];
-      
-      if (sourceType === 'osint' && osintSources.length === 0) {
-        toast.error("Veuillez sélectionner au moins une source OSINT.");
-        setIsLoading(false);
-        return;
-      }
-      
-      if (sourceType === 'osint') {
+
+      if (selectedApi === 'mixed') {
+        // Run news fetch and OSINT fetches in parallel (news + selected OSINT platforms)
+        const newsPromise = supabase.functions.invoke('fetch-news', {
+          body: { query: finalQuery, language, api: 'newsapi' }
+        }).then(res => res.data?.articles || []).catch((err) => {
+          console.error('Error fetching news for mixed:', err);
+          return [];
+        });
+
+        const osintPromise = (async () => {
+          if (osintSources.length === 0) return [];
+          const fetchPromises = osintSources.map(async (source) => {
+            const functionMap: Record<string, string> = {
+              'mastodon': 'fetch-bluesky',
+              'bluesky': 'fetch-bluesky-real',
+              'gopher': 'fetch-gopher',
+              'google': 'fetch-google',
+              'military-rss': 'fetch-military-rss',
+            };
+            const functionName = functionMap[source];
+            if (!functionName) return [];
+            try {
+              const { data, error } = await supabase.functions.invoke(functionName, {
+                body: { query: finalQuery, language, limit: 50 }
+              });
+              if (error) {
+                console.error(`Error fetching from ${source}:`, error);
+                return [];
+              }
+              if (data?.error) {
+                console.warn(`${source} returned error:`, data);
+                return [];
+              }
+              return data.articles || [];
+            } catch (err) {
+              console.error(`Exception fetching from ${source}:`, err);
+              return [];
+            }
+          });
+          const results = await Promise.all(fetchPromises);
+          return results.flat();
+        })();
+
+        const [newsArticles, osintArticles] = await Promise.all([newsPromise, osintPromise]);
+        allArticles = [...newsArticles, ...osintArticles];
+
+        if (allArticles.length === 0) {
+          toast.error("Aucun article trouvé dans les sources mixtes.");
+          setIsLoading(false);
+          return;
+        }
+      } else if (sourceType === 'osint') {
         // Fetch from multiple OSINT sources in parallel
+        if (osintSources.length === 0) {
+          toast.error("Veuillez sélectionner au moins une source OSINT.");
+          setIsLoading(false);
+          return;
+        }
+
         const fetchPromises = osintSources.map(async (source) => {
           const functionMap: Record<string, string> = {
             'mastodon': 'fetch-bluesky',
@@ -87,38 +138,38 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
             'google': 'fetch-google',
             'military-rss': 'fetch-military-rss',
           };
-          
+
           const functionName = functionMap[source];
           if (!functionName) return { articles: [] };
-          
+
           try {
             const { data, error } = await supabase.functions.invoke(functionName, {
               body: { query: finalQuery, language, limit: 50 }
             });
-            
+
             if (error) {
               console.error(`Error fetching from ${source}:`, error);
               toast.error(`Erreur ${source}: ${error.message}`);
               return { articles: [] };
             }
-            
+
             // Check for error in response data
             if (data?.error) {
               console.error(`${source} returned error:`, data);
               toast.warning(`${source}: ${data.error}`);
               return { articles: [] };
             }
-            
+
             return data || { articles: [] };
           } catch (err) {
             console.error(`Exception fetching from ${source}:`, err);
             return { articles: [] };
           }
         });
-        
+
         const results = await Promise.all(fetchPromises);
         allArticles = results.flatMap(result => result.articles || []);
-        
+
         if (allArticles.length === 0) {
           toast.error("Aucun article trouvé sur les sources sélectionnées.");
           setIsLoading(false);
@@ -129,11 +180,11 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
         const { data: newsData, error: newsError } = await supabase.functions.invoke('fetch-news', {
           body: { query: finalQuery, language, api: selectedApi }
         });
-        
+
         if (newsError) {
           throw newsError;
         }
-        
+
         if (newsData?.error) {
           toast.error(newsData.error, {
             duration: newsData.isRateLimitError ? 10000 : 6000
@@ -141,7 +192,7 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
           setIsLoading(false);
           return;
         }
-        
+
         allArticles = newsData?.articles || [];
       }
       
