@@ -8,11 +8,19 @@ import { Language } from "@/i18n/translations";
 interface DataFeedModuleProps {
   articles: any[];
   language: Language;
+  sourceType: 'news' | 'osint';
 }
 
-const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
+const DataFeedModule = ({ articles, language, sourceType }: DataFeedModuleProps) => {
   const [filter, setFilter] = useState<'all' | 'recent' | 'trending' | 'twitter' | 'bluesky' | 'mastodon' | 'press'>('all');
   const { t } = useTranslation(language);
+
+  // Détecter quelles plateformes ont des résultats
+  const availablePlatforms = {
+    twitter: articles.some(article => detectPlatform(article) === 'twitter'),
+    bluesky: articles.some(article => detectPlatform(article) === 'bluesky'),
+    mastodon: articles.some(article => detectPlatform(article) === 'mastodon'),
+  };
 
   const getCredibilityColor = (score: number) => {
     if (score >= 80) return "text-green-500 border-green-500/50 bg-green-500/10";
@@ -126,39 +134,55 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
         >
           {t('trending')} (🔥)
         </Button>
-        <div className="w-px h-5 bg-border mx-1"></div>
-        <Button
-          variant={filter === 'press' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('press')}
-          className="text-xs h-7"
-        >
-          📰 Presse
-        </Button>
-        <Button
-          variant={filter === 'twitter' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('twitter')}
-          className="text-xs h-7"
-        >
-          𝕏 Twitter
-        </Button>
-        <Button
-          variant={filter === 'bluesky' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('bluesky')}
-          className="text-xs h-7"
-        >
-          🦋 Bluesky
-        </Button>
-        <Button
-          variant={filter === 'mastodon' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('mastodon')}
-          className="text-xs h-7"
-        >
-          🐘 Mastodon
-        </Button>
+        
+        {/* Séparateur et filtres spécifiques selon le mode */}
+        {sourceType === 'news' ? (
+          <>
+            <div className="w-px h-5 bg-border mx-1"></div>
+            <Button
+              variant={filter === 'press' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('press')}
+              className="text-xs h-7"
+            >
+              📰 Presse
+            </Button>
+          </>
+        ) : (
+          <>
+            <div className="w-px h-5 bg-border mx-1"></div>
+            {availablePlatforms.twitter && (
+              <Button
+                variant={filter === 'twitter' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('twitter')}
+                className="text-xs h-7"
+              >
+                𝕏 X/Twitter
+              </Button>
+            )}
+            {availablePlatforms.bluesky && (
+              <Button
+                variant={filter === 'bluesky' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('bluesky')}
+                className="text-xs h-7"
+              >
+                🦋 Bluesky
+              </Button>
+            )}
+            {availablePlatforms.mastodon && (
+              <Button
+                variant={filter === 'mastodon' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('mastodon')}
+                className="text-xs h-7"
+              >
+                🐘 Mastodon
+              </Button>
+            )}
+          </>
+        )}
       </div>
 
       <div className="flex-1 overflow-auto space-y-2">

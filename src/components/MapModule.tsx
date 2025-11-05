@@ -9,6 +9,7 @@ import { Language } from "@/i18n/translations";
 interface MapModuleProps {
   articles: any[];
   language: Language;
+  sourceType: 'news' | 'osint';
 }
 
 // Fix Leaflet default marker icon - Custom cyber style
@@ -49,7 +50,7 @@ const customIcon = L.divIcon({
   popupAnchor: [0, -30]
 });
 
-const MapModule = ({ articles, language }: MapModuleProps) => {
+const MapModule = ({ articles, language, sourceType }: MapModuleProps) => {
   const { t } = useTranslation(language);
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -132,7 +133,7 @@ const MapModule = ({ articles, language }: MapModuleProps) => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ articles }),
+          body: JSON.stringify({ articles, sourceType }),
         });
 
         if (!response.ok) {
@@ -220,7 +221,7 @@ const MapModule = ({ articles, language }: MapModuleProps) => {
     };
 
     extractLocations();
-  }, [articles, isMapReady, isEnabled]);
+  }, [articles, isMapReady, isEnabled, sourceType]);
 
   // Si désactivé, afficher un bloc réduit
   if (!isEnabled) {

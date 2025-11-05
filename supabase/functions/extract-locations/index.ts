@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { articles } = await req.json();
+    const { articles, sourceType } = await req.json();
     
     if (!articles || articles.length === 0) {
       return new Response(
@@ -25,27 +25,62 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Préparer le contenu des articles pour l'analyse - SEULEMENT les métadonnées de source
-    const articlesText = articles.slice(0, 10).map((article: any, idx: number) => {
-      let text = `Article ${idx + 1}:\nSource Name: ${article.source?.name || 'Unknown'}`;
-      
-      // Pour les posts OSINT, ajouter les infos d'auteur qui indiquent la localisation de la source
-      if (article.osint) {
+    // Logique différente selon le type de source
+    let articlesText: string;
+    let systemPrompt: string;
+    let userPrompt: string;
+    
+    if (sourceType === 'osint') {
+      // Pour OSINT: extraire les lieux ÉVOQUÉS dans le contenu
+      articlesText = articles.slice(0, 10).map((article: any, idx: number) => {
+        let text = `Post ${idx + 1}:`;
+        if (article.title) text += `\nTitle: ${article.title}`;
+        if (article.description) text += `\nContent: ${article.description}`;
         if (article.author) text += `\nAuthor: ${article.author}`;
-        if (article.author_location) text += `\nAuthor Location: ${article.author_location}`;
-        if (article.location) text += `\nPost Location: ${article.location}`;
-      }
-      
-      // Pour la presse, ajouter le pays/ville de publication si disponible
-      if (article.source?.country) text += `\nSource Country: ${article.source.country}`;
-      if (article.source?.location) text += `\nSource Location: ${article.source.location}`;
-      
-      return text;
-    }).join('\n\n');
+        return text;
+      }).join('\n\n');
 
-    console.log('Extracting locations from articles...');
+      systemPrompt = `You are a geopolitical intelligence analyst. Extract LOCATIONS MENTIONED in OSINT content (social media posts, discussions).
+
+IMPORTANT RULES:
+- Extract locations that are DISCUSSED/MENTIONED in the content (not where the author is from)
+- Focus on: military bases, countries, cities, regions, strategic locations mentioned
+- If a political figure is mentioned, identify their associated location (e.g., French PM = Paris)
+- Provide accurate coordinates for each mentioned location
+- Each post can have multiple relevant locations if several places are discussed
+- These locations represent WHERE things are happening according to OSINT discussions`;
+
+      userPrompt = `Extract all relevant geographic locations MENTIONED/DISCUSSED in these OSINT posts:\n\n${articlesText}`;
+      
+    } else {
+      // Pour la presse: extraire les lieux SOURCE (origine de la publication)
+      articlesText = articles.slice(0, 10).map((article: any, idx: number) => {
+        let text = `Article ${idx + 1}:\nSource Name: ${article.source?.name || 'Unknown'}`;
+        if (article.source?.country) text += `\nSource Country: ${article.source.country}`;
+        if (article.source?.location) text += `\nSource Location: ${article.source.location}`;
+        return text;
+      }).join('\n\n');
+
+      systemPrompt = `You are a geographic source location extraction expert. Your task is to identify ONLY the geographic origin of the SOURCE (publication, journal, organization) - NOT locations mentioned in content.
+
+IMPORTANT RULES:
+- Extract ONLY the location where the source/publication is based
+- DO NOT extract locations mentioned in article content
+- For news sources: identify the publication's headquarters or main location
+- If source location cannot be determined, skip that article
+- One location per source maximum
+- Provide accurate coordinates for source locations only`;
+
+      userPrompt = `Extract ONLY the geographic location of the SOURCE (publisher) for each article - NOT content locations:\n\n${articlesText}`;
+    }
+
+    console.log(`Extracting locations from articles (mode: ${sourceType})...`);
 
     // Appeler Lovable AI avec tool calling pour extraire les localisations
+    const toolDescription = sourceType === 'osint' 
+      ? 'Extract locations MENTIONED/DISCUSSED in OSINT content'
+      : 'Extract ONLY source locations (where publisher is based) - NOT content locations';
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -57,21 +92,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a geographic source location extraction expert. Your task is to identify ONLY the geographic origin of the SOURCE (publication, journal, author, organization) - NOT locations mentioned in content.
-
-IMPORTANT RULES:
-- Extract ONLY the location where the source/author/publication is based
-- DO NOT extract locations mentioned in article titles or descriptions
-- For news sources: identify the publication's headquarters or main location
-- For OSINT posts: identify the author's location if available
-- If source location cannot be determined, skip that article
-- One location per source maximum
-
-Provide accurate coordinates for source locations only.`
+            content: systemPrompt
           },
           {
             role: 'user',
-            content: `Extract ONLY the geographic location of the SOURCE (publisher/author) for each article/post - NOT locations mentioned in content:\n\n${articlesText}`
+            content: userPrompt
           }
         ],
         tools: [
@@ -79,7 +104,7 @@ Provide accurate coordinates for source locations only.`
             type: 'function',
             function: {
               name: 'extract_locations',
-              description: 'Extract ONLY source locations (where publisher/author is based) - NOT content locations',
+              description: toolDescription,
               parameters: {
                 type: 'object',
                 properties: {
@@ -88,10 +113,10 @@ Provide accurate coordinates for source locations only.`
                     items: {
                       type: 'object',
                       properties: {
-                        name: { type: 'string', description: 'Name of the source location (city, country)' },
+                        name: { type: 'string', description: 'Name of the location (city, country, military base, region)' },
                         lat: { type: 'number', description: 'Latitude coordinate' },
                         lng: { type: 'number', description: 'Longitude coordinate' },
-                        relevance: { type: 'string', description: 'The name of the source (publisher/author/organization)' }
+                        relevance: { type: 'string', description: sourceType === 'osint' ? 'Brief description of why this location is mentioned' : 'The name of the source (publisher/organization)' }
                       },
                       required: ['name', 'lat', 'lng', 'relevance'],
                       additionalProperties: false
