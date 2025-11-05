@@ -116,10 +116,13 @@ export type Database = {
           id: string
           language: string
           name: string
+          osint_sources: string[] | null
+          press_sources: string[] | null
           query: string
           query_en: string | null
           query_it: string | null
           sector: string
+          source_mode: string | null
           updated_at: string
         }
         Insert: {
@@ -131,10 +134,13 @@ export type Database = {
           id?: string
           language?: string
           name: string
+          osint_sources?: string[] | null
+          press_sources?: string[] | null
           query: string
           query_en?: string | null
           query_it?: string | null
           sector: string
+          source_mode?: string | null
           updated_at?: string
         }
         Update: {
@@ -146,10 +152,13 @@ export type Database = {
           id?: string
           language?: string
           name?: string
+          osint_sources?: string[] | null
+          press_sources?: string[] | null
           query?: string
           query_en?: string | null
           query_it?: string | null
           sector?: string
+          source_mode?: string | null
           updated_at?: string
         }
         Relationships: []

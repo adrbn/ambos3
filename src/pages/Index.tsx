@@ -164,7 +164,6 @@ const Index = () => {
 
   const handleLaunchWatch = (watch: any) => {
     const targetLanguage = language; // Use current language selection
-    setSelectedApi(watch.api);
     setCurrentWatch(watch); // Store the watch for language changes
     
     // Select the appropriate query based on the current language
@@ -176,7 +175,35 @@ const Index = () => {
     }
     
     setCurrentQuery(queryToUse);
-    setActiveTab("search"); // Switch to search tab
+    
+    // Configure source type and sources based on watch configuration
+    const sourceMode = watch.source_mode || 'press';
+    const pressSources = watch.press_sources || ['newsapi'];
+    const osintSrcs = watch.osint_sources || [];
+    
+    if (sourceMode === 'press') {
+      setSourceType('news');
+      setActiveTab("search");
+      // Set the API based on first press source if available
+      if (pressSources.length > 0) {
+        const firstApi = pressSources[0];
+        if (['gnews', 'newsapi', 'mediastack'].includes(firstApi)) {
+          setSelectedApi(firstApi as ApiSource);
+        } else {
+          setSelectedApi('mixed');
+        }
+      }
+    } else if (sourceMode === 'osint') {
+      setSourceType('osint');
+      setActiveTab("search"); // Switch to search tab (which should have OSINT mode)
+      setOsintSources(osintSrcs);
+    } else if (sourceMode === 'both') {
+      // For "both" mode, use mixed press sources
+      setSourceType('news');
+      setActiveTab("search");
+      setSelectedApi('mixed');
+    }
+    
     toast.info(`${t('launchingWatch')}: ${watch.name} (${targetLanguage.toUpperCase()})`);
     
     // Trigger search with the watch parameters

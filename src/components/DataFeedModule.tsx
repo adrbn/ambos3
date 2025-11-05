@@ -11,7 +11,7 @@ interface DataFeedModuleProps {
 }
 
 const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
-  const [filter, setFilter] = useState<string>('all');
+  const [filter, setFilter] = useState<'all' | 'recent' | 'trending' | 'twitter' | 'bluesky' | 'mastodon' | 'press'>('all');
   const { t } = useTranslation(language);
 
   const getCredibilityColor = (score: number) => {
@@ -20,21 +20,36 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
     return "text-red-500 border-red-500/50 bg-red-500/10";
   };
 
-  const detectPlatform = (article: any): 'mastodon' | 'bluesky' | string => {
-    // Check URL first
-    if (article.url?.includes('bsky.app') || article.url?.includes('bsky.brid.gy')) {
-      return 'bluesky';
+  const detectPlatform = (article: any): string => {
+    // First check if article has a platform property directly (from backend)
+    if (article.platform) {
+      return article.platform;
     }
-    // Check source name
-    if (article.source?.name?.includes('bsky.social') || article.source?.name?.includes('bsky.brid.gy')) {
-      return 'bluesky';
-    }
-    // Check osint.platform if available
+    // Check if osint.platform is available
     if (article.osint?.platform) {
       return article.osint.platform;
     }
-    // Default to mastodon for OSINT posts
-    return article.osint ? 'mastodon' : 'news';
+    // Check for Twitter/X
+    if (article.source?.name?.toLowerCase().includes('twitter') ||
+        article.source?.name?.toLowerCase().includes('x/twitter') ||
+        article.source?.platform === 'twitter' ||
+        article.url?.includes('twitter.com')) {
+      return 'twitter';
+    }
+    // Check URL for Bluesky
+    if (article.url?.includes('bsky.app') || article.url?.includes('bsky.brid.gy')) {
+      return 'bluesky';
+    }
+    // Check source name for Bluesky
+    if (article.source?.name?.includes('bsky.social') || article.source?.name?.includes('bsky.brid.gy')) {
+      return 'bluesky';
+    }
+    // Check for Mastodon
+    if (article.source?.name?.toLowerCase().includes('mastodon') || article.url?.includes('mastodon')) {
+      return 'mastodon';
+    }
+    // Default to news for non-OSINT posts
+    return article.osint ? 'unknown' : 'news';
   };
 
   const truncateUrl = (url: string, maxLength: number = 45) => {
@@ -43,19 +58,35 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
     return url.slice(0, half) + '...' + url.slice(-half);
   };
 
-  const filters = [
-    { id: 'all', label: t('allFeeds') },
-    { id: 'recent', label: t('recent') },
-    { id: 'trending', label: t('trending') },
-  ];
-
   const getFilteredArticles = () => {
+    let filtered = articles;
+    
     if (filter === 'recent') {
-      return [...articles].sort((a, b) => 
-        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-      ).slice(0, 10);
+      const now = Date.now();
+      filtered = articles.filter(article => {
+        const articleDate = new Date(article.publishedAt).getTime();
+        const hoursDiff = (now - articleDate) / (1000 * 60 * 60);
+        return hoursDiff <= 24;
+      });
+    } else if (filter === 'trending') {
+      filtered = articles.filter(article => {
+        const engagement = article.engagement || article.osint?.engagement;
+        if (!engagement) return false;
+        return (engagement.likes || 0) > 50 || 
+               (engagement.shares || engagement.reposts || 0) > 20 ||
+               (engagement.comments || engagement.replies || 0) > 10;
+      });
+    } else if (filter === 'twitter') {
+      filtered = articles.filter(article => detectPlatform(article) === 'twitter');
+    } else if (filter === 'bluesky') {
+      filtered = articles.filter(article => detectPlatform(article) === 'bluesky');
+    } else if (filter === 'mastodon') {
+      filtered = articles.filter(article => detectPlatform(article) === 'mastodon');
+    } else if (filter === 'press') {
+      filtered = articles.filter(article => !article.osint);
     }
-    return articles;
+    
+    return filtered;
   };
 
   const filteredArticles = getFilteredArticles();
@@ -70,31 +101,72 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
         <Filter className="w-3 h-3 text-primary/70" />
       </div>
 
-      <div className="flex gap-2 mb-3">
-        {filters.map((f) => (
-          <Button
-            key={f.id}
-            variant={filter === f.id ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilter(f.id)}
-            className={`
-              text-xs px-3 py-1 font-mono
-              ${filter === f.id 
-                ? 'bg-primary text-primary-foreground border-glow' 
-                : 'bg-card/50 text-primary/70 hover:text-primary border-primary/30'
-              }
-            `}
-          >
-            {f.label}
-          </Button>
-        ))}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <Button
+          variant={filter === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('all')}
+          className="text-xs h-7"
+        >
+          {t('allFeeds')}
+        </Button>
+        <Button
+          variant={filter === 'recent' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('recent')}
+          className="text-xs h-7"
+        >
+          {t('recent')} (&lt;24h)
+        </Button>
+        <Button
+          variant={filter === 'trending' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('trending')}
+          className="text-xs h-7"
+        >
+          {t('trending')} (🔥)
+        </Button>
+        <div className="w-px h-5 bg-border mx-1"></div>
+        <Button
+          variant={filter === 'press' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('press')}
+          className="text-xs h-7"
+        >
+          📰 Presse
+        </Button>
+        <Button
+          variant={filter === 'twitter' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('twitter')}
+          className="text-xs h-7"
+        >
+          𝕏 Twitter
+        </Button>
+        <Button
+          variant={filter === 'bluesky' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('bluesky')}
+          className="text-xs h-7"
+        >
+          🦋 Bluesky
+        </Button>
+        <Button
+          variant={filter === 'mastodon' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('mastodon')}
+          className="text-xs h-7"
+        >
+          🐘 Mastodon
+        </Button>
       </div>
 
       <div className="flex-1 overflow-auto space-y-2">
         {filteredArticles.length > 0 ? (
           filteredArticles.map((article, index) => {
             const isOsint = article.osint !== undefined;
-            const credibilityScore = article.osint?.credibilityScore || 0;
+            const credibilityScore = article.osint?.credibilityScore || article.credibilityScore || 0;
+            const platform = detectPlatform(article);
             
             return (
               <div
@@ -132,11 +204,12 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
                       <>
                         <span className="text-muted-foreground/50">•</span>
                         <Badge variant="secondary" className="text-xs py-0">
-                          {detectPlatform(article) === 'bluesky' 
-                            ? '🦋 BlueSky' 
-                            : '🐘 Mastodon'}
+                          {platform === 'twitter' && '𝕏 Twitter'}
+                          {platform === 'bluesky' && '🦋 BlueSky'}
+                          {platform === 'mastodon' && '🐘 Mastodon'}
+                          {platform === 'unknown' && '🔍 OSINT'}
                         </Badge>
-                        {article.osint.verified && (
+                        {article.osint?.verified && (
                           <span className="text-green-500 text-xs">✓</span>
                         )}
                       </>

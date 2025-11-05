@@ -24,6 +24,9 @@ interface SectorWatch {
   description: string | null;
   color: string;
   enabled_languages: Language[];
+  source_mode: 'press' | 'osint' | 'both';
+  press_sources: string[];
+  osint_sources: string[];
 }
 
 interface SectorWatchesModuleProps {
@@ -49,6 +52,9 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
     description: string;
     color: string;
     enabled_languages: Language[];
+    source_mode: 'press' | 'osint' | 'both';
+    press_sources: string[];
+    osint_sources: string[];
   }>({
     name: "",
     sector: "",
@@ -60,6 +66,9 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
     description: "",
     color: "#0ea5e9",
     enabled_languages: ['fr', 'en', 'it'],
+    source_mode: 'press',
+    press_sources: ['newsapi'],
+    osint_sources: [],
   });
 
   // Update default language when site language changes
@@ -87,7 +96,10 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
         language: w.language as Language,
         enabled_languages: (Array.isArray((w as any).enabled_languages)
           ? ((w as any).enabled_languages as Language[])
-          : (['fr', 'en', 'it'] as Language[]))
+          : (['fr', 'en', 'it'] as Language[])),
+        source_mode: w.source_mode || 'press',
+        press_sources: w.press_sources || ['newsapi'],
+        osint_sources: w.osint_sources || []
       })) as SectorWatch[];
       setWatches(watches);
     } catch (error: any) {
@@ -160,7 +172,10 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
       api: watch.api,
       description: watch.description || "",
       color: watch.color,
-      enabled_languages: watch.enabled_languages || ['fr', 'en', 'it']
+      enabled_languages: watch.enabled_languages || ['fr', 'en', 'it'],
+      source_mode: watch.source_mode || 'press',
+      press_sources: watch.press_sources || ['newsapi'],
+      osint_sources: watch.osint_sources || []
     });
     setIsDialogOpen(true);
   };
@@ -178,7 +193,10 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
       api: "newsapi",
       description: "",
       color: "#0ea5e9",
-      enabled_languages: ['fr', 'en', 'it']
+      enabled_languages: ['fr', 'en', 'it'],
+      source_mode: 'press',
+      press_sources: ['newsapi'],
+      osint_sources: []
     });
   };
 
@@ -305,18 +323,88 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
                   </Select>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">{t('api')}</label>
-                  <Select value={formData.api} onValueChange={(value) => setFormData({ ...formData, api: value })}>
+                  <label className="text-xs text-muted-foreground mb-1 block">Mode de recherche</label>
+                  <Select value={formData.source_mode} onValueChange={(value: 'press' | 'osint' | 'both') => setFormData({ ...formData, source_mode: value })}>
                     <SelectTrigger className="bg-card/50 border-primary/30">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="gnews">GNews</SelectItem>
-                      <SelectItem value="newsapi">NewsAPI</SelectItem>
+                      <SelectItem value="press">📰 Presse uniquement</SelectItem>
+                      <SelectItem value="osint">🔍 OSINT uniquement</SelectItem>
+                      <SelectItem value="both">🌐 Presse + OSINT</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
+              {(formData.source_mode === 'press' || formData.source_mode === 'both') && (
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground mb-1 block">Sources Presse</label>
+                  <div className="flex flex-col gap-2">
+                    {['newsapi', 'gnews', 'mediastack', 'military-rss', 'google'].map((source) => (
+                      <div key={source} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`press-${source}`}
+                          checked={formData.press_sources.includes(source)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setFormData(prev => ({
+                                ...prev,
+                                press_sources: [...prev.press_sources, source]
+                              }));
+                            } else {
+                              setFormData(prev => ({
+                                ...prev,
+                                press_sources: prev.press_sources.filter(s => s !== source)
+                              }));
+                            }
+                          }}
+                        />
+                        <label htmlFor={`press-${source}`} className="text-sm cursor-pointer">
+                          {source === 'newsapi' && 'NewsAPI'}
+                          {source === 'gnews' && 'GNews'}
+                          {source === 'mediastack' && 'Mediastack'}
+                          {source === 'military-rss' && 'Military RSS'}
+                          {source === 'google' && 'Google Custom Search'}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(formData.source_mode === 'osint' || formData.source_mode === 'both') && (
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground mb-1 block">Sources OSINT</label>
+                  <div className="flex flex-col gap-2">
+                    {['gopher', 'bluesky'].map((source) => (
+                      <div key={source} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`osint-${source}`}
+                          checked={formData.osint_sources.includes(source)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setFormData(prev => ({
+                                ...prev,
+                                osint_sources: [...prev.osint_sources, source]
+                              }));
+                            } else {
+                              setFormData(prev => ({
+                                ...prev,
+                                osint_sources: prev.osint_sources.filter(s => s !== source)
+                              }));
+                            }
+                          }}
+                        />
+                        <label htmlFor={`osint-${source}`} className="text-sm cursor-pointer">
+                          {source === 'gopher' && '𝕏 X/Twitter (Gopher)'}
+                          {source === 'bluesky' && '🦋 Bluesky'}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground mb-1 block">Langues actives</label>
@@ -401,10 +489,26 @@ const SectorWatchesModule = ({ onLaunchWatch, language }: SectorWatchesModulePro
                 </div>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                   <span className="uppercase">{watch.language}</span>
                   <span>•</span>
-                  <span className="uppercase">{watch.api}</span>
+                  <span>
+                    {watch.source_mode === 'press' && '📰 Presse'}
+                    {watch.source_mode === 'osint' && '🔍 OSINT'}
+                    {watch.source_mode === 'both' && '🌐 Presse+OSINT'}
+                  </span>
+                  {watch.press_sources && watch.press_sources.length > 0 && (
+                    <>
+                      <span>•</span>
+                      <span className="text-[10px]">{watch.press_sources.join(', ')}</span>
+                    </>
+                  )}
+                  {watch.osint_sources && watch.osint_sources.length > 0 && (
+                    <>
+                      <span>•</span>
+                      <span className="text-[10px]">{watch.osint_sources.join(', ')}</span>
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <Button
