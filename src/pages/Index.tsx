@@ -218,7 +218,7 @@ const Index = () => {
   const getModuleComponent = (moduleId: ModuleId) => {
     switch (moduleId) {
       case 'map':
-        return <MapModule articles={articles} language={language} sourceType={sourceType} />;
+        return <MapModule articles={articles} language={language} />;
       case 'timeline':
         return <TimelineModule articles={articles} language={language} />;
       case 'network-graph':
@@ -238,7 +238,7 @@ const Index = () => {
       case 'predictions':
         return <PredictionsModule predictions={analysis?.predictions || []} sentiment={analysis?.sentiment || null} language={language} />;
       case 'datafeed':
-        return <DataFeedModule articles={articles} language={language} sourceType={sourceType} />;
+        return <DataFeedModule articles={articles} language={language} />;
       default:
         return null;
     }
