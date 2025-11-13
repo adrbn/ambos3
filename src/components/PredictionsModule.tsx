@@ -6,6 +6,8 @@ interface Prediction {
   scenario: string;
   probability: 'high' | 'medium' | 'low';
   timeframe: string;
+  confidence_factors?: string;
+  risk_level?: 'critical' | 'high' | 'moderate' | 'low';
 }
 
 interface Sentiment {
@@ -28,6 +30,16 @@ const PredictionsModule = ({ predictions, sentiment, language }: PredictionsModu
       case 'medium': return 'text-secondary';
       case 'low': return 'text-primary';
       default: return 'text-foreground';
+    }
+  };
+
+  const getRiskColor = (risk?: string) => {
+    switch (risk) {
+      case 'critical': return 'text-destructive';
+      case 'high': return 'text-destructive/80';
+      case 'moderate': return 'text-secondary';
+      case 'low': return 'text-primary';
+      default: return 'text-muted-foreground';
     }
   };
 
@@ -55,18 +67,30 @@ const PredictionsModule = ({ predictions, sentiment, language }: PredictionsModu
                 key={index}
                 className="p-3 bg-card/30 border border-primary/20 rounded hover:border-primary/40 transition-all"
               >
-                <div className="flex items-start gap-2 mb-1">
+                <div className="flex items-start gap-2 mb-2">
                   <span className={getProbabilityColor(pred.probability)}>
                     {getProbabilityIcon(pred.probability)}
                   </span>
                   <div className="flex-1">
-                    <p className="text-xs text-foreground">{pred.scenario}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-xs font-mono uppercase ${getProbabilityColor(pred.probability)}`}>
+                    <p className="text-xs text-foreground font-medium mb-1">{pred.scenario}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-card ${getProbabilityColor(pred.probability)}`}>
                         {t(`${pred.probability}Probability`)}
                       </span>
-                      <span className="text-xs text-muted-foreground">• {pred.timeframe}</span>
+                      <span className="text-[10px] text-muted-foreground">• {pred.timeframe}</span>
+                      {pred.risk_level && (
+                        <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-card ${getRiskColor(pred.risk_level)}`}>
+                          Risk: {pred.risk_level}
+                        </span>
+                      )}
                     </div>
+                    {pred.confidence_factors && (
+                      <div className="mt-2 pt-2 border-t border-border/50">
+                        <p className="text-[10px] text-muted-foreground italic">
+                          💡 {pred.confidence_factors}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

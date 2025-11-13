@@ -12,6 +12,10 @@ interface Node {
   type: 'person' | 'organization' | 'location' | 'event' | 'date';
   importance: number;
   description?: string;
+  image_url?: string;
+  title?: string;
+  country?: string;
+  influence_score?: number;
 }
 
 interface Link {
@@ -19,6 +23,7 @@ interface Link {
   target: string;
   relationship: string;
   strength: number;
+  direction?: 'bidirectional' | 'directional';
 }
 
 interface NetworkGraph3DProps {
@@ -183,41 +188,66 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
             nodeCanvasObject={(node: any, ctx, globalScale) => {
               const label = node.name;
               const fontSize = 12 / globalScale;
-              const nodeRadius = Math.sqrt(node.importance) * 3;
+              const nodeSize = Math.max(4, (node.importance || 5) + (node.influence_score || 0) * 0.5);
               
-              // Draw node circle
-              ctx.beginPath();
-              ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
-              ctx.fillStyle = getNodeColor(node.type);
-              ctx.fill();
+              // For persons with images, try to draw the image (simplified - in production use proper image loading)
+              if (node.type === 'person' && node.image_url) {
+                // Draw circular avatar placeholder
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI, false);
+                ctx.fillStyle = getNodeColor(node.type);
+                ctx.fill();
+                ctx.strokeStyle = node.influence_score > 7 ? '#FFD700' : '#fff';
+                ctx.lineWidth = node.influence_score > 7 ? 2 : 1;
+                ctx.stroke();
+              } else {
+                // Draw regular node circle
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI, false);
+                ctx.fillStyle = getNodeColor(node.type);
+                ctx.fill();
+              }
               
-              // Draw glow
-              ctx.shadowBlur = 10;
-              ctx.shadowColor = getNodeColor(node.type);
-              ctx.fill();
-              ctx.shadowBlur = 0;
-              
-              // Draw label
+              // Draw label with title if available
               ctx.font = `${fontSize}px Orbitron, sans-serif`;
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
-              ctx.fillStyle = '#FFFFFF';
-              ctx.fillText(label, node.x, node.y + nodeRadius + fontSize);
+              ctx.fillStyle = '#fff';
+              ctx.fillText(label, node.x, node.y + nodeSize + fontSize);
+              
+              if (node.title && globalScale > 2) {
+                ctx.font = `${fontSize * 0.8}px Orbitron, sans-serif`;
+                ctx.fillStyle = '#aaa';
+                ctx.fillText(node.title, node.x, node.y + nodeSize + fontSize * 2);
+              }
             }}
             nodePointerAreaPaint={(node: any, color, ctx) => {
-              const nodeRadius = Math.sqrt(node.importance) * 3;
-              // Increase the clickable area by 50%
-              const clickableRadius = nodeRadius * 1.5;
+              const nodeSize = Math.max(4, (node.importance || 5) + (node.influence_score || 0) * 0.5);
+              const clickableRadius = nodeSize * 1.5;
               ctx.fillStyle = color;
               ctx.beginPath();
               ctx.arc(node.x, node.y, clickableRadius, 0, 2 * Math.PI, false);
               ctx.fill();
             }}
             linkLabel={(link: any) => link.relationship}
-            linkColor={() => 'rgba(0, 217, 255, 0.4)'}
-            linkWidth={(link: any) => link.strength / 2}
-            linkDirectionalParticles={2}
+            linkDirectionalParticles={(link: any) => link.direction === 'directional' ? 3 : 0}
             linkDirectionalParticleWidth={2}
+            linkDirectionalArrowLength={(link: any) => link.direction === 'directional' ? 4 : 0}
+            linkDirectionalArrowRelPos={1}
+            linkColor={(link: any) => {
+              const strength = link.strength || 1;
+              const opacity = Math.min(1, strength / 10);
+              // Different colors based on relationship type
+              if (link.relationship?.includes('commands') || link.relationship?.includes('reports_to')) {
+                return `rgba(255, 107, 157, ${opacity})`; // Pink for hierarchy
+              } else if (link.relationship?.includes('opposes')) {
+                return `rgba(255, 69, 58, ${opacity})`; // Red for opposition
+              } else if (link.relationship?.includes('allied') || link.relationship?.includes('supports')) {
+                return `rgba(0, 255, 159, ${opacity})`; // Green for alliance
+              }
+              return `rgba(0, 217, 255, ${opacity})`; // Cyan default
+            }}
+            linkWidth={(link: any) => Math.max(1, (link.strength || 1) / 2)}
             linkDirectionalParticleColor={() => '#00D9FF'}
             backgroundColor="transparent"
             enableZoomInteraction={true}
@@ -256,64 +286,39 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
             </button>
           </div>
           
-          <div className="space-y-3 text-xs">
-            {/* Image if available */}
-            {(selectedNode as any).image_url && (
-              <div className="w-full">
-                <img 
-                  src={(selectedNode as any).image_url} 
-                  alt={selectedNode.name}
-                  className="w-full h-32 object-cover rounded border border-primary/30"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    // Remove the parent div as well
-                    const parent = target.closest('.w-full');
-                    if (parent) parent.remove();
-                  }}
-                />
-              </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Type:</span>
-              <span className="ml-2 px-2 py-0.5 rounded" style={{ 
-                backgroundColor: `${getNodeColor(selectedNode.type)}20`,
-                color: getNodeColor(selectedNode.type),
-                border: `1px solid ${getNodeColor(selectedNode.type)}40`
-              }}>
-                {selectedNode.type}
-              </span>
-            </div>
-            
-            <div>
-              <span className="text-muted-foreground">Importance:</span>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="flex-1 h-2 bg-card rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-primary transition-all" 
-                    style={{ width: `${selectedNode.importance * 10}%` }}
+            <div className="space-y-2">
+              {selectedNode.image_url && (
+                <div className="flex justify-center mb-2">
+                  <img 
+                    src={selectedNode.image_url} 
+                    alt={selectedNode.name}
+                    className="w-20 h-20 rounded-full object-cover border-2 border-primary"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                 </div>
-                <span className="text-foreground font-bold">{selectedNode.importance}/10</span>
-              </div>
+              )}
+              
+              {selectedNode.title && (
+                <div>
+                  <span className="text-xs text-muted-foreground">Title:</span>
+                  <span className="text-xs ml-2 font-semibold">{selectedNode.title}</span>
+                </div>
+              )}
+              
+              {selectedNode.country && (
+                <div>
+                  <span className="text-xs text-muted-foreground">Country:</span>
+                  <span className="text-xs ml-2">{selectedNode.country}</span>
+                </div>
+              )}
+              
+              <div>
+                <span className="text-xs text-muted-foreground">Type:</span>
+                <span className="text-xs ml-2 px-2 py-0.5 rounded" style={{ backgroundColor: getNodeColor(selectedNode.type) }}>
+                  {selectedNode.type}
+                </span>
             </div>
 
-            {/* Additional Info */}
-            {(selectedNode as any).additional_info && (
-              <div className="p-2 rounded bg-primary/10 border border-primary/20">
-                <span className="text-[10px] text-muted-foreground uppercase">Info:</span>
-                <p className="mt-1 text-foreground/90">{(selectedNode as any).additional_info}</p>
-              </div>
-            )}
-            
-            {selectedNode.description && (
-              <div>
-                <span className="text-muted-foreground">Description:</span>
-                <p className="mt-1 text-foreground/80 leading-relaxed">{selectedNode.description}</p>
-              </div>
-            )}
-            
             {/* Connected Entities */}
             {(() => {
               const connections = graphData.links.filter(
