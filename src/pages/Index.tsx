@@ -400,8 +400,8 @@ const Index = () => {
         </Tabs>
       </div>
 
-      {/* Main Grid - Dynamic Grid Layout */}
-      <main className="flex-1 px-2 sm:px-4 pb-2 sm:pb-3 overflow-hidden">
+      {/* Main Grid - Resizable & Draggable Layout */}
+      <main className="flex-1 px-2 sm:px-4 pb-2 sm:pb-3 overflow-auto">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -411,7 +411,7 @@ const Index = () => {
             items={layout.moduleOrder}
             strategy={rectSortingStrategy}
           >
-            <div className="h-full grid grid-cols-4 xl:grid-cols-6 gap-2 auto-rows-[minmax(340px,1fr)]">
+            <div className="flex flex-col lg:flex-row lg:flex-wrap gap-3 lg:gap-2">
               {layout.moduleOrder.map((moduleId) => {
                 const savedSize = moduleSizes[moduleId];
                 const hasContent = articles.length > 0;
@@ -419,35 +419,19 @@ const Index = () => {
                 // Don't render empty modules
                 if (!hasContent) return null;
                 
-                // Determine grid span based on module type
-                const getGridSpan = (id: ModuleId) => {
-                  switch (id) {
-                    case 'map':
-                      return 'col-span-4 xl:col-span-3 row-span-2'; // Larger map
-                    case 'summary':
-                    case 'datafeed':
-                      return 'col-span-4 xl:col-span-2 row-span-2';
-                    case 'network-graph':
-                    case 'timeline':
-                      return 'col-span-2 xl:col-span-2 row-span-1';
-                    case 'predictions':
-                    case 'entities':
-                      return 'col-span-2 xl:col-span-2 row-span-1';
-                    case 'recommendations':
-                      return 'col-span-2 xl:col-span-2 row-span-1';
-                    default:
-                      return 'col-span-2 row-span-1';
-                  }
-                };
-                
                 return (
                   <div 
                     key={moduleId} 
-                    className={`${getGridSpan(moduleId)} min-h-0`}
+                    className="w-full lg:w-auto"
                   >
-                    <div className="h-full hud-panel overflow-hidden">
+                    <ResizableDraggableModule
+                      id={moduleId}
+                      initialWidth={savedSize?.width || 460}
+                      initialHeight={savedSize?.height || 345}
+                      onResize={(w, h) => handleModuleResize(moduleId, w, h)}
+                    >
                       {getModuleComponent(moduleId)}
-                    </div>
+                    </ResizableDraggableModule>
                   </div>
                 );
               })}
