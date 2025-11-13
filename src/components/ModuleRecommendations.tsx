@@ -30,13 +30,29 @@ const ModuleRecommendations = ({ articles, analysis, language, onModuleRequest }
     const recs: ModuleRecommendation[] = [];
 
     // Détection d'événements → Calendrier
-    const hasEvents = articles.some((a: any) => 
-      a.title?.match(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/) ||
-      a.description?.toLowerCase().includes('event') ||
-      a.description?.toLowerCase().includes('conférence') ||
-      a.description?.toLowerCase().includes('sommet') ||
-      analysis.keyEntities?.some((e: any) => e.type === 'event')
-    );
+    const eventKeywords = [
+      'event', 'conférence', 'conference', 'sommet', 'summit', 
+      'colloque', 'symposium', 'forum', 'course', 'race', 'marathon',
+      'compétition', 'competition', 'tournoi', 'tournament', 
+      'exposition', 'exhibition', 'salon', 'festival', 'concert',
+      'meeting', 'rendez-vous', 'session', 'séminaire', 'seminar'
+    ];
+    
+    const hasEvents = articles.some((a: any) => {
+      const title = a.title?.toLowerCase() || '';
+      const description = a.description?.toLowerCase() || '';
+      const combined = title + ' ' + description;
+      
+      // Check for date patterns
+      const hasDatePattern = a.title?.match(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/) ||
+                            combined.match(/\b(202[4-9]|203\d)\b/) || // Years 2024-2039
+                            combined.match(/\b(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre|january|february|march|april|may|june|july|august|september|october|november|december)\b/i);
+      
+      // Check for event keywords
+      const hasEventKeyword = eventKeywords.some(keyword => combined.includes(keyword));
+      
+      return hasDatePattern || hasEventKeyword;
+    }) || analysis.keyEntities?.some((e: any) => e.type === 'event');
 
     if (hasEvents) {
       recs.push({
