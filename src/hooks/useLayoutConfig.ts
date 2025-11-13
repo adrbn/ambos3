@@ -7,7 +7,8 @@ export type ModuleId =
   | 'entities'
   | 'summary'
   | 'predictions'
-  | 'datafeed';
+  | 'datafeed'
+  | 'recommendations';
 
 // Définition du type pour les tailles (basé sur vos données)
 export interface ModuleSizes {

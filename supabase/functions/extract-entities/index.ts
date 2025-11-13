@@ -44,11 +44,23 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert in entity extraction and relationship mapping for news analysis. ONLY extract the MOST IMPORTANT entities that are mentioned MULTIPLE TIMES or are CENTRAL to the articles. Ignore entities mentioned only once or in passing. Focus on key people, organizations, locations, and events that are truly significant.'
+            content: `You are an expert OSINT analyst specializing in entity extraction and strategic relationship mapping. 
+
+CRITICAL INSTRUCTIONS:
+- Extract ONLY entities mentioned MULTIPLE times or CENTRAL to the narrative
+- For PERSONS: Find official photos (Wikipedia, government sites, news sources) and include titles/positions
+- Assign INFLUENCE SCORES based on political/military/strategic importance
+- Map HIERARCHICAL relationships (chain of command, organizational structure)
+- Map POLITICAL relationships (alliances, oppositions, diplomatic ties)
+- Map GEOGRAPHICAL relationships (operational zones, bases, territories)
+- Determine relationship DIRECTIONALITY (A commands B is directional, A allied with B is bidirectional)
+- Calculate STRENGTH based on: co-mention frequency, strategic importance, directness of connection
+
+Focus on geopolitical and military intelligence value.`
           },
           {
             role: 'user',
-            content: `Extract ONLY the most important and frequently mentioned entities (people, organizations, locations, events) and their relationships from these articles. Ignore entities mentioned only once:\n\n${articlesText}`
+            content: `Extract key entities and their strategic relationships from these articles. For each person, try to find their photo URL from Wikipedia or official sources:\n\n${articlesText}`
           }
         ],
         tools: [
@@ -75,13 +87,20 @@ serve(async (req) => {
                         },
                         importance: { 
                           type: 'number', 
-                          description: 'Importance score from 1-10',
+                          description: 'Importance score from 1-10 based on frequency, centrality, and relevance',
                           minimum: 1,
                           maximum: 10
                         },
                         description: { type: 'string', description: 'Brief description of the entity and their role' },
-                        image_url: { type: 'string', description: 'Public image URL if available (e.g., Wikipedia, official sources)' },
-                        additional_info: { type: 'string', description: 'Additional context: title, position, country, etc.' }
+                        image_url: { type: 'string', description: 'URL to a photo/image of the entity (for persons: Wikipedia, official sites; for organizations: logo)' },
+                        title: { type: 'string', description: 'Official title or position (e.g., "Minister of Defense", "CEO")' },
+                        country: { type: 'string', description: 'Country or nationality associated with this entity' },
+                        influence_score: { 
+                          type: 'number', 
+                          description: 'Political/strategic influence score 1-10 based on position and reach',
+                          minimum: 1,
+                          maximum: 10
+                        }
                       },
                       required: ['id', 'name', 'type', 'importance'],
                       additionalProperties: false
@@ -93,14 +112,22 @@ serve(async (req) => {
                     items: {
                       type: 'object',
                       properties: {
-                        source: { type: 'string', description: 'Source entity ID' },
-                        target: { type: 'string', description: 'Target entity ID' },
-                        relationship: { type: 'string', description: 'Type of relationship' },
+                        source: { type: 'string', description: 'ID of the source entity' },
+                        target: { type: 'string', description: 'ID of the target entity' },
+                        relationship: { 
+                          type: 'string', 
+                          description: 'Type of relationship: hierarchical (reports_to, commands), organizational (works_for, member_of), political (supports, opposes, allied_with), geographical (based_in, operates_in), temporal (preceded_by, caused)'
+                        },
                         strength: { 
                           type: 'number', 
-                          description: 'Strength of relationship from 1-10',
+                          description: 'Relationship strength 1-10: frequency of co-mention, directness of link, strategic importance',
                           minimum: 1,
                           maximum: 10
+                        },
+                        direction: {
+                          type: 'string',
+                          enum: ['bidirectional', 'directional'],
+                          description: 'Whether the relationship goes both ways or is one-directional'
                         }
                       },
                       required: ['source', 'target', 'relationship', 'strength'],
