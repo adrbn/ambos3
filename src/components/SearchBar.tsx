@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
+import SearchLoadingAnimation from "@/components/SearchLoadingAnimation";
 
 interface SearchBarProps {
   onSearch: (query: string, articles: any[], analysis: any) => void;
@@ -54,17 +55,20 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
       let finalQuery = queryToUse;
       
       if (enableQueryEnrichment && sourceType === 'news') {
-        toast.info("Enrichissement de la requête...", { duration: 2000 });
+        // Simplified toast - no technical details
+        // toast.info("Enrichissement de la requête...", { duration: 2000 });
         const { data: enrichData, error: enrichError } = await supabase.functions.invoke('enrich-query', {
           body: { query: queryToUse, language, sourceType, osintPlatforms: osintSources }
         });
 
         if (enrichError || !enrichData?.enrichedQuery) {
           console.error('Erreur enrichissement:', enrichError);
-          toast.warning("Enrichissement échoué, utilisation de la requête simple");
+          // Silently fallback - no need to bother user
+          // toast.warning("Enrichissement échoué, utilisation de la requête simple");
         } else {
           finalQuery = enrichData.enrichedQuery;
-          toast.success(`Requête enrichie : ${finalQuery.substring(0, 80)}...`, { duration: 3000 });
+          // Don't show enriched query details - clutters UI
+          // toast.success(`Requête enrichie : ${finalQuery.substring(0, 80)}...`, { duration: 3000 });
         }
       }
 
@@ -98,14 +102,18 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
             
             if (error) {
               console.error(`Error fetching from ${source}:`, error);
-              toast.error(`Erreur ${source}: ${error.message}`);
+              // Simplified error message - no technical details
+              console.error(`Erreur ${source}:`, error);
+              // toast.error(`Source ${source} indisponible`);
               return { articles: [] };
             }
             
             // Check for error in response data
             if (data?.error) {
               console.error(`${source} returned error:`, data);
-              toast.warning(`${source}: ${data.error}`);
+              // Simplified warning - no technical details
+              console.warn(`${source}:`, data.error);
+              // toast.warning(`Source ${source}: erreur`);
               return { articles: [] };
             }
             
@@ -288,6 +296,9 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
           t('searchButton')
         )}
       </Button>
+
+      {/* Beautiful Loading Animation */}
+      {isLoading && <SearchLoadingAnimation language={language} />}
     </div>
   );
 };

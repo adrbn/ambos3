@@ -6,11 +6,16 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "noImplicitAny": false,
-    "noUnusedParameters": false,
+    // Gradually enable strict mode
+    "strict": false, // TODO: Enable after fixing existing issues
+    "noImplicitAny": true,  // Enabled: Catch implicit any types
+    "strictNullChecks": true, // Enabled: Catch null/undefined issues
+    "noUnusedParameters": true, // Enabled: Warn about unused parameters
+    "noUnusedLocals": true, // Enabled: Warn about unused variables
+    "noImplicitReturns": true, // Enabled: Functions must return value
+    "noFallthroughCasesInSwitch": true, // Enabled: Switch statements must have breaks
     "skipLibCheck": true,
     "allowJs": true,
-    "noUnusedLocals": false,
-    "strictNullChecks": false
+    "forceConsistentCasingInFileNames": true // Enabled: Consistent file names
   }
 }

@@ -2,15 +2,18 @@ import { useState } from "react";
 import { Filter, ExternalLink, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
+import { ArticleListSkeleton } from "@/components/LoadingSkeleton";
 
 interface DataFeedModuleProps {
   articles: any[];
   language: Language;
+  isLoading?: boolean;
 }
 
-const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
+const DataFeedModule = ({ articles, language, isLoading = false }: DataFeedModuleProps) => {
   const [filter, setFilter] = useState<'all' | 'recent' | 'trending' | 'twitter' | 'bluesky' | 'mastodon' | 'press'>('all');
   const { t } = useTranslation(language);
 
@@ -91,6 +94,21 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
 
   const filteredArticles = getFilteredArticles();
 
+  if (isLoading) {
+    return (
+      <div className="hud-panel h-full flex flex-col">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+            <span className="alert-indicator"></span>
+            {t('dataFeed').toUpperCase()}
+          </h2>
+          <Filter className="w-3 h-3 text-primary/70" />
+        </div>
+        <ArticleListSkeleton count={5} />
+      </div>
+    );
+  }
+
   return (
     <div className="hud-panel h-full flex flex-col">
       <div className="flex items-center justify-between mb-2">
@@ -102,30 +120,47 @@ const DataFeedModule = ({ articles, language }: DataFeedModuleProps) => {
       </div>
 
       <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <Button
-          variant={filter === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('all')}
-          className="text-xs h-7"
-        >
-          {t('allFeeds')}
-        </Button>
-        <Button
-          variant={filter === 'recent' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('recent')}
-          className="text-xs h-7"
-        >
-          {t('recent')} (&lt;24h)
-        </Button>
-        <Button
-          variant={filter === 'trending' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('trending')}
-          className="text-xs h-7"
-        >
-          {t('trending')} (🔥)
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={filter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('all')}
+              className="text-xs h-7"
+            >
+              {t('allFeeds')}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Afficher tous les articles</TooltipContent>
+        </Tooltip>
+        
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={filter === 'recent' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('recent')}
+              className="text-xs h-7"
+            >
+              {t('recent')} (&lt;24h)
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Articles des dernières 24 heures</TooltipContent>
+        </Tooltip>
+        
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={filter === 'trending' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('trending')}
+              className="text-xs h-7"
+            >
+              {t('trending')} (🔥)
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Articles avec fort engagement</TooltipContent>
+        </Tooltip>
         <div className="w-px h-5 bg-border mx-1"></div>
         <Button
           variant={filter === 'press' ? 'default' : 'outline'}

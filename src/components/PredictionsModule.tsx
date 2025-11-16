@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { TrendingUp, AlertTriangle, Info } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
+import PredictionDetailDialog from "./PredictionDetailDialog";
 
 interface Prediction {
   scenario: string;
@@ -8,6 +10,8 @@ interface Prediction {
   timeframe: string;
   confidence_factors?: string;
   risk_level?: 'critical' | 'high' | 'moderate' | 'low';
+  reasoning?: string;
+  impact?: string;
 }
 
 interface Sentiment {
@@ -23,6 +27,9 @@ interface PredictionsModuleProps {
 
 const PredictionsModule = ({ predictions, sentiment, language }: PredictionsModuleProps) => {
   const { t } = useTranslation(language);
+  const [selectedPrediction, setSelectedPrediction] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [analysisContext] = useState({ sentiment }); // Pass sentiment for weak signals context
   
   const getProbabilityColor = (prob: string) => {
     switch (prob) {
@@ -65,7 +72,11 @@ const PredictionsModule = ({ predictions, sentiment, language }: PredictionsModu
             {predictions.map((pred, index) => (
               <div
                 key={index}
-                className="p-3 bg-card/30 border border-primary/20 rounded hover:border-primary/40 transition-all"
+                className="p-3 bg-card/30 border border-primary/20 rounded hover:border-primary/40 transition-all cursor-pointer hover:bg-card/50"
+                onClick={() => {
+                  setSelectedPrediction(pred);
+                  setIsDialogOpen(true);
+                }}
               >
                 <div className="flex items-start gap-2 mb-2">
                   <span className={getProbabilityColor(pred.probability)}>
@@ -119,6 +130,22 @@ const PredictionsModule = ({ predictions, sentiment, language }: PredictionsModu
         <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
           {t('noPredictions')}
         </div>
+      )}
+
+      {/* Prediction Detail Dialog */}
+      <PredictionDetailDialog
+        prediction={selectedPrediction}
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        language={language}
+        analysisContext={analysisContext}
+      />
+
+      {/* Click hint */}
+      {predictions && predictions.length > 0 && (
+        <p className="text-[10px] text-muted-foreground mt-2 text-center">
+          💡 Cliquez sur une prédiction pour voir les détails et signaux faibles
+        </p>
       )}
     </div>
   );

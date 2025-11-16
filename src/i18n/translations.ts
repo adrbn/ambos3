@@ -2,11 +2,11 @@ export const translations = {
   fr: {
     // Header
     appName: "AmbOS",
-    appSubtitle: "OSINT Command Center v2.0",
-    status: "Standby",
-    saveLayout: "Save Layout",
-    loadLayout: "Load Layout",
-    reset: "Reset",
+    appSubtitle: "Centre de Commande OSINT v2.0",
+    status: "En veille",
+    saveLayout: "Sauvegarder la disposition",
+    loadLayout: "Charger une disposition",
+    reset: "Réinitialiser",
     settings: "Paramètres",
     
     // Tabs

@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
+import LayoutManager from "@/components/LayoutManager";
 
 interface SettingsDialogProps {
   selectedApi: 'gnews' | 'newsapi' | 'mediastack' | 'mixed';
@@ -24,9 +25,27 @@ interface SettingsDialogProps {
   onEnableQueryEnrichmentChange: (enabled: boolean) => void;
   theme: 'default' | 'light' | 'girly';
   onThemeChange: (theme: 'default' | 'light' | 'girly') => void;
+  savedLayouts?: any[];
+  onSaveLayout?: (name: string) => void;
+  onLoadLayout?: (name: string) => void;
+  onResetLayout?: () => void;
+  currentLayoutName?: string | null;
 }
 
-const SettingsDialog = ({ selectedApi, onApiChange, language, enableQueryEnrichment, onEnableQueryEnrichmentChange, theme, onThemeChange }: SettingsDialogProps) => {
+const SettingsDialog = ({ 
+  selectedApi, 
+  onApiChange, 
+  language, 
+  enableQueryEnrichment, 
+  onEnableQueryEnrichmentChange, 
+  theme, 
+  onThemeChange,
+  savedLayouts,
+  onSaveLayout,
+  onLoadLayout,
+  onResetLayout,
+  currentLayoutName
+}: SettingsDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [tempApi, setTempApi] = useState<'gnews' | 'newsapi' | 'mediastack' | 'mixed'>(selectedApi);
   const [tempEnrichment, setTempEnrichment] = useState(enableQueryEnrichment);
@@ -101,6 +120,35 @@ const SettingsDialog = ({ selectedApi, onApiChange, language, enableQueryEnrichm
           </div>
 
           <Separator className="my-4" />
+
+          {/* Layout Management */}
+          {(savedLayouts || onSaveLayout || onLoadLayout || onResetLayout) && (
+            <>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground mb-3">📐 Gestion du layout</h3>
+                <LayoutManager
+                  savedLayouts={savedLayouts || []}
+                  onSave={onSaveLayout || (() => {})}
+                  onLoad={onLoadLayout || (() => {})}
+                  currentLayoutName={currentLayoutName}
+                />
+                {onResetLayout && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      onResetLayout();
+                      toast.success('Layout réinitialisé');
+                    }}
+                    className="w-full mt-2"
+                  >
+                    🔄 Réinitialiser le layout
+                  </Button>
+                )}
+              </div>
+              <Separator className="my-4" />
+            </>
+          )}
 
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-3">⚙️ Menu développeur</h3>

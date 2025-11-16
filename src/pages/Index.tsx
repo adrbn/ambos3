@@ -32,15 +32,17 @@ import ServiceStatusIndicator from "@/components/ServiceStatusIndicator";
 import ResizableDraggableModule from "@/components/ResizableDraggableModule";
 import LayoutManager from "@/components/LayoutManager";
 import ReportGenerator from "@/components/ReportGenerator";
+import { AppNavigationMenu } from "@/components/NavigationMenu";
 import { useLayoutConfig, ModuleId } from "@/hooks/useLayoutConfig";
 import { useSavedLayouts } from "@/hooks/useSavedLayouts";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { Language } from "@/i18n/translations";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, UserCog } from "lucide-react";
+import { LogOut, UserCog, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 type ApiSource = 'gnews' | 'newsapi' | 'mediastack' | 'mixed';
@@ -57,6 +59,7 @@ const Index = () => {
   const [theme, setTheme] = useState<'default' | 'light' | 'girly'>('default');
   const { user, isAdmin, isLoading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  const { addToHistory, goBack, goForward, canGoBack, canGoForward } = useSearchHistory();
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -135,9 +138,31 @@ const Index = () => {
     setCurrentQuery(query);
     setArticles(fetchedArticles);
     setAnalysis(analysisData);
+    // Save to history
+    addToHistory(query, fetchedArticles, analysisData, language);
     // Clear current watch if it's a manual search (not from a watch)
     if (!currentWatch || query !== currentQuery) {
       setCurrentWatch(null);
+    }
+  };
+
+  const handleHistoryBack = () => {
+    const previous = goBack();
+    if (previous) {
+      setCurrentQuery(previous.query);
+      setArticles(previous.articles);
+      setAnalysis(previous.analysis);
+      toast.info(`Retour à: ${previous.query}`);
+    }
+  };
+
+  const handleHistoryForward = () => {
+    const next = goForward();
+    if (next) {
+      setCurrentQuery(next.query);
+      setArticles(next.articles);
+      setAnalysis(next.analysis);
+      toast.info(`Suivant: ${next.query}`);
     }
   };
 
@@ -266,7 +291,7 @@ const Index = () => {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="bg-card/50 border-b border-primary/30 px-2 sm:px-4 py-2 backdrop-blur-sm">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
             <div>
@@ -279,6 +304,29 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
+            {/* History Navigation */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleHistoryBack}
+                disabled={!canGoBack}
+                className="h-8 px-2"
+                title="Retour (Alt+←)"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleHistoryForward}
+                disabled={!canGoForward}
+                className="h-8 px-2"
+                title="Suivant (Alt+→)"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
             {articles.length > 0 && (
               <ReportGenerator
                 articles={articles}
@@ -287,23 +335,6 @@ const Index = () => {
                 language={language}
               />
             )}
-            <div className="hidden lg:flex items-center gap-2">
-              <LayoutManager
-                savedLayouts={savedLayouts}
-                onSave={handleSaveLayout}
-                onLoad={handleLoadLayout}
-                currentLayoutName={currentLayoutName}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleResetLayout}
-                className="text-xs"
-              >
-                <RotateCcw className="w-3 h-3 mr-1" />
-                {t('reset')}
-              </Button>
-            </div>
             <SettingsDialog 
               selectedApi={selectedApi} 
               onApiChange={setSelectedApi} 
@@ -312,6 +343,11 @@ const Index = () => {
               onEnableQueryEnrichmentChange={setEnableQueryEnrichment}
               theme={theme}
               onThemeChange={setTheme}
+              savedLayouts={savedLayouts}
+              onSaveLayout={handleSaveLayout}
+              onLoadLayout={handleLoadLayout}
+              onResetLayout={handleResetLayout}
+              currentLayoutName={currentLayoutName}
             />
             <LanguageSelector language={language} onLanguageChange={handleLanguageChange} />
             <ServiceStatusIndicator />
@@ -343,24 +379,10 @@ const Index = () => {
             </div>
           </div>
         </div>
-        {/* Mobile layout controls */}
-        <div className="lg:hidden flex items-center gap-2 mt-2">
-          <LayoutManager
-            savedLayouts={savedLayouts}
-            onSave={handleSaveLayout}
-            onLoad={handleLoadLayout}
-            currentLayoutName={currentLayoutName}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleResetLayout}
-                className="text-xs"
-              >
-                <RotateCcw className="w-3 h-3 mr-1" />
-                {t('reset')}
-              </Button>
-            </div>
+        {/* Navigation Menu */}
+        <div className="flex items-center justify-center">
+          <AppNavigationMenu language={language} />
+        </div>
       </header>
 
       {/* Tabs: Search and Sector Watches */}
@@ -400,7 +422,7 @@ const Index = () => {
         </Tabs>
       </div>
 
-      {/* Main Grid - Resizable & Draggable Layout */}
+      {/* Main Grid - Full Screen Responsive Layout */}
       <main className="flex-1 px-2 sm:px-4 pb-2 sm:pb-3 overflow-auto">
         <DndContext
           sensors={sensors}
@@ -411,23 +433,43 @@ const Index = () => {
             items={layout.moduleOrder}
             strategy={rectSortingStrategy}
           >
-            <div className="flex flex-col lg:flex-row lg:flex-wrap gap-3 lg:gap-2">
+            {/* RESPONSIVE GRID - Fills screen, smart layout */}
+            <div 
+              className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 w-full"
+              style={{
+                gridAutoRows: '380px', // Same height for all
+                gridAutoFlow: 'dense' // Fill gaps
+              }}
+            >
               {layout.moduleOrder.map((moduleId) => {
                 const savedSize = moduleSizes[moduleId];
                 const hasContent = articles.length > 0;
                 
-                // Don't render empty modules
                 if (!hasContent) return null;
+                
+                // Column spanning - Map large, others standard
+                const getColSpan = (id: ModuleId) => {
+                  switch (id) {
+                    case 'map':
+                      return 'lg:col-span-2'; // Map seul = 2 colonnes (important)
+                    case 'network-graph':
+                      return ''; // 1 colonne (moins pertinent)
+                    case 'datafeed':
+                      return ''; // 1 colonne
+                    default:
+                      return ''; // 1 colonne
+                  }
+                };
                 
                 return (
                   <div 
                     key={moduleId} 
-                    className="w-full lg:w-auto"
+                    className={`${getColSpan(moduleId)} h-full w-full`}
                   >
                     <ResizableDraggableModule
                       id={moduleId}
                       initialWidth={savedSize?.width || 460}
-                      initialHeight={savedSize?.height || 345}
+                      initialHeight={380}
                       onResize={(w, h) => handleModuleResize(moduleId, w, h)}
                     >
                       {getModuleComponent(moduleId)}

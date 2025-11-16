@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { X } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
 
 interface Node {
   id: string;
@@ -38,6 +37,7 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
   const [activeTab, setActiveTab] = useState<string>('person');
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<any>(null);
+  const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
 
   useEffect(() => {
     if (!isEnabled || articles.length === 0) return;
@@ -96,28 +96,7 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
     }
   };
 
-  if (!isEnabled) {
-    return (
-      <div className="hud-panel p-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xs font-bold text-primary uppercase tracking-wider">
-          GRAPHE RELATIONNEL
-        </h2>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="graph-toggle" className="text-[10px] text-muted-foreground cursor-pointer">
-              OFF
-            </Label>
-            <Switch 
-              id="graph-toggle"
-              checked={isEnabled}
-              onCheckedChange={setIsEnabled}
-              className="data-[state=checked]:bg-primary"
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Always enabled - removed toggle, just show refresh if needed
 
   // Filtrer les données selon l'onglet actif
   const getFilteredData = () => {
@@ -137,17 +116,46 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
         <h2 className="text-xs font-bold text-primary uppercase tracking-wider">
           GRAPHE RELATIONNEL
         </h2>
-        <div className="flex items-center gap-2">
-          <Label htmlFor="graph-toggle" className="text-[10px] text-muted-foreground cursor-pointer">
-            ON
-          </Label>
-          <Switch 
-            id="graph-toggle"
-            checked={isEnabled}
-            onCheckedChange={setIsEnabled}
-            className="data-[state=checked]:bg-primary"
-          />
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            setGraphData({ nodes: [], links: [] });
+            setIsLoading(true);
+            setTimeout(() => {
+              setIsEnabled(true);
+              // Force re-extraction
+              const extractEntities = async () => {
+                try {
+                  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-entities`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                    },
+                    body: JSON.stringify({ articles }),
+                  });
+                  const data = await response.json();
+                  const filteredNodes = data.nodes.filter((node: Node) => node.importance >= 6);
+                  const nodeIds = new Set(filteredNodes.map((n: Node) => n.id));
+                  const filteredLinks = data.links.filter((link: Link) => 
+                    link.strength >= 3 && nodeIds.has(link.source) && nodeIds.has(link.target)
+                  );
+                  setGraphData({ nodes: filteredNodes, links: filteredLinks });
+                } catch (error) {
+                  console.error('Error:', error);
+                } finally {
+                  setIsLoading(false);
+                }
+              };
+              extractEntities();
+            }, 100);
+          }}
+          className="h-7 w-7"
+          title="Recharger le graphe"
+        >
+          <RefreshCw className="w-3 h-3" />
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-2">
@@ -190,36 +198,87 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
               const fontSize = 12 / globalScale;
               const nodeSize = Math.max(4, (node.importance || 5) + (node.influence_score || 0) * 0.5);
               
-              // For persons with images, try to draw the image (simplified - in production use proper image loading)
-              if (node.type === 'person' && node.image_url) {
-                // Draw circular avatar placeholder
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI, false);
-                ctx.fillStyle = getNodeColor(node.type);
-                ctx.fill();
-                ctx.strokeStyle = node.influence_score > 7 ? '#FFD700' : '#fff';
-                ctx.lineWidth = node.influence_score > 7 ? 2 : 1;
-                ctx.stroke();
+              ctx.save();
+              
+              // Try to draw image if available
+              if (node.image_url && node.type === 'person') {
+                let img = imageCache.current.get(node.image_url);
+                
+                if (!img) {
+                  // Create and cache image
+                  img = new Image();
+                  img.crossOrigin = 'anonymous';
+                  img.src = node.image_url;
+                  imageCache.current.set(node.image_url, img);
+                  
+                  // Redraw when image loads
+                  img.onload = () => {
+                    if (graphRef.current) {
+                      graphRef.current.refresh();
+                    }
+                  };
+                }
+                
+                // If image is loaded, draw it in circle
+                if (img.complete && img.naturalWidth > 0) {
+                  ctx.beginPath();
+                  ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI);
+                  ctx.closePath();
+                  ctx.clip();
+                  ctx.drawImage(img, node.x - nodeSize, node.y - nodeSize, nodeSize * 2, nodeSize * 2);
+                  ctx.restore();
+                  ctx.save();
+                  
+                  // Border around image
+                  ctx.beginPath();
+                  ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI);
+                  ctx.strokeStyle = node.influence_score > 7 ? '#FFD700' : '#00D9FF';
+                  ctx.lineWidth = 2 / globalScale;
+                  ctx.stroke();
+                } else {
+                  // Fallback: draw colored circle
+                  ctx.beginPath();
+                  ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI);
+                  ctx.closePath();
+                  ctx.fillStyle = getNodeColor(node.type);
+                  ctx.fill();
+                  ctx.strokeStyle = node.influence_score > 7 ? '#FFD700' : '#fff';
+                  ctx.lineWidth = node.influence_score > 7 ? 2 / globalScale : 1 / globalScale;
+                  ctx.stroke();
+                }
               } else {
-                // Draw regular node circle
+                // Regular circle for non-person nodes
                 ctx.beginPath();
-                ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI, false);
+                ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI);
+                ctx.closePath();
                 ctx.fillStyle = getNodeColor(node.type);
                 ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1 / globalScale;
+                ctx.stroke();
               }
               
-              // Draw label with title if available
+              ctx.restore();
+              
+              // Draw label
+              ctx.save();
               ctx.font = `${fontSize}px Orbitron, sans-serif`;
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
               ctx.fillStyle = '#fff';
+              ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+              ctx.lineWidth = 3;
+              ctx.strokeText(label, node.x, node.y + nodeSize + fontSize);
               ctx.fillText(label, node.x, node.y + nodeSize + fontSize);
               
               if (node.title && globalScale > 2) {
                 ctx.font = `${fontSize * 0.8}px Orbitron, sans-serif`;
                 ctx.fillStyle = '#aaa';
+                ctx.strokeText(node.title, node.x, node.y + nodeSize + fontSize * 2);
                 ctx.fillText(node.title, node.x, node.y + nodeSize + fontSize * 2);
               }
+              
+              ctx.restore();
             }}
             nodePointerAreaPaint={(node: any, color, ctx) => {
               const nodeSize = Math.max(4, (node.importance || 5) + (node.influence_score || 0) * 0.5);
