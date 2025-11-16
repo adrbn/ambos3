@@ -1,0 +1,86 @@
+# ========================================
+# AMBOS Docker Compose - Development
+# ========================================
+# For production, use Kubernetes or managed services
+
+version: '3.9'
+
+services:
+  # Main Application
+  ambos-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+        VITE_APP_DOMAIN: ${VITE_APP_DOMAIN}
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - ambos-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for caching (optional but recommended)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - ambos-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # PostgreSQL (if not using Supabase)
+  # Uncomment if you want to self-host the database
+  # postgres:
+  #   image: postgres:15-alpine
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     POSTGRES_DB: ambos
+  #     POSTGRES_USER: ambos
+  #     POSTGRES_PASSWORD: ${SUPABASE_DB_PASSWORD}
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #     - ./supabase/migrations:/docker-entrypoint-initdb.d
+  #   restart: unless-stopped
+  #   networks:
+  #     - ambos-network
+
+  # Nginx reverse proxy (optional, for SSL termination)
+  # nginx-proxy:
+  #   image: nginx:alpine
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx-proxy.conf:/etc/nginx/nginx.conf
+  #     - ./ssl:/etc/nginx/ssl
+  #   depends_on:
+  #     - ambos-web
+  #   restart: unless-stopped
+  #   networks:
+  #     - ambos-network
+
+networks:
+  ambos-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  # postgres-data:
