@@ -1,10 +1,8 @@
-# 🛡️ AMBOS - Advanced Multi-source Biosecurity OSINT System
+# <img src="./docs/AMBOS_logo.png" alt="AMBOS Dashboard" width="13%">  //  Advanced Multi-source Biosecurity OSINT System
 
 **Version 2.0** | Independent Production-Ready Deployment
 
 AMBOS is a cutting-edge Open Source Intelligence (OSINT) platform designed for defense, intelligence, and security organizations. It aggregates and analyzes information from multiple sources using AI to provide actionable intelligence.
-
-![AMBOS Dashboard](./docs/AMBOS_logo.png)
 
 ---
 
