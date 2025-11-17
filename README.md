@@ -4,7 +4,7 @@
 
 AMBOS is a cutting-edge Open Source Intelligence (OSINT) platform designed for defense, intelligence, and security organizations. It aggregates and analyzes information from multiple sources using AI to provide actionable intelligence.
 
-![AMBOS Dashboard](./docs/screenshot.png)
+![AMBOS Dashboard](./docs/AMBOS_logo.png)
 
 ---
 
