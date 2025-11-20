@@ -46,6 +46,7 @@ import { LogOut, UserCog, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 type ApiSource = 'gnews' | 'newsapi' | 'mediastack' | 'mixed';
+type SourceMode = 'news' | 'osint' | 'military';
 
 const Index = () => {
   const [currentQuery, setCurrentQuery] = useState<string>("");
@@ -54,8 +55,9 @@ const Index = () => {
   const [language, setLanguage] = useState<Language>("fr");
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [selectedApi, setSelectedApi] = useState<ApiSource>('mixed');
-  const [sourceType, setSourceType] = useState<'news' | 'osint'>('news');
+  const [sourceMode, setSourceMode] = useState<SourceMode>('news');
   const [osintSources, setOsintSources] = useState<string[]>(['mastodon', 'bluesky', 'gopher', 'google']);
+  const [pressSources, setPressSources] = useState<string[]>(['newsapi', 'mediastack', 'gnews']);
   const [theme, setTheme] = useState<'default' | 'light' | 'girly'>('default');
   const { user, isAdmin, isLoading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -203,29 +205,29 @@ const Index = () => {
     setCurrentQuery(queryToUse);
     
     // Configure source type and sources based on watch configuration
-    const sourceMode = watch.source_mode || 'press';
-    const pressSources = watch.press_sources || ['newsapi'];
+    const watchSourceMode = watch.source_mode || 'press';
+    const watchPressSources = watch.press_sources || ['newsapi'];
     const osintSrcs = watch.osint_sources || [];
     
-    if (sourceMode === 'press') {
-      setSourceType('news');
+    if (watchSourceMode === 'press') {
+      setSourceMode('news');
       setActiveTab("search");
       // Set the API based on first press source if available
-      if (pressSources.length > 0) {
-        const firstApi = pressSources[0];
+      if (watchPressSources.length > 0) {
+        const firstApi = watchPressSources[0];
         if (['gnews', 'newsapi', 'mediastack'].includes(firstApi)) {
           setSelectedApi(firstApi as ApiSource);
         } else {
           setSelectedApi('mixed');
         }
       }
-    } else if (sourceMode === 'osint') {
-      setSourceType('osint');
+    } else if (watchSourceMode === 'osint') {
+      setSourceMode('osint');
       setActiveTab("search"); // Switch to search tab (which should have OSINT mode)
       setOsintSources(osintSrcs);
-    } else if (sourceMode === 'both') {
+    } else if (watchSourceMode === 'both') {
       // For "both" mode, use mixed press sources
-      setSourceType('news');
+      setSourceMode('news');
       setActiveTab("search");
       setSelectedApi('mixed');
     }
@@ -388,14 +390,19 @@ const Index = () => {
       {/* Tabs: Search and Sector Watches */}
       <div className="px-2 sm:px-4 py-2 sm:py-3">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-3">
-            <TabsTrigger value="search" className="flex items-center gap-2">
-              <Search className="w-4 h-4" />
+          <TabsList className="grid w-full grid-cols-3 mb-3">
+            <TabsTrigger value="search" className="flex items-center gap-2 text-xs sm:text-sm">
+              <Search className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">{t('classicSearch')}</span>
               <span className="sm:hidden">{t('search')}</span>
             </TabsTrigger>
-            <TabsTrigger value="watches" className="flex items-center gap-2">
-              <BookmarkPlus className="w-4 h-4" />
+            <TabsTrigger value="military" className="flex items-center gap-1 text-xs sm:text-sm">
+              🎖️
+              <span className="hidden sm:inline">{t('militaryRss')}</span>
+              <span className="sm:hidden">Mil.</span>
+            </TabsTrigger>
+            <TabsTrigger value="watches" className="flex items-center gap-2 text-xs sm:text-sm">
+              <BookmarkPlus className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">{t('sectorWatches')}</span>
               <span className="sm:hidden">{t('watches')}</span>
             </TabsTrigger>
@@ -407,11 +414,29 @@ const Index = () => {
               currentQuery={currentQuery} 
               searchTrigger={searchTrigger}
               selectedApi={selectedApi}
-              sourceType={sourceType}
-              onSourceTypeChange={setSourceType}
+              sourceMode={sourceMode}
+              onSourceModeChange={setSourceMode}
               osintSources={osintSources}
               onOsintSourcesChange={setOsintSources}
+              pressSources={pressSources}
+              onPressSourcesChange={setPressSources}
               enableQueryEnrichment={enableQueryEnrichment}
+            />
+          </TabsContent>
+          <TabsContent value="military" className="mt-0">
+            <SearchBar 
+              onSearch={handleSearch} 
+              language={language} 
+              currentQuery={currentQuery} 
+              searchTrigger={searchTrigger}
+              selectedApi={selectedApi}
+              sourceMode={'military'}
+              onSourceModeChange={setSourceMode}
+              osintSources={['military-rss']}
+              onOsintSourcesChange={() => {}}
+              pressSources={pressSources}
+              onPressSourcesChange={setPressSources}
+              enableQueryEnrichment={false}
             />
           </TabsContent>
           <TabsContent value="watches" className="mt-0">
