@@ -123,8 +123,15 @@ const MapModule = ({ articles, language }: MapModuleProps) => {
 
     if (articles.length === 0) return;
 
-    // Extraire les localisations via AI
-    const extractLocations = async () => {
+    // Delay to avoid rate limiting - let analyze-news and extract-entities finish first
+    const timeoutId = setTimeout(() => {
+      extractLocations();
+    }, 6000); // Wait 6 seconds before calling extract-locations
+
+    return () => clearTimeout(timeoutId);
+  }, [articles, isMapReady, isEnabled]);
+
+  const extractLocations = async () => {
       try {
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-locations`, {
           method: 'POST',
@@ -217,10 +224,7 @@ const MapModule = ({ articles, language }: MapModuleProps) => {
       } catch (error) {
         console.error('Error in location extraction:', error);
       }
-    };
-
-    extractLocations();
-  }, [articles, isMapReady, isEnabled]);
+  };
 
   // Si désactivé, afficher un bloc réduit
   if (!isEnabled) {
