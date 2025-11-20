@@ -145,8 +145,8 @@ serve(async (req) => {
       }
     };
 
-    // Batch processing: divide articles into groups of 6 to reduce TPM load
-    const BATCH_SIZE = 6;
+    // Batch processing: divide articles into groups of 10 for better performance
+    const BATCH_SIZE = 10;
     const articleBatches: any[][] = [];
     for (let i = 0; i < articles.length; i += BATCH_SIZE) {
       articleBatches.push(articles.slice(i, i + BATCH_SIZE));
@@ -162,8 +162,8 @@ serve(async (req) => {
 
       // Add delay between batches to respect Gemini rate limits (except for first batch)
       if (i > 0) {
-        console.log('Waiting 3 seconds before next batch to respect rate limits...');
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        console.log('Waiting 1 second before next batch to respect rate limits...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
       const userContent = `Query: "${query}"\n\nArticles:\n${batch.map((article: any, idx: number) => {
@@ -173,7 +173,7 @@ serve(async (req) => {
       }).join('\n\n')}`;
 
       const response = await fetchWithRetry(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: {
