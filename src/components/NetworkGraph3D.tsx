@@ -43,10 +43,10 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
   useEffect(() => {
     if (!isEnabled || articles.length === 0) return;
 
-    // Delay to avoid rate limiting - let analyze-news finish first
+    // Delay to avoid rate limiting - let analyze-news fully complete (15s)
     const timeoutId = setTimeout(() => {
       extractEntities();
-    }, 4000); // Wait 4 seconds before calling extract-entities
+    }, 15000); // Wait 15 seconds before calling extract-entities
 
     return () => clearTimeout(timeoutId);
   }, [articles, isEnabled]);

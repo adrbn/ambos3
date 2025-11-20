@@ -49,12 +49,12 @@ serve(async (req) => {
       throw new Error('GROQ_API_KEY not configured');
     }
 
-    // Préparer le contenu des articles pour l'analyse
-    const articlesText = articles.slice(0, 15).map((article: any, idx: number) => 
+    // Préparer le contenu des articles pour l'analyse (limited to 10 to reduce load)
+    const articlesText = articles.slice(0, 10).map((article: any, idx: number) => 
       `Article ${idx + 1}:\nTitle: ${article.title}\nDescription: ${article.description || ''}\nContent: ${article.content?.substring(0, 500) || ''}`
     ).join('\n\n');
 
-    console.log('Extracting entities and relationships from articles...');
+    console.log(`Extracting entities and relationships from ${Math.min(articles.length, 10)} articles...`);
 
     // Call OpenAI to extract entities and relationships
     const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', {
