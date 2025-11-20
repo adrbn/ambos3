@@ -39,117 +39,31 @@ serve(async (req) => {
     const hasWeb = webCount > 0;
     const hasMixedSources = hasWeb && hasSocial;
 
-    // --- PROMPTS SYSTÈME MIS À JOUR ---
-    const osintSocialSystem = {
-      en: `You are an OSINT analyst specializing in social media intelligence and **weak signal detection**. CRITICAL: These are SOCIAL MEDIA posts (BlueSky, Mastodon, X/Twitter, Reddit) — NOT verified news sources. Focus on: **community pulse (mood)**, **emerging/dissonant narratives**, **significant divergences/convergences**, **weak signals**, credibility and volatility. For PREDICTIONS: base them on REALISTIC probabilities considering historical patterns, geopolitical context, and expert consensus. Avoid pure speculation. Answer in English. Return valid JSON only.`,
-      fr: `Vous êtes un analyste du renseignement en sources ouvertes (OSINT) spécialisé dans la veille sur les réseaux sociaux pour identifier des **signaux faibles** et des **tendances sensibles**. CRITIQUE : Ce sont des posts de RÉSEAUX SOCIAUX (BlueSky, Mastodon, X/Twitter, Reddit) — **NON** des sources journalistiques vérifiées. Concentrez-vous sur : le **pouls communautaire (mood)**, les **récits et thèmes émergents/dissonants**, les **divergences/convergences significatives**, les **signaux faibles** (information peu discutée mais potentiellement cruciale), la **crédibilité perçue** et la **volatilité du discours**. Pour les PRÉDICTIONS : basez-vous sur des probabilités RÉALISTES en tenant compte des schémas historiques, du contexte géopolitique et du consensus d'experts. Évitez la pure spéculation. Répondez en français. JSON valide uniquement.`,
-      it: `Sei un analista OSINT specializzato in social media e **individuazione di segnali deboli**. CRITICO: Post dei SOCIAL (BlueSky, Mastodon, X/Twitter, Reddit) — NON fonti giornalistiche verificate. Focus: **polso comunità**, **narrazioni emergenti/dissonanti**, **divergenze/convergenze significative**, **segnali deboli**, credibilità e volatilità. Per le PREVISIONI: basa su probabilità REALISTICHE considerando pattern storici, contesto geopolitico e consenso esperto. Evita speculazioni pure. Rispondi in italiano. Solo JSON valido.`
-    };
-    const pressSystem = {
-      en: 'You are an intelligence analyst for verified press/media articles. Your task is to provide a factual, concise, but comprehensive synthesis, aggregating key information. Focus on identifying key facts, recent developments, main actors, and the overall context of the query. Do not make any inferences not justified by the sources. Answer in English. Return valid JSON only.',
-      fr: "Vous êtes un analyste du renseignement pour des articles de presse et des médias vérifiés. Votre tâche est de fournir une synthèse factuelle, concise, mais complète, en agrégeant les informations clés. Concentrez-vous sur l'identification des faits saillants, des développements récents, des acteurs principaux et du contexte global de la requête. Ne faites aucune inférence non justifiée par les sources. Répondez en français. JSON valide uniquement.",
-      it: "Sei un analista per articoli di stampa verificati. Il tuo compito è fornire una sintesi fattuale, concisa ma completa, aggregando le informazioni chiave. Concentrati sull'identificazione di fatti salienti, sviluppi, attori e contesto. Non fare inferenze non giustificate dalle fonti. Rispondi in italiano. Solo JSON valido."
-    };
-    const webSerpSystem = {
-      en: 'You are an expert in web search analysis (Google SERP). Your mission is to transform raw search results into a **structured, answer-oriented analysis** that directly addresses the complexity of the query. Provide an objective synthesis of themes, entities, structures, and milestones (past/future) discovered. DO NOT infer human/community sentiment. Your analysis must answer to "what, how, around what, via what milestones". Answer in English. Return valid JSON only.',
-      fr: "Vous êtes un expert en analyse de recherche web (Google SERP). Votre mission est de transformer les résultats de recherche bruts en une **analyse structurée et orientée réponse** qui adresse directement la complexité de la requête. Fournissez une synthèse objective des thèmes, entités, structures et jalons (passés/futurs) découverts. N’inférez **JAMAIS** de sentiment humain/communautaire. Votre analyse doit répondre à 'quoi, comment, autour de quoi, via quels jalons'. Répondez en français. JSON valide uniquement.",
-      it: "Sei un esperto di analisi di ricerca web (Google SERP). La tua missione è trasformare i risultati di ricerca in una **analisi strutturata e orientata alla risposta** che affronti direttamente la complessità della query. Fornisci una sintesi obiettiva di temi, entità, strutture e pietre miliari (passate/future). NON dedurre sentiment umano/comunitario. La tua analisi deve rispondere a 'cosa, come, attorno a cosa, tramite quali pietre miliari'. Rispondi in italiano. Solo JSON valido."
-    };
-
-    let systemPrompts = pressSystem;
-    if (sourceType === 'osint') {
-      if (hasOnlyWeb) {
-        systemPrompts = webSerpSystem;
-      } else if (hasMixedSources) {
-        systemPrompts = osintSocialSystem;
-      } else if (hasSocial) {
-        systemPrompts = osintSocialSystem;
-      } else {
-        systemPrompts = pressSystem;
+    // System prompts
+    const systemPrompts = {
+      osintSocial: {
+        en: `You are an OSINT analyst specializing in social media intelligence and weak signal detection. These are SOCIAL MEDIA posts (BlueSky, Mastodon, X/Twitter, Reddit) — NOT verified news sources. Focus on: community pulse (mood), emerging/dissonant narratives, significant divergences/convergences, weak signals, credibility and volatility. For PREDICTIONS: base them on REALISTIC probabilities considering historical patterns, geopolitical context, and expert consensus. Answer in English.`,
+        fr: `Vous êtes un analyste OSINT spécialisé dans la veille sur les réseaux sociaux pour identifier des signaux faibles. Ce sont des posts de RÉSEAUX SOCIAUX — NON des sources journalistiques vérifiées. Focus: pouls communautaire (mood), récits émergents/dissonants, divergences/convergences significatives, signaux faibles, crédibilité et volatilité. Pour les PRÉDICTIONS: probabilités RÉALISTES. Répondez en français.`,
+        it: `Sei un analista OSINT specializzato in social media e individuazione di segnali deboli. Post dei SOCIAL — NON fonti giornalistiche verificate. Focus: polso comunità, narrazioni emergenti/dissonanti, divergenze/convergenze, segnali deboli, credibilità e volatilità. Per le PREVISIONI: probabilità REALISTICHE. Rispondi in italiano.`
+      },
+      press: {
+        en: 'You are an intelligence analyst for verified press/media articles. Provide factual, concise, comprehensive synthesis. Focus on key facts, recent developments, main actors, and context. Answer in English.',
+        fr: 'Vous êtes analyste de renseignement pour articles de presse vérifiés. Fournissez une synthèse factuelle, concise et complète. Focus sur faits clés, développements récents, acteurs principaux et contexte. Répondez en français.',
+        it: 'Sei un analista di intelligence per articoli di stampa verificati. Fornisci sintesi fattuale, concisa e completa. Focus su fatti chiave, sviluppi recenti, attori principali e contesto. Rispondi in italiano.'
+      },
+      webSerp: {
+        en: 'You are an analyst for WEB SEARCH results (NOT social media). Provide objective structured analysis. NO human sentiment inference. Focus on facts, mechanisms, milestones, and central themes. Answer in English.',
+        fr: 'Vous êtes analyste de résultats de RECHERCHE WEB (NON réseaux sociaux). Fournissez analyse structurée objective. AUCUNE inférence de sentiment humain. Focus sur faits, mécanismes, jalons et thèmes centraux. Répondez en français.',
+        it: 'Sei un analista di risultati di RICERCA WEB (NON social media). Fornisci analisi strutturata obiettiva. NESSUNA inferenza di sentimento umano. Focus su fatti, meccanismi, pietre miliari e temi centrali. Rispondi in italiano.'
       }
-    }
-    
-    // --- PROMPTS UTILISATEUR MIS À JOUR ---
-    const osintSocialUser = {
-      en: `Provide OSINT COMMUNITY ANALYSIS in JSON (emphasize weak signals and emerging narratives):
-{
-  "entities": [{"name":"string","type":"person|organization|location|hashtag","role":"string","mentions":number}],
-  "summary": "Capture the community pulse, dominant narratives, significant divergences/convergences, perceived credibility, and volatility of the discourse. Be direct and factual about the state of the online discourse.",
-  "predictions": [{"scenario":"Based on the evolution of online discourse patterns.","probability":"high|medium|low","timeframe":"string"}],
-  "sentiment": {"community_mood":"Dominant trend of the community mood (e.g., 'Concern', 'Skepticism').","divergences":"Major viewpoints that conflict or create controversies.","convergences":"Themes and opinions on which the community largely agrees.","weak_signals":"**Weak Signals**: Information, themes, or actors scarcely mentioned, but potentially critical or signaling a change in trend. Be specific."}
-}`,
-      fr: `Fournir une ANALYSE COMMUNAUTAIRE OSINT en JSON (mettez l'accent sur les signaux faibles et les narratives émergentes):
-{
-  "entities": [{"name":"string","type":"person|organization|location|hashtag","role":"string","mentions":number}],
-  "summary": "Capturez le pouls communautaire, les récits dominants, les divergences/convergences, la crédibilité perçue et la volatilité du discours. Soyez direct et factuel sur l'état du discours en ligne.",
-  "predictions": [{"scenario":"Basé sur l'évolution des schémas de discours en ligne.","probability":"high|medium|low","timeframe":"string"}],
-  "sentiment": {"community_mood":"Tendance dominante de l'humeur communautaire (e.g. 'Inquiétude', 'Scepticisme').","divergences":"Points de vue majeurs qui s'opposent ou créent des controverses.","convergences":"Thèmes et opinions sur lesquels la communauté s'accorde largement.","weak_signals":"**Signaux faibles** : Informations, thèmes ou acteurs peu mentionnés, mais qui pourraient être d'une importance critique ou marquer un changement de tendance. Soyez précis."}
-}`,
-      it: `Fornire ANALISI OSINT COMUNITÀ in JSON (enfatizzare segnali deboli e narrazioni emergenti):
-{
-  "entities": [{"name":"string","type":"person|organization|location|hashtag","role":"string","mentions":number}],
-  "summary": "Polso della comunità, narrazioni dominanti, divergenze/convergenze significative, credibilità percepita e volatilità del discorso. Sii diretto e fattuale sullo stato del discorso online.",
-  "predictions": [{"scenario":"Basato sull'evoluzione dei modelli di discorso online.","probability":"high|medium|low","timeframe":"string"}],
-  "sentiment": {"community_mood":"Tendenza dominante dell'umore comunitario (es. 'Preoccupazione', 'Scetticismo').","divergences":"Punti di vista maggiori in conflitto o che creano controversie.","convergenze":"Temi e opinioni su cui la comunità concorda ampiamente.","weak_signals":"**Segnali Deboli**: Informazioni, temi o attori poco menzionati, ma potenzialmente critici o che segnalano un cambio di tendenza. Sii specifico."}
-}`
-    };
-    const pressUser = {
-      en: `Provide PRESS ANALYSIS in JSON:
-{
-  "entities": [{"name":"string","type":"person|organization|location","role":"string","mentions":number}],
-  "summary": "Concise, complete synthesis of key facts, developments, actors, and context reported by the press.",
-  "predictions": [{"scenario":"Potential developments based on media analyses and trends.","probability":"high|medium|low","timeframe":"string"}],
-  "sentiment": {"public":"Overall sentiment as reflected by media sources (e.g. 'Cautious', 'Optimistic').","experts":"Trend of analysis and opinions of experts cited in the press."}
-}`,
-      fr: `Fournir une ANALYSE PRESSE en JSON:
-{
-  "entities": [{"name":"string","type":"person|organization|location","role":"string","mentions":number}],
-  "summary": "Synthèse concise et complète des faits clés, des développements, des acteurs et du contexte rapportés par la presse.",
-  "predictions": [{"scenario":"Développements potentiels basés sur les analyses et tendances médiatiques.","probability":"high|medium|low","timeframe":"string"}],
-  "sentiment": {"public":"Sentiment global tel que reflété par les sources médiatiques. (e.g. 'Cauteloso', 'Optimiste')","experts":"Tendance de l'analyse et des opinions des experts cités dans la presse."}
-}`,
-      it: `Fornire ANALISI STAMPA in JSON:
-{
-  "entities": [{"name":"string","type":"person|organization|location","role":"string","mentions":number}],
-  "summary": "Sintesi concisa e completa di fatti chiave, sviluppi, attori e contesto riportati dalla stampa.",
-  "predictions": [{"scenario":"Sviluppi potenziali basati su analisi e tendenze mediatiche.","probability":"high|medium|low","timeframe":"string"}],
-  "sentiment": {"public":"Sentimento generale come riportato dalle fonti mediatiche.","experts":"Tendenza di analisi e opinioni degli esperti citati dalla stampa."}
-}`
-    };
-    const webSerpUser = {
-      en: `Provide WEB SERP SYNTHESIS and ANALYSIS in JSON (MUST address the query in a structured manner; DO NOT infer human/community sentiment):
-{
-  "entities": [{"name":"string","type":"person|organization|location|topic|website","role":"string","mentions":number}],
-  "summary": "Objective and structured analysis answering the query. Cover key aspects, mechanisms, milestones (past and future), and central themes. Base your findings only on the content of the provided sources.",
-  "predictions": [{"scenario":"Potential future developments inferred from sources (non-sentiment).","probability":"low|medium|high","timeframe":"string"}],
-  "sentiment": {"note":"not_applicable_for_serp: No inference of human/community sentiment is allowed for web search results."}
-}`,
-      fr: `Fournir une SYNTHÈSE et ANALYSE SERP WEB en JSON (DOIT répondre à la requête de manière structurée; NE PAS inférer de sentiment humain/communautaire):
-{
-  "entities": [{"name":"string","type":"person|organization|location|topic|website","role":"string","mentions":number}],
-  "summary": "Analyse objective et structurée répondant à la requête. Couvrez les aspects clés, les mécanismes, les jalons (passés et futurs), et les thèmes centraux. Basez-vous uniquement sur le contenu des sources fournies.",
-  "predictions": [{"scenario":"Développements potentiels futurs inférés des informations de sources (non-sentiment).","probability":"low|medium|high","timeframe":"string"}],
-  "sentiment": {"note":"non_applicable_pour_serp: Aucune inférence de sentiment humain/communautaire n'est permise pour les résultats de recherche web."}
-}`,
-      it: `Fornire SINTESI e ANALISI SERP WEB in JSON (DEVE rispondere alla query in modo strutturato; NON dedurre sentimento):
-{
-  "entities": [{"name":"string","type":"person|organization|location|topic|website","role":"string","mentions":number}],
-  "summary": "Analisi obiettiva e strutturata che risponde alla query. Copri aspetti chiave, meccanismi, pietre miliari (passate e future) e temi centrali. Basati solo sul contenuto delle fonti fornite.",
-  "predictions": [{"scenario":"Sviluppi potenziali futuri dedotti dalle informazioni delle fonti (non-sentiment).","probability":"low|medium|high","timeframe":"string"}],
-  "sentiment": {"note":"non_applicabile_per_serp: Nessuna inferenza di sentimento umano/comunitario è permessa per i risultati di ricerca web."}
-}`
     };
 
-    let userPromptInstructions = pressUser;
+    let selectedSystem = systemPrompts.press;
     if (sourceType === 'osint') {
       if (hasOnlyWeb) {
-        userPromptInstructions = webSerpUser;
-      } else if (hasMixedSources) {
-        userPromptInstructions = osintSocialUser;
-      } else if (hasSocial) {
-        userPromptInstructions = osintSocialUser;
-      } else {
-        userPromptInstructions = pressUser;
+        selectedSystem = systemPrompts.webSerp;
+      } else if (hasSocial || hasMixedSources) {
+        selectedSystem = systemPrompts.osintSocial;
       }
     }
 
@@ -165,6 +79,77 @@ serve(async (req) => {
       return baseInfo;
     }).join('\n\n');
 
+    const label = sourceType === 'osint'
+      ? (hasOnlyWeb ? `WEB SEARCH RESULTS (${(articles || []).length} links):` : `OSINT RESULTS (${(articles || []).length} items):`)
+      : `PRESS ARTICLES (${(articles || []).length} sources):`;
+
+    const userContent = `${label}\n\n${articlesText}\n\nQUERY: ${query}\n\nProvide a comprehensive analysis addressing this query.`;
+
+    // Define tool for structured output
+    const analysisTool = {
+      type: "function",
+      function: {
+        name: "provide_analysis",
+        description: "Provide structured analysis of the articles",
+        parameters: {
+          type: "object",
+          properties: {
+            entities: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  type: { type: "string", enum: ["person", "organization", "location", "topic", "event", "website"] },
+                  role: { type: "string" },
+                  mentions: { type: "number" }
+                },
+                required: ["name", "type", "role", "mentions"],
+                additionalProperties: false
+              }
+            },
+            summary: { 
+              type: "string",
+              description: "Comprehensive analysis addressing the query with key facts, developments, actors, and context"
+            },
+            predictions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  scenario: { type: "string" },
+                  probability: { type: "string", enum: ["low", "medium", "high"] },
+                  confidenceFactor: { type: "string" },
+                  riskLevel: { type: "string", enum: ["low", "medium", "high", "critical"] },
+                  timeframe: { type: "string" }
+                },
+                required: ["scenario", "probability", "timeframe"],
+                additionalProperties: false
+              }
+            },
+            sentiment: {
+              type: "object",
+              properties: {
+                overall: { type: "string" },
+                positive: { type: "number" },
+                neutral: { type: "number" },
+                negative: { type: "number" },
+                themes: {
+                  type: "array",
+                  items: { type: "string" }
+                }
+              },
+              additionalProperties: true
+            }
+          },
+          required: ["entities", "summary", "predictions"],
+          additionalProperties: false
+        }
+      }
+    };
+
+    console.log('Calling AI with tool calling for structured output...');
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -174,49 +159,38 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: systemPrompts[language as keyof typeof systemPrompts] || systemPrompts.en },
-          { 
-            role: 'user', 
-            content: (() => {
-              const label =
-                sourceType === 'osint'
-                  ? (hasOnlyWeb ? `WEB SEARCH RESULTS (${(articles || []).length} links):` : `OSINT RESULTS (${(articles || []).length} items):`)
-                  : `PRESS ARTICLES (${(articles || []).length} sources):`;
-              
-              let note = '';
-              if (sourceType === 'osint' && hasMixedSources) {
-                note = '\n\nIMPORTANT INSTRUCTIONS SOURCES MIXTES:\n- Pour les éléments où la Plateforme est google/web/serp: ce sont des RÉSULTATS DE RECHERCHE WEB, PAS des opinions humaines. Utilisez-les UNIQUEMENT comme contexte factuel et pour enrichir votre compréhension des sujets/entités.\n- Pour les éléments provenant des plateformes sociales (BlueSky, Mastodon, X/Twitter, Reddit): analysez le sentiment communautaire, les schémas de discours et les récits émergents, en privilégiant la détection de signaux faibles.\n- N’attribuez PAS de sentiment aux résultats de recherche web. Ils complètent votre analyse mais ne doivent pas être traités comme des voix communautaires.';
-              }
-              
-              const up = userPromptInstructions[language as keyof typeof userPromptInstructions] || userPromptInstructions.en;
-              return `Query: "${query}"\n\n${label}\n${articlesText}${note}\n\n${up}`;
-            })()
-          }
+          { role: 'system', content: selectedSystem[language as keyof typeof selectedSystem] || selectedSystem.en },
+          { role: 'user', content: userContent }
         ],
+        tools: [analysisTool],
+        tool_choice: { type: "function", function: { name: "provide_analysis" } }
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('AI Gateway error:', response.status, errorText);
-      if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again later.');
-      }
-      if (response.status === 402) {
-        throw new Error('Payment required. Please add funds to your Lovable AI workspace.');
-      }
-      throw new Error(`AI Gateway error: ${response.status}`);
+      throw new Error(`AI Gateway returned ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('AI Response received');
+
+    // Extract analysis from tool call
     let analysis;
     try {
-      const content = data.choices[0].message.content;
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall || toolCall.function.name !== 'provide_analysis') {
+        console.error('No valid tool call in response:', JSON.stringify(data, null, 2));
+        throw new Error('AI did not use the expected tool');
+      }
+
+      analysis = JSON.parse(toolCall.function.arguments);
+      console.log('Analysis parsed successfully from tool call');
     } catch (parseError) {
-      console.error('Failed to parse AI response:', data.choices[0].message.content);
-      throw new Error('Failed to parse AI analysis');
+      console.error('Failed to parse tool call response:', parseError);
+      console.error('Response data:', JSON.stringify(data, null, 2));
+      throw new Error('Failed to parse AI analysis from tool call');
     }
     
     console.log('Analysis completed successfully');
@@ -226,10 +200,12 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in analyze-news function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500 
+      }
+    );
   }
 });
