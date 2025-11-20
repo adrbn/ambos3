@@ -5,6 +5,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+
+// Retry utility with exponential backoff  
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      if (response.status === 429 && attempt < maxRetries) {
+        const waitTime = Math.pow(2, attempt) * 1000;
+        console.log(`Rate limited, waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      const waitTime = Math.pow(2, attempt) * 1000;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -33,7 +57,7 @@ serve(async (req) => {
     console.log('Extracting entities and relationships from articles...');
 
     // Call OpenAI to extract entities and relationships
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${GROQ_API_KEY}`,
