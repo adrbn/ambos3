@@ -68,14 +68,14 @@ export function PredictionDetailDialog({
     // Priority 1: Direct weak_signals from prediction
     if (prediction.weak_signals) {
       if (Array.isArray(prediction.weak_signals)) {
-        return prediction.weak_signals.map((signal, idx) => ({
+        return prediction.weak_signals.map((signal: any, idx: number) => ({
           signal: typeof signal === 'string' ? signal : signal.signal || signal,
           strength: 7 - idx, // Decreasing strength
           date: 'Détecté récemment'
         }));
       } else if (typeof prediction.weak_signals === 'string') {
         // Split by sentences or bullet points
-        return prediction.weak_signals.split(/[.;]/).filter(s => s.trim()).map((signal, idx) => ({
+        return prediction.weak_signals.split(/[.;]/).filter((s: string) => s.trim()).map((signal: string, idx: number) => ({
           signal: signal.trim(),
           strength: 7 - idx,
           date: 'Détecté récemment'

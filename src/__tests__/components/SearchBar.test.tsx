@@ -8,9 +8,21 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import SearchBar from '@/components/SearchBar';
 
 describe('SearchBar', () => {
+  const defaultProps = {
+    onSearch: vi.fn(),
+    language: 'fr' as const,
+    currentQuery: '',
+    searchTrigger: 0,
+    selectedApi: 'mixed' as const,
+    sourceType: 'news' as const,
+    onSourceTypeChange: vi.fn(),
+    osintSources: [],
+    onOsintSourcesChange: vi.fn(),
+    enableQueryEnrichment: false,
+  };
+
   it('renders search input', () => {
-    const onSearch = vi.fn();
-    render(<SearchBar onSearch={onSearch} language="fr" />);
+    render(<SearchBar {...defaultProps} />);
     
     const input = screen.getByPlaceholderText(/entrez votre requête/i);
     expect(input).toBeInTheDocument();
@@ -18,7 +30,7 @@ describe('SearchBar', () => {
 
   it('calls onSearch when form is submitted', async () => {
     const onSearch = vi.fn();
-    render(<SearchBar onSearch={onSearch} language="fr" />);
+    render(<SearchBar {...defaultProps} onSearch={onSearch} />);
     
     const input = screen.getByPlaceholderText(/entrez votre requête/i);
     const button = screen.getByRole('button', { name: /rechercher/i });
@@ -33,7 +45,7 @@ describe('SearchBar', () => {
 
   it('prevents empty searches', () => {
     const onSearch = vi.fn();
-    render(<SearchBar onSearch={onSearch} language="fr" />);
+    render(<SearchBar {...defaultProps} onSearch={onSearch} />);
     
     const button = screen.getByRole('button', { name: /rechercher/i });
     fireEvent.click(button);

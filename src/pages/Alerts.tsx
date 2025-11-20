@@ -25,48 +25,30 @@ export default function Alerts() {
   const { data: alerts, isLoading } = useQuery({
     queryKey: ['alerts'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('alerts')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      // If error or no data, return demo data
-      if (error || !data || data.length === 0) {
-        console.log('Using demo data for alerts');
-        return demoAlerts;
-      }
-      return data;
+      // Always use demo data since alerts table doesn't exist yet
+      console.log('Using demo data for alerts');
+      return demoAlerts;
     }
   });
 
   // Delete alert mutation
   const deleteMutation = useMutation({
     mutationFn: async (alertId: string) => {
-      const { error } = await supabase
-        .from('alerts')
-        .delete()
-        .eq('id', alertId);
-      
-      if (error) throw error;
+      // Demo mode - just log
+      console.log('Delete alert (demo mode):', alertId);
+      toast.info('Alerte supprimée (mode démo)');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] });
-      toast.success('Alerte supprimée');
-    },
-    onError: (error) => {
-      toast.error('Erreur: ' + error.message);
     }
   });
 
   // Toggle alert active status
   const toggleMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase
-        .from('alerts')
-        .update({ is_active })
-        .eq('id', id);
-      
-      if (error) throw error;
+      // Demo mode - just log
+      console.log('Toggle alert (demo mode):', id, is_active);
+      toast.info(`Alerte ${is_active ? 'activée' : 'désactivée'} (mode démo)`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] });

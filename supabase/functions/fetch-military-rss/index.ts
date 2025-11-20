@@ -1,6 +1,5 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -84,30 +83,34 @@ async function parseRSSFeed(feedUrl: string, sourceName: string) {
     }
 
     const xmlText = await response.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(xmlText, 'text/xml');
     
-    if (!doc) {
-      console.error(`Failed to parse XML from ${sourceName}`);
-      return [];
-    }
-
-    const items = doc.querySelectorAll('item');
+    // Simple regex-based XML parsing (more reliable for RSS in Deno)
     const articles: any[] = [];
-
-    for (const item of items) {
-      const itemElement = item as any;
-      const title = itemElement.querySelector('title')?.textContent?.trim() || '';
-      const link = itemElement.querySelector('link')?.textContent?.trim() || '';
-      const description = itemElement.querySelector('description')?.textContent?.trim() || '';
-      const pubDate = itemElement.querySelector('pubDate')?.textContent?.trim() || '';
-      const creator = itemElement.querySelector('dc\\:creator')?.textContent?.trim() || 
-                     itemElement.querySelector('creator')?.textContent?.trim() || 'Unknown';
+    
+    // Match all <item>...</item> blocks
+    const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
+    const items = xmlText.matchAll(itemRegex);
+    
+    for (const match of items) {
+      const itemContent = match[1];
+      
+      // Extract fields using regex
+      const titleMatch = itemContent.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+      const linkMatch = itemContent.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
+      const descriptionMatch = itemContent.match(/<description[^>]*>([\s\S]*?)<\/description>/i);
+      const pubDateMatch = itemContent.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i);
+      const creatorMatch = itemContent.match(/<(?:dc:)?creator[^>]*>([\s\S]*?)<\/(?:dc:)?creator>/i);
+      
+      const title = titleMatch ? titleMatch[1].trim().replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1') : '';
+      const link = linkMatch ? linkMatch[1].trim().replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1') : '';
+      const description = descriptionMatch ? descriptionMatch[1].trim().replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1') : '';
+      const pubDate = pubDateMatch ? pubDateMatch[1].trim() : '';
+      const creator = creatorMatch ? creatorMatch[1].trim().replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1') : 'Unknown';
 
       if (title && link) {
         articles.push({
-          title,
-          description: description.replace(/<[^>]*>/g, ''), // Strip HTML tags
+          title: title.replace(/<[^>]*>/g, ''),
+          description: description.replace(/<[^>]*>/g, ''),
           url: link,
           publishedAt: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
           source: {
@@ -118,6 +121,7 @@ async function parseRSSFeed(feedUrl: string, sourceName: string) {
           content: description.replace(/<[^>]*>/g, ''),
           military: true,
           rss: true,
+          platform: 'military-rss',
         });
       }
     }
