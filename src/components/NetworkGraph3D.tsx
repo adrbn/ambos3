@@ -43,46 +43,51 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
   useEffect(() => {
     if (!isEnabled || articles.length === 0) return;
 
-    const extractEntities = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-entities`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ articles }),
-        });
+    // Delay to avoid rate limiting - let analyze-news finish first
+    const timeoutId = setTimeout(() => {
+      extractEntities();
+    }, 4000); // Wait 4 seconds before calling extract-entities
 
-        if (!response.ok) {
-          console.error('Error extracting entities:', response.statusText);
-          return;
-        }
+    return () => clearTimeout(timeoutId);
+  }, [articles, isEnabled]);
 
-        const data = await response.json();
-        
-        const filteredNodes = data.nodes.filter((node: Node) => node.importance >= 6);
-        const nodeIds = new Set(filteredNodes.map((n: Node) => n.id));
-        
-        const filteredLinks = data.links.filter((link: Link) => 
-          link.strength >= 3 && nodeIds.has(link.source) && nodeIds.has(link.target)
-        );
-        
-        setGraphData({
-          nodes: filteredNodes,
-          links: filteredLinks
-        });
-        console.log(`Loaded ${filteredNodes.length} important entities with ${filteredLinks.length} strong relationships`);
-      } catch (error) {
-        console.error('Error in entity extraction:', error);
-      } finally {
-        setIsLoading(false);
+  const extractEntities = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-entities`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ articles }),
+      });
+
+      if (!response.ok) {
+        console.error('Error extracting entities:', response.statusText);
+        return;
       }
-    };
 
-    extractEntities();
-  }, [isEnabled, articles]);
+      const data = await response.json();
+      
+      const filteredNodes = data.nodes.filter((node: Node) => node.importance >= 6);
+      const nodeIds = new Set(filteredNodes.map((n: Node) => n.id));
+      
+      const filteredLinks = data.links.filter((link: Link) => 
+        link.strength >= 3 && nodeIds.has(link.source) && nodeIds.has(link.target)
+      );
+      
+      setGraphData({
+        nodes: filteredNodes,
+        links: filteredLinks
+      });
+      console.log(`Loaded ${filteredNodes.length} important entities with ${filteredLinks.length} strong relationships`);
+    } catch (error) {
+      console.error('Error in entity extraction:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!isEnabled) return null;
 
