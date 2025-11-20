@@ -51,8 +51,11 @@ const SummaryModule = ({ summary, keyPoints, articles, query, language, onRegene
     }
   };
 
-  // Clean markdown formatting
-  const cleanText = (text: string) => text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#+/g, '');
+  // Clean markdown formatting with safety check
+  const cleanText = (text: string | undefined) => {
+    if (!text) return '';
+    return text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#+/g, '');
+  };
 
   return (
     <div className="hud-panel h-full flex flex-col">
