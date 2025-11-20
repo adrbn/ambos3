@@ -6,6 +6,32 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+
+// Retry utility with exponential backoff
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      // If rate limited, wait and retry
+      if (response.status === 429 && attempt < maxRetries) {
+        const waitTime = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+        console.log(`Rate limited, waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      const waitTime = Math.pow(2, attempt) * 1000;
+      console.log(`Request failed, retrying in ${waitTime}ms...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -129,11 +155,17 @@ serve(async (req) => {
 
     console.log(`Processing in ${articleBatches.length} batches of max ${BATCH_SIZE} articles`);
 
-    // Analyze each batch
+    // Analyze each batch with delay to respect rate limits
     const batchResults = [];
     for (let i = 0; i < articleBatches.length; i++) {
       const batch = articleBatches[i];
       console.log(`Analyzing batch ${i + 1}/${articleBatches.length} (${batch.length} articles)`);
+
+      // Add delay between batches to respect Groq rate limits (except for first batch)
+      if (i > 0) {
+        console.log('Waiting 2 seconds before next batch to respect rate limits...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
 
       const userContent = `Query: "${query}"\n\nArticles:\n${batch.map((article: any, idx: number) => {
         const title = article.title || 'No title';
@@ -142,7 +174,7 @@ serve(async (req) => {
         return `${idx + 1}. [${source}] ${title}\n${description}`;
       }).join('\n\n')}`;
 
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${GROQ_API_KEY}`,
@@ -234,7 +266,7 @@ serve(async (req) => {
       }
     };
 
-    const finalResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const finalResponse = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${GROQ_API_KEY}`,
