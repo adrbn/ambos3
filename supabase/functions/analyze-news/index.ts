@@ -67,7 +67,10 @@ serve(async (req) => {
       }
     }
 
-    const articlesText = (Array.isArray(articles) ? articles : []).map((a: any, i: number) => {
+    // Limiter à 8 articles pour éviter de dépasser la limite de tokens Groq (12000 TPM)
+    const limitedArticles = (Array.isArray(articles) ? articles : []).slice(0, 8);
+    
+    const articlesText = limitedArticles.map((a: any, i: number) => {
       const baseInfo = `[${i+1}] ${a.title}\n${a.description}\nSource: ${a.source?.name || 'Unknown'}\nPublished: ${a.publishedAt}\nURL: ${a.url}`;
       const platform = toLower(a.platform) || toLower((a as any).osint?.platform) || toLower(a.source?.platform) || 'unknown';
       const engagement = (a as any).osint?.engagement || (a as any).engagement || {};
@@ -80,8 +83,8 @@ serve(async (req) => {
     }).join('\n\n');
 
     const label = sourceType === 'osint'
-      ? (hasOnlyWeb ? `WEB SEARCH RESULTS (${(articles || []).length} links):` : `OSINT RESULTS (${(articles || []).length} items):`)
-      : `PRESS ARTICLES (${(articles || []).length} sources):`;
+      ? (hasOnlyWeb ? `WEB SEARCH RESULTS (${limitedArticles.length} links):` : `OSINT RESULTS (${limitedArticles.length} items):`)
+      : `PRESS ARTICLES (${limitedArticles.length} sources):`;
 
     const userContent = `${label}\n\n${articlesText}\n\nQUERY: ${query}\n\nProvide a comprehensive analysis addressing this query.`;
 
