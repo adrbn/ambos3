@@ -123,10 +123,10 @@ const MapModule = ({ articles, language }: MapModuleProps) => {
 
     if (articles.length === 0) return;
 
-    // Delay to avoid rate limiting - let analyze-news and extract-entities finish first
+    // Delay to avoid rate limiting - let analyze-news and extract-entities fully complete (20s)
     const timeoutId = setTimeout(() => {
       extractLocations();
-    }, 6000); // Wait 6 seconds before calling extract-locations
+    }, 20000); // Wait 20 seconds before calling extract-locations
 
     return () => clearTimeout(timeoutId);
   }, [articles, isMapReady, isEnabled]);
