@@ -146,8 +146,8 @@ serve(async (req) => {
       }
     };
 
-    // Batch processing: divide articles into groups of 12
-    const BATCH_SIZE = 12;
+    // Batch processing: divide articles into groups of 6 to reduce TPM load
+    const BATCH_SIZE = 6;
     const articleBatches: any[][] = [];
     for (let i = 0; i < articles.length; i += BATCH_SIZE) {
       articleBatches.push(articles.slice(i, i + BATCH_SIZE));
@@ -163,8 +163,8 @@ serve(async (req) => {
 
       // Add delay between batches to respect Groq rate limits (except for first batch)
       if (i > 0) {
-        console.log('Waiting 2 seconds before next batch to respect rate limits...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('Waiting 5 seconds before next batch to respect rate limits...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
       }
 
       const userContent = `Query: "${query}"\n\nArticles:\n${batch.map((article: any, idx: number) => {
