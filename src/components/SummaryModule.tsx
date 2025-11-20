@@ -75,8 +75,26 @@ const SummaryModule = ({ summary, keyPoints, articles, query, language, onRegene
         </Button>
       </div>
       <div className="flex-1 overflow-auto space-y-4">
+        {/* Show message when no analysis available */}
+        {(!summary || summary.trim() === '') && (!keyPoints || keyPoints.length === 0) && (
+          <div className="text-sm text-muted-foreground text-center py-8">
+            {articles && articles.length > 0 ? (
+              <>
+                <p className="mb-2">{language === 'fr' ? 'Aucune synthèse disponible' : language === 'it' ? 'Nessuna sintesi disponibile' : 'No synthesis available'}</p>
+                <p className="text-xs">
+                  {language === 'fr' ? "L'analyse IA n'a pas produit de résultats. Vérifiez les logs ou régénérez l'analyse." 
+                    : language === 'it' ? "L'analisi IA non ha prodotto risultati. Controlla i log o rigenera l'analisi."
+                    : "AI analysis did not produce results. Check logs or regenerate the analysis."}
+                </p>
+              </>
+            ) : (
+              <p>{t('noArticles')}</p>
+            )}
+          </div>
+        )}
+
         {/* High-level summary */}
-        {summary && (
+        {summary && summary.trim() !== '' && (
           <p className="text-sm text-foreground/90 leading-relaxed">
             {cleanText(summary)}
           </p>
@@ -119,11 +137,6 @@ const SummaryModule = ({ summary, keyPoints, articles, query, language, onRegene
               </ul>
             </div>
           </TooltipProvider>
-        )}
-
-        {/* Fallback for old format */}
-        {!summary && !keyPoints && (
-          <p className="text-sm text-foreground/70">{t('noArticles')}</p>
         )}
       </div>
     </div>

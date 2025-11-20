@@ -176,9 +176,18 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
         if (analysisError) {
           console.error('Analysis error:', analysisError);
           toast.error("L'analyse IA a échoué, mais les articles sont disponibles.");
+          onSearch(queryToUse, allArticles, null);
+        } else if (analysisData?.error) {
+          console.error('Analysis returned error:', analysisData.error);
+          toast.error(`Analyse échouée: ${analysisData.error}`);
+          onSearch(queryToUse, allArticles, null);
+        } else if (!analysisData || (!analysisData.summary && analysisData.key_points?.length === 0)) {
+          console.warn('Analysis returned empty results');
+          toast.warning("L'analyse IA n'a produit aucun résultat. Consultez les logs pour plus de détails.");
+          onSearch(queryToUse, allArticles, null);
+        } else {
+          onSearch(queryToUse, allArticles, analysisData);
         }
-
-        onSearch(queryToUse, allArticles, analysisData);
       } else {
         toast.error("Aucun article trouvé pour cette requête.");
         onSearch(queryToUse, [], null);

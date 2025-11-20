@@ -398,15 +398,56 @@ Content: ${content}`;
         const functionCall = data.candidates[0].content.parts[0].functionCall;
         if (functionCall.name === 'batch_news_analysis' && functionCall.args) {
           partialResults.push(functionCall.args);
+        } else {
+          console.error(`Unexpected function call name: ${functionCall.name || 'none'}`);
+        }
+      } else {
+        // Log what we actually received to debug
+        console.error('No function call in response. Response structure:', JSON.stringify(data, null, 2).substring(0, 500));
+        
+        // Try to extract text response as fallback
+        const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (textContent) {
+          console.log('Attempting to parse text response as JSON fallback');
+          try {
+            // Try to parse as JSON if it's wrapped in ```json code blocks
+            let jsonText = textContent.trim();
+            if (jsonText.startsWith('```json')) {
+              jsonText = jsonText.replace(/```json\n?/g, '').replace(/\n?```$/g, '');
+            } else if (jsonText.startsWith('```')) {
+              jsonText = jsonText.replace(/```\n?/g, '').replace(/\n?```$/g, '');
+            }
+            const parsedResult = JSON.parse(jsonText);
+            partialResults.push(parsedResult);
+            console.log('Successfully parsed text response as JSON');
+          } catch (parseError) {
+            console.error('Failed to parse text response as JSON:', parseError);
+          }
         }
       }
     }
 
     console.log(`All batches processed. Synthesizing ${partialResults.length} partial results...`);
 
+    // If no results were obtained, return an error
+    if (partialResults.length === 0) {
+      console.error('No analysis results obtained from Gemini API');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Analysis failed: Gemini did not return valid results. Check function logs for details.',
+          summary: '',
+          key_points: [],
+          entities: [],
+          predictions: [],
+          sentiment: 'neutral'
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Merge all partial results
     const mergedResult = {
-      summary: partialResults.length > 0 ? partialResults[0].summary : '', // Keep first batch summary (should be concise)
+      summary: partialResults.length > 0 ? partialResults[0].summary : '',
       key_points: partialResults.flatMap(r => r.key_points || []),
       entities: partialResults.flatMap(r => r.entities || []),
       predictions: partialResults.flatMap(r => r.predictions || []),
