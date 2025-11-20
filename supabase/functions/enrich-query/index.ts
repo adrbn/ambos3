@@ -32,7 +32,7 @@ serve(async (req) => {
       
       const translatePrompt = `Traduis cette requête de recherche en ${language === 'it' ? 'italien' : language === 'fr' ? 'français' : 'anglais'}. Retourne UNIQUEMENT la traduction, sans explications.\n\nRequête: "${query}"`;
       
-      const translateResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const translateResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${OPENAI_API_KEY}`,
@@ -148,12 +148,11 @@ Exemples:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.3,
         max_tokens: 200,
       }),
     });
