@@ -149,28 +149,35 @@ serve(async (req) => {
     );
 
     const results = await Promise.all(fetchPromises);
-    let allArticles = results.flat();
+    const allArticles = results.flat();
+    let filteredArticles = allArticles;
 
     // Filter by query if provided
     if (query && query.trim()) {
-      const searchTerms = query.toLowerCase().split(' ');
-      allArticles = allArticles.filter(article => {
-      const searchableText = `${article.title} ${article.description} ${article.content}`.toLowerCase();
+      const searchTerms = query.toLowerCase().split(/\s+/).filter(Boolean);
+      filteredArticles = allArticles.filter(article => {
+        const searchableText = `${article.title} ${article.description} ${article.content}`.toLowerCase();
         return searchTerms.some((term: string) => searchableText.includes(term));
       });
+
+      // If nothing matches the query, fall back to latest articles from all feeds
+      if (filteredArticles.length === 0) {
+        console.log('No military RSS articles matched query, returning unfiltered latest articles instead');
+        filteredArticles = allArticles;
+      }
     }
 
     // Sort by date (most recent first)
-    allArticles.sort((a, b) => {
+    filteredArticles.sort((a, b) => {
       const dateA = new Date(a.publishedAt).getTime();
       const dateB = new Date(b.publishedAt).getTime();
       return dateB - dateA;
     });
 
-    console.log(`Returning ${allArticles.length} military RSS articles`);
+    console.log(`Returning ${filteredArticles.length} military RSS articles`);
 
     return new Response(
-      JSON.stringify({ articles: allArticles }),
+      JSON.stringify({ articles: filteredArticles }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
