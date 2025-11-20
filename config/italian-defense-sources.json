@@ -1,0 +1,631 @@
+{
+  "source_collection": "italian_defense_sources",
+  "version": "1.0",
+  "last_updated": "2025-11-20",
+  "sources": [
+    {
+      "id": "analisi-difesa",
+      "name": "Analisi Difesa",
+      "type": "rss_feed",
+      "country": "IT",
+      "language": "it",
+      "category": "defense_analysis",
+      "url": "https://www.analisidifesa.it",
+      "feed_url": "https://www.analisidifesa.it/feed/",
+      "fallback_feed_urls": [
+        "https://www.analisidifesa.it/atom.xml",
+        "https://www.analisidifesa.it/rss.xml"
+      ],
+      "ingestion_method": "rss",
+      "reliability_score": 95,
+      "update_frequency_hint": "multiple_daily",
+      "expected_articles_per_day": 8,
+      "scraping_fallback": {
+        "enabled": true,
+        "url": "https://www.analisidifesa.it",
+        "selectors": {
+          "article_list": "article.post, div.post-item, div[class*='article']",
+          "title": "h2.entry-title a, h3.post-title a, .article-title",
+          "link": "h2.entry-title a[href], h3.post-title a[href], .article-title a[href]",
+          "excerpt": ".entry-summary, .post-excerpt, .article-excerpt",
+          "date": "time[datetime], .entry-date, .post-date",
+          "image": "img.wp-post-image, .post-thumbnail img, .article-image",
+          "exclude_containers": "footer, aside, nav, .sidebar, .widget, .comments"
+        },
+        "pagination": {
+          "type": "numbered",
+          "selector": ".next.page-numbers[href], a.pagination-next[href]",
+          "max_pages": 3
+        }
+      },
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/rss+xml, application/xml, text/xml, */*"
+      },
+      "rate_limit": {
+        "requests_per_minute": 10,
+        "burst": 3
+      }
+    },
+    {
+      "id": "rivista-italiana-difesa",
+      "name": "Rivista Italiana Difesa (RID)",
+      "type": "scraping_only",
+      "country": "IT",
+      "language": "it",
+      "category": "defense_magazine",
+      "url": "https://www.rid.it",
+      "feed_url": null,
+      "ingestion_method": "scraping",
+      "reliability_score": 92,
+      "update_frequency_hint": "daily",
+      "expected_articles_per_day": 4,
+      "scraping_config": {
+        "entry_point": "https://www.rid.it/news",
+        "selectors": {
+          "article_list": "div.news-item, article.news-article, div[class*='news-']",
+          "title": ".news-title, h2 a, h3 a",
+          "link": ".news-title a[href], h2 a[href], h3 a[href]",
+          "excerpt": ".news-excerpt, .news-description, p.excerpt",
+          "date": ".news-date, time, .date, span[class*='date']",
+          "image": ".news-image img, img.featured-image",
+          "author": ".author, .by-author, span[class*='author']",
+          "category": ".category, .news-category, span.cat",
+          "exclude_containers": "footer, nav, aside.sidebar, div.ads, div.banner, div.related-news"
+        },
+        "article_detail_selectors": {
+          "content": "div.article-content, div.news-body, div[class*='content']",
+          "full_date": "time[datetime], meta[property='article:published_time']",
+          "tags": ".tags a, .article-tags a"
+        },
+        "pagination": {
+          "type": "load_more_button",
+          "selector": "button.load-more, a.show-more",
+          "max_pages": 5
+        },
+        "wait_for_selector": "div.news-item",
+        "timeout_ms": 10000
+      },
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept-Language": "it-IT,it;q=0.9,en;q=0.8"
+      },
+      "rate_limit": {
+        "requests_per_minute": 6,
+        "burst": 2
+      }
+    },
+    {
+      "id": "agenzia-nova-difesa",
+      "name": "Agenzia Nova - Difesa",
+      "type": "rss_feed",
+      "country": "IT",
+      "language": "it",
+      "category": "news_agency",
+      "url": "https://www.agenzianova.com",
+      "feed_url": "https://www.agenzianova.com/rss/difesa",
+      "fallback_feed_urls": [
+        "https://www.agenzianova.com/feed/categoria/difesa",
+        "https://www.agenzianova.com/rss"
+      ],
+      "ingestion_method": "rss",
+      "reliability_score": 90,
+      "update_frequency_hint": "hourly",
+      "expected_articles_per_day": 15,
+      "scraping_fallback": {
+        "enabled": true,
+        "url": "https://www.agenzianova.com/sezione/difesa",
+        "selectors": {
+          "article_list": "article.news-article, div.article-item",
+          "title": "h2.article-title a, h3 a",
+          "link": "h2.article-title a[href], h3 a[href]",
+          "excerpt": ".article-excerpt, .article-summary",
+          "date": "time.article-date, .date-published",
+          "exclude_containers": "footer, nav, aside, .ads, .widget-area"
+        }
+      },
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; AMBOSBot/2.0; +https://ambos.dev)",
+        "Accept": "application/rss+xml, application/xml"
+      },
+      "rate_limit": {
+        "requests_per_minute": 12,
+        "burst": 4
+      }
+    },
+    {
+      "id": "ares-difesa",
+      "name": "Ares Difesa",
+      "type": "scraping_only",
+      "country": "IT",
+      "language": "it",
+      "category": "defense_analysis",
+      "url": "https://www.aresdifesa.it",
+      "feed_url": null,
+      "ingestion_method": "scraping",
+      "reliability_score": 88,
+      "update_frequency_hint": "daily",
+      "expected_articles_per_day": 3,
+      "scraping_config": {
+        "entry_point": "https://www.aresdifesa.it/notizie",
+        "selectors": {
+          "article_list": "article, div.post, div.news-item",
+          "title": "h2 a, h3 a, .post-title a",
+          "link": "h2 a[href], h3 a[href], .post-title a[href]",
+          "excerpt": ".post-excerpt, .entry-summary, p.description",
+          "date": "time, .post-date, .published-date, span[class*='date']",
+          "image": ".post-thumbnail img, img.featured-image",
+          "exclude_containers": "footer, nav, sidebar, .comments, .social-share, .related-posts"
+        },
+        "wait_for_selector": "article, div.post",
+        "timeout_ms": 8000
+      },
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "Accept-Language": "it-IT,it;q=0.9"
+      },
+      "rate_limit": {
+        "requests_per_minute": 8,
+        "burst": 2
+      }
+    },
+    {
+      "id": "aviation-report",
+      "name": "Aviation Report",
+      "type": "scraping_only",
+      "country": "IT",
+      "language": "it",
+      "category": "aviation_defense",
+      "url": "https://www.aviation-report.com",
+      "feed_url": null,
+      "ingestion_method": "scraping",
+      "reliability_score": 85,
+      "update_frequency_hint": "weekly",
+      "expected_articles_per_day": 2,
+      "scraping_config": {
+        "entry_point": "https://www.aviation-report.com/category/difesa",
+        "selectors": {
+          "article_list": "article.post, div.article-card",
+          "title": "h2.entry-title a, .article-title a",
+          "link": "h2.entry-title a[href], .article-title a[href]",
+          "excerpt": ".entry-content p:first-of-type, .article-description",
+          "date": "time.published, .post-date",
+          "image": ".post-thumbnail img",
+          "exclude_containers": "footer, aside, .sidebar, .advertisement"
+        },
+        "wait_for_selector": "article.post",
+        "timeout_ms": 10000
+      },
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      },
+      "rate_limit": {
+        "requests_per_minute": 5,
+        "burst": 2
+      }
+    },
+    {
+      "id": "starmag",
+      "name": "StarMag",
+      "type": "scraping_only",
+      "country": "IT",
+      "language": "it",
+      "category": "defense_tech",
+      "url": "https://www.starmag.it",
+      "feed_url": null,
+      "ingestion_method": "scraping",
+      "reliability_score": 82,
+      "update_frequency_hint": "weekly",
+      "expected_articles_per_day": 2,
+      "scraping_config": {
+        "entry_point": "https://www.starmag.it/category/difesa",
+        "selectors": {
+          "article_list": "div.magazine-post, article.post-item",
+          "title": ".post-title a, h2 a",
+          "link": ".post-title a[href], h2 a[href]",
+          "excerpt": ".post-excerpt, .summary",
+          "date": ".post-meta time, .date",
+          "image": ".post-image img, img.thumbnail",
+          "exclude_containers": "footer, nav, .sidebar, .social-media"
+        },
+        "timeout_ms": 8000
+      },
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+      },
+      "rate_limit": {
+        "requests_per_minute": 6,
+        "burst": 2
+      }
+    },
+    {
+      "id": "report-difesa",
+      "name": "Report Difesa",
+      "type": "scraping_only",
+      "country": "IT",
+      "language": "it",
+      "category": "defense_news",
+      "url": "https://www.reportdifesa.it",
+      "feed_url": null,
+      "ingestion_method": "scraping",
+      "reliability_score": 87,
+      "update_frequency_hint": "daily",
+      "expected_articles_per_day": 5,
+      "scraping_config": {
+        "entry_point": "https://www.reportdifesa.it",
+        "selectors": {
+          "article_list": "article, div.td-module-container, div.post-item",
+          "title": ".entry-title a, h3.td-module-title a",
+          "link": ".entry-title a[href], h3.td-module-title a[href]",
+          "excerpt": ".td-excerpt, .entry-summary",
+          "date": "time.entry-date, .td-post-date",
+          "image": ".entry-thumb img, .td-module-thumb img",
+          "category": ".td-post-category, .entry-category",
+          "exclude_containers": "footer, aside, .td-footer-wrapper, .ads, .widget"
+        },
+        "wait_for_selector": "div.td-module-container, article",
+        "timeout_ms": 10000
+      },
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      },
+      "rate_limit": {
+        "requests_per_minute": 8,
+        "burst": 3
+      }
+    },
+    {
+      "id": "info-difesa",
+      "name": "Info Difesa",
+      "type": "scraping_only",
+      "country": "IT",
+      "language": "it",
+      "category": "defense_news",
+      "url": "https://www.infodifesa.it",
+      "feed_url": null,
+      "ingestion_method": "scraping",
+      "reliability_score": 90,
+      "update_frequency_hint": "daily",
+      "expected_articles_per_day": 6,
+      "scraping_config": {
+        "entry_point": "https://www.infodifesa.it",
+        "selectors": {
+          "article_list": "article.item, div.article-wrapper, div.news-block",
+          "title": "h2.title a, .article-title a",
+          "link": "h2.title a[href], .article-title a[href]",
+          "excerpt": ".description, .article-text, .summary",
+          "date": "time, .date, span.publish-date",
+          "image": ".article-image img, .thumbnail img",
+          "exclude_containers": "footer, nav, .sidebar, .banner, .promo"
+        },
+        "wait_for_selector": "article.item, div.article-wrapper",
+        "timeout_ms": 9000
+      },
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      },
+      "rate_limit": {
+        "requests_per_minute": 8,
+        "burst": 2
+      }
+    },
+    {
+      "id": "ministero-difesa",
+      "name": "Ministero della Difesa",
+      "type": "institutional_scraping",
+      "country": "IT",
+      "language": "it",
+      "category": "institutional",
+      "url": "https://www.difesa.it",
+      "feed_url": null,
+      "ingestion_method": "institutional_scraping",
+      "reliability_score": 98,
+      "update_frequency_hint": "daily",
+      "expected_articles_per_day": 3,
+      "scraping_config": {
+        "entry_point": "https://www.difesa.it/Primo_Piano/Pagine/default.aspx",
+        "alternative_urls": [
+          "https://www.difesa.it/EN/Press_Release/Pagine/default.aspx",
+          "https://www.difesa.it/Sala-Stampa/Pagine/Comunicati.aspx"
+        ],
+        "selectors": {
+          "article_list": "div.ms-listviewtable tr, div.dfwp-item, article",
+          "title": "td.ms-vb a, .dfwp-title a, h3 a",
+          "link": "td.ms-vb a[href], .dfwp-title a[href]",
+          "date": "td.ms-vb2, .dfwp-date, time",
+          "content_extraction": {
+            "follow_link": true,
+            "content_selector": "div.ms-rtestate-field, div.article-body, main article",
+            "exclude_from_content": ".social-share, .breadcrumb, .navigation, .related"
+          },
+          "exclude_containers": "nav, footer, aside, .banner, .advertisement, .dfwp-pagination"
+        },
+        "pagination": {
+          "type": "sharepoint_paging",
+          "selector": "a.ms-paging[href*='PageFirstRow']",
+          "max_pages": 3
+        },
+        "wait_for_selector": "div.ms-listviewtable, div.dfwp-item",
+        "timeout_ms": 15000,
+        "javascript_required": true
+      },
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept-Language": "it-IT,it;q=0.9"
+      },
+      "rate_limit": {
+        "requests_per_minute": 4,
+        "burst": 1
+      },
+      "respect_robots_txt": true
+    },
+    {
+      "id": "stato-maggiore-difesa",
+      "name": "Stato Maggiore della Difesa",
+      "type": "institutional_scraping",
+      "country": "IT",
+      "language": "it",
+      "category": "institutional",
+      "url": "https://www.difesa.it/SMD",
+      "feed_url": null,
+      "ingestion_method": "institutional_scraping",
+      "reliability_score": 98,
+      "update_frequency_hint": "daily",
+      "expected_articles_per_day": 2,
+      "scraping_config": {
+        "entry_point": "https://www.difesa.it/SMD/CASD/IM/CeSIMInt/Pagine/default.aspx",
+        "alternative_urls": [
+          "https://www.difesa.it/SMD/Staff/Reparti/II/GINFO/Pagine/default.aspx",
+          "https://www.difesa.it/SMD/EntiMI/Pagine/default.aspx"
+        ],
+        "selectors": {
+          "article_list": "div.ms-listviewtable tr, div.news-list-item",
+          "title": "a.ms-listlink, .news-title a",
+          "link": "a.ms-listlink[href], .news-title a[href]",
+          "date": "td[class*='date'], time",
+          "content_extraction": {
+            "follow_link": true,
+            "content_selector": "div.ms-rtestate-field, div#content-main",
+            "exclude_from_content": "nav, .breadcrumb, .social"
+          },
+          "exclude_containers": "nav, footer, .menu, .sidebar"
+        },
+        "wait_for_selector": "div.ms-listviewtable",
+        "timeout_ms": 15000,
+        "javascript_required": true
+      },
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      },
+      "rate_limit": {
+        "requests_per_minute": 3,
+        "burst": 1
+      },
+      "respect_robots_txt": true
+    },
+    {
+      "id": "esercito-italiano",
+      "name": "Esercito Italiano",
+      "type": "institutional_scraping",
+      "country": "IT",
+      "language": "it",
+      "category": "institutional_army",
+      "url": "https://www.esercito.difesa.it",
+      "feed_url": null,
+      "ingestion_method": "institutional_scraping",
+      "reliability_score": 97,
+      "update_frequency_hint": "daily",
+      "expected_articles_per_day": 4,
+      "scraping_config": {
+        "entry_point": "https://www.esercito.difesa.it/comunicazione/pagine/notizie.aspx",
+        "selectors": {
+          "article_list": "div.news-item, div.ms-listviewtable tr",
+          "title": ".news-title a, td.ms-vb a",
+          "link": ".news-title a[href], td.ms-vb a[href]",
+          "date": ".news-date, td.ms-vb2",
+          "image": ".news-image img",
+          "content_extraction": {
+            "follow_link": true,
+            "content_selector": "div.news-content, div.ms-rtestate-field"
+          },
+          "exclude_containers": "footer, nav, aside, .sidebar"
+        },
+        "wait_for_selector": "div.news-item",
+        "timeout_ms": 12000,
+        "javascript_required": true
+      },
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      },
+      "rate_limit": {
+        "requests_per_minute": 5,
+        "burst": 1
+      },
+      "respect_robots_txt": true
+    },
+    {
+      "id": "aeronautica-militare",
+      "name": "Aeronautica Militare",
+      "type": "institutional_scraping",
+      "country": "IT",
+      "language": "it",
+      "category": "institutional_airforce",
+      "url": "https://www.aeronautica.difesa.it",
+      "feed_url": null,
+      "ingestion_method": "institutional_scraping",
+      "reliability_score": 97,
+      "update_frequency_hint": "daily",
+      "expected_articles_per_day": 3,
+      "scraping_config": {
+        "entry_point": "https://www.aeronautica.difesa.it/comunicazione/notizie/Pagine/default.aspx",
+        "selectors": {
+          "article_list": "div.news-list-item, div.ms-listviewtable tr",
+          "title": ".news-title a, a.ms-listlink",
+          "link": ".news-title a[href], a.ms-listlink[href]",
+          "date": ".news-date, td[class*='date']",
+          "content_extraction": {
+            "follow_link": true,
+            "content_selector": "div.news-detail, div.ms-rtestate-field"
+          },
+          "exclude_containers": "footer, nav, .sidebar, .menu"
+        },
+        "wait_for_selector": "div.news-list-item",
+        "timeout_ms": 12000,
+        "javascript_required": true
+      },
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      },
+      "rate_limit": {
+        "requests_per_minute": 5,
+        "burst": 1
+      },
+      "respect_robots_txt": true
+    },
+    {
+      "id": "marina-militare",
+      "name": "Marina Militare",
+      "type": "institutional_scraping",
+      "country": "IT",
+      "language": "it",
+      "category": "institutional_navy",
+      "url": "https://www.marina.difesa.it",
+      "feed_url": null,
+      "ingestion_method": "institutional_scraping",
+      "reliability_score": 97,
+      "update_frequency_hint": "daily",
+      "expected_articles_per_day": 3,
+      "scraping_config": {
+        "entry_point": "https://www.marina.difesa.it/media-cultura/notizie/Pagine/default.aspx",
+        "selectors": {
+          "article_list": "div.article-item, div.ms-listviewtable tr",
+          "title": ".article-title a, a.ms-listlink",
+          "link": ".article-title a[href], a.ms-listlink[href]",
+          "date": ".article-date, td.ms-vb2",
+          "image": ".article-thumb img",
+          "content_extraction": {
+            "follow_link": true,
+            "content_selector": "div.article-content, div.ms-rtestate-field"
+          },
+          "exclude_containers": "footer, nav, .navigation, .related"
+        },
+        "wait_for_selector": "div.article-item",
+        "timeout_ms": 12000,
+        "javascript_required": true
+      },
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      },
+      "rate_limit": {
+        "requests_per_minute": 5,
+        "burst": 1
+      },
+      "respect_robots_txt": true
+    },
+    {
+      "id": "dna-difesa",
+      "name": "DNA - Direzione Nazionale degli Armamenti",
+      "type": "institutional_scraping",
+      "country": "IT",
+      "language": "it",
+      "category": "institutional_armaments",
+      "url": "https://www.difesa.it/SMD_/Staff/Reparti/II/DNA",
+      "feed_url": null,
+      "ingestion_method": "institutional_scraping",
+      "reliability_score": 95,
+      "update_frequency_hint": "weekly",
+      "expected_articles_per_day": 1,
+      "scraping_config": {
+        "entry_point": "https://www.difesa.it/SMD_/Staff/Reparti/II/DNA/Pagine/News.aspx",
+        "selectors": {
+          "article_list": "div.ms-listviewtable tr, div.news-row",
+          "title": "a.ms-listlink, .news-title",
+          "link": "a.ms-listlink[href], .news-title a[href]",
+          "date": "td[class*='date']",
+          "content_extraction": {
+            "follow_link": true,
+            "content_selector": "div.ms-rtestate-field"
+          },
+          "exclude_containers": "footer, nav"
+        },
+        "wait_for_selector": "div.ms-listviewtable",
+        "timeout_ms": 15000,
+        "javascript_required": true
+      },
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      },
+      "rate_limit": {
+        "requests_per_minute": 3,
+        "burst": 1
+      },
+      "respect_robots_txt": true
+    }
+  ],
+  "ingestion_strategy": {
+    "preferred_method_order": ["rss_feed", "atom_feed", "api_endpoint", "scraping"],
+    "retry_policy": {
+      "max_retries": 3,
+      "backoff_multiplier": 2,
+      "initial_delay_ms": 1000
+    },
+    "caching": {
+      "enabled": true,
+      "ttl_minutes": 30,
+      "cache_key_strategy": "url_hash"
+    },
+    "deduplication": {
+      "enabled": true,
+      "match_threshold": 0.85,
+      "fields": ["title", "url", "published_date"]
+    },
+    "error_handling": {
+      "log_failures": true,
+      "alert_on_consecutive_failures": 3,
+      "fallback_to_scraping": true
+    }
+  },
+  "output_schema": {
+    "article": {
+      "id": "string (generated hash)",
+      "source_id": "string (from sources array)",
+      "source_name": "string",
+      "title": "string (required)",
+      "url": "string (required, canonical)",
+      "excerpt": "string (optional)",
+      "content": "string (full text if available)",
+      "published_at": "ISO 8601 datetime",
+      "scraped_at": "ISO 8601 datetime",
+      "author": "string (optional)",
+      "image_url": "string (optional)",
+      "category": "string (optional)",
+      "tags": "array of strings (optional)",
+      "language": "string (ISO 639-1)",
+      "reliability_score": "integer (0-100, from source)",
+      "source_type": "string (rss|scraping|api)",
+      "metadata": {
+        "word_count": "integer",
+        "has_image": "boolean",
+        "domain": "string",
+        "is_institutional": "boolean"
+      }
+    }
+  },
+  "validation_rules": {
+    "min_title_length": 10,
+    "max_title_length": 300,
+    "url_must_match_domain": true,
+    "date_must_be_recent": {
+      "enabled": true,
+      "max_age_days": 90
+    },
+    "required_fields": ["title", "url", "source_id"]
+  },
+  "monitoring": {
+    "track_success_rate": true,
+    "track_avg_response_time": true,
+    "alert_on_source_down": true,
+    "daily_health_report": true
+  }
+}
+
