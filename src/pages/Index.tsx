@@ -410,8 +410,8 @@ const Index = () => {
               <span className="hidden sm:inline">{t('classicSearch')}</span>
               <span className="sm:hidden">{t('search')}</span>
             </TabsTrigger>
-            <TabsTrigger value="military" className="flex items-center gap-1 text-xs sm:text-sm">
-              🎖️
+            <TabsTrigger value="military" className="flex items-center gap-2 text-xs sm:text-sm">
+              <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">{t('militaryRss')}</span>
               <span className="sm:hidden">Mil.</span>
             </TabsTrigger>
