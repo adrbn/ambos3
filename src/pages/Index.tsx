@@ -182,8 +182,15 @@ const Index = () => {
     }
   };
 
-  const handleSummaryRegenerate = (newSummary: string) => {
-    setAnalysis((prev: any) => prev ? { ...prev, summary: newSummary } : { summary: newSummary });
+  const handleSummaryRegenerate = (newSummary: string, newKeyPoints?: any[]) => {
+    setAnalysis((prev: any) => prev ? { 
+      ...prev, 
+      summary: newSummary,
+      key_points: newKeyPoints || prev.key_points 
+    } : { 
+      summary: newSummary,
+      key_points: newKeyPoints 
+    });
   };
 
   const handleLanguageChange = (newLang: Language) => {
@@ -271,6 +278,7 @@ const Index = () => {
         return (
           <SummaryModule 
             summary={analysis?.summary || ""} 
+            keyPoints={analysis?.key_points}
             articles={articles}
             query={currentQuery}
             language={language}
