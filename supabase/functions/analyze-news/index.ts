@@ -143,6 +143,56 @@ Details: "Secondo Defense News (15 nov 2025), US Army ha assegnato a General Ato
 
 Rispondi in italiano.`
       },
+      military: {
+        en: `You are a military intelligence analyst analyzing SPECIALIZED DEFENSE RSS articles.
+
+CRITICAL: Articles come from Italian defense publications with REAL procurement contracts, equipment specs, and military operations. Extract CONCRETE DETAILS directly from articles.
+
+OUTPUT FORMAT:
+- Summary: 2-3 sentences with main factual developments (mention specific programs/contracts by name if in articles)
+- Key Points: 6-10 factual statements extracted from articles (1 sentence each)
+- Each key point MUST have "details" field with: exact contract values from articles, specific equipment models, precise dates, manufacturer names, military units mentioned, operational context
+
+Example from REAL article content:
+Point: "Leonardo awarded major rotorcraft contract"
+Details: "From Analisi Difesa (Dec 2, 2024): Italian MoD signed €450M contract with Leonardo Helicopters for 18 AW249 Fenice attack helicopters, delivery 2026-2028, assigned to 1° Reggimento 'Antares' at Viterbo. Contract includes integrated weapons systems and pilot training."
+
+CRITICAL: Do NOT write generic summaries. Extract and cite specific facts from provided articles. If articles mention specific contract values, dates, equipment names - INCLUDE THEM in details.
+
+Answer in English.`,
+        fr: `Vous êtes analyste de renseignement militaire analysant des articles RSS DÉFENSE SPÉCIALISÉS.
+
+CRITIQUE: Les articles proviennent de publications de défense italiennes avec de VRAIS contrats d'acquisition, spécifications d'équipement et opérations militaires. Extrayez des DÉTAILS CONCRETS directement des articles.
+
+FORMAT DE SORTIE:
+- Résumé: 2-3 phrases avec développements factuels principaux (mentionnez programmes/contrats spécifiques par nom si mentionnés)
+- Points clés: 6-10 déclarations factuelles extraites des articles (1 phrase chacun)
+- Chaque point clé DOIT avoir champ "details" avec: valeurs exactes contrats des articles, modèles d'équipement spécifiques, dates précises, noms fabricants, unités militaires mentionnées, contexte opérationnel
+
+Exemple tiré du contenu d'article RÉEL:
+Point: "Leonardo obtient important contrat hélicoptères"
+Details: "D'après Analisi Difesa (2 déc 2024): MoD italien a signé contrat €450M avec Leonardo Helicopters pour 18 hélicoptères d'attaque AW249 Fenice, livraison 2026-2028, affectés au 1° Reggimento 'Antares' à Viterbo. Contrat inclut systèmes d'armes intégrés et formation pilotes."
+
+CRITIQUE: N'écrivez PAS de résumés génériques. Extrayez et citez des faits spécifiques des articles fournis. Si articles mentionnent valeurs de contrats, dates, noms d'équipements - INCLUEZ-LES dans les détails.
+
+Répondez en français.`,
+        it: `Sei analista di intelligence militare che analizza articoli RSS DIFESA SPECIALIZZATI.
+
+CRITICO: Gli articoli provengono da pubblicazioni difesa italiane con VERI contratti acquisizione, specifiche equipaggiamento e operazioni militari. Estrai DETTAGLI CONCRETI direttamente dagli articoli.
+
+FORMATO OUTPUT:
+- Riassunto: 2-3 frasi con sviluppi fattuali principali (menziona programmi/contratti specifici per nome se menzionati)
+- Punti chiave: 6-10 dichiarazioni fattuali estratte dagli articoli (1 frase ciascuno)
+- Ogni punto chiave DEVE avere campo "details" con: valori esatti contratti dagli articoli, modelli equipaggiamento specifici, date precise, nomi produttori, unità militari menzionate, contesto operativo
+
+Esempio da contenuto articolo REALE:
+Punto: "Leonardo ottiene importante contratto elicotteri"
+Details: "Da Analisi Difesa (2 dic 2024): MoD italiano ha firmato contratto €450M con Leonardo Helicopters per 18 elicotteri d'attacco AW249 Fenice, consegna 2026-2028, assegnati al 1° Reggimento 'Antares' a Viterbo. Contratto include sistemi armi integrati e formazione piloti."
+
+CRITICO: NON scrivere riassunti generici. Estrai e cita fatti specifici dagli articoli forniti. Se articoli menzionano valori contratti, date, nomi equipaggiamenti - INCLUDILI nei dettagli.
+
+Rispondi in italiano.`
+      },
       mixed: {
         en: `You are a strategic intelligence analyst. MIX of press AND social media.
 
@@ -177,6 +227,8 @@ Rispondi in italiano.`
       systemPrompt = systemPrompts.mixed[language as keyof typeof systemPrompts.mixed] || systemPrompts.mixed.en;
     } else if (hasSocial || sourceType === 'osint') {
       systemPrompt = systemPrompts.osintSocial[language as keyof typeof systemPrompts.osintSocial] || systemPrompts.osintSocial.en;
+    } else if (sourceType === 'military') {
+      systemPrompt = systemPrompts.military[language as keyof typeof systemPrompts.military] || systemPrompts.military.en;
     } else {
       systemPrompt = systemPrompts.press[language as keyof typeof systemPrompts.press] || systemPrompts.press.en;
     }
@@ -216,22 +268,43 @@ Rispondi in italiano.`
           },
           predictions: {
             type: 'array',
+            description: '3-5 concrete future scenarios based on current article trends',
             items: {
               type: 'object',
               properties: {
-                prediction: { type: 'string', description: 'Specific prediction statement' },
-                probability: { type: 'number', description: 'Realistic probability (0-100) based on analysis' },
-                timeframe: { type: 'string', description: 'Realistic timeframe (e.g., "1-3 months", "6-12 months")' },
-                confidence_factors: {
-                  type: 'array',
-                  items: { type: 'string' },
-                  description: 'Factors affecting confidence in this prediction'
+                scenario: { 
+                  type: 'string', 
+                  description: 'Clear, specific predicted development (not vague trends)' 
                 },
-                risk_level: { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: 'Risk assessment level' }
+                probability: { 
+                  type: 'string', 
+                  enum: ['high', 'medium', 'low'], 
+                  description: 'Realistic likelihood: high (70-90%), medium (40-70%), low (10-40%)' 
+                },
+                timeframe: { 
+                  type: 'string', 
+                  description: 'Realistic timeframe based on patterns (e.g., "2-4 months", "Q2 2025")' 
+                },
+                impact: { 
+                  type: 'string', 
+                  description: 'Concrete expected impact with specific affected areas/actors' 
+                },
+                reasoning: { 
+                  type: 'string', 
+                  description: 'Evidence-based reasoning citing article facts, trends, expert opinions' 
+                },
+                confidence_factors: { 
+                  type: 'string', 
+                  description: 'Specific factors from articles: expert consensus, historical precedent, budget allocation, policy announcements' 
+                },
+                risk_level: { 
+                  type: 'string', 
+                  enum: ['critical', 'high', 'moderate', 'low'], 
+                  description: 'Risk severity: critical (strategic threat), high (major disruption), moderate (significant), low (minor)' 
+                }
               },
-              required: ['prediction', 'probability', 'timeframe', 'confidence_factors', 'risk_level']
-            },
-            description: 'Strategic predictions with realistic probability assessment'
+              required: ['scenario', 'probability', 'timeframe', 'reasoning', 'confidence_factors', 'risk_level']
+            }
           },
           sentiment: { type: 'string', enum: ['positive', 'negative', 'neutral', 'mixed'], description: 'Dominant sentiment' }
         },

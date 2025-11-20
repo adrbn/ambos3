@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { X, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Node {
   id: string;
@@ -70,18 +71,29 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
 
       const data = await response.json();
       
-      const filteredNodes = data.nodes.filter((node: Node) => node.importance >= 6);
+      if (!data.nodes || !data.links) {
+        console.error('Invalid data structure from extract-entities:', data);
+        toast.error('Failed to extract entities from articles');
+        return;
+      }
+
+      const filteredNodes = data.nodes.filter((node: Node) => node.importance >= 5);
       const nodeIds = new Set(filteredNodes.map((n: Node) => n.id));
       
       const filteredLinks = data.links.filter((link: Link) => 
-        link.strength >= 3 && nodeIds.has(link.source) && nodeIds.has(link.target)
+        link.strength >= 4 && nodeIds.has(link.source) && nodeIds.has(link.target)
       );
       
       setGraphData({
         nodes: filteredNodes,
         links: filteredLinks
       });
-      console.log(`Loaded ${filteredNodes.length} important entities with ${filteredLinks.length} strong relationships`);
+      
+      if (filteredNodes.length === 0) {
+        toast.warning('No significant entities found in articles');
+      } else {
+        console.log(`Loaded ${filteredNodes.length} entities with ${filteredLinks.length} relationships`);
+      }
     } catch (error) {
       console.error('Error in entity extraction:', error);
     } finally {

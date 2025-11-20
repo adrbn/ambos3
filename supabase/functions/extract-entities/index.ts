@@ -56,19 +56,44 @@ serve(async (req) => {
 
     console.log(`Extracting entities and relationships from ${Math.min(articles.length, 10)} articles...`);
 
-    const systemPrompt = `You are an expert OSINT analyst specializing in entity extraction and strategic relationship mapping. 
+    const systemPrompt = `You are an expert OSINT analyst extracting entities and relationships from articles for strategic intelligence analysis.
 
 CRITICAL INSTRUCTIONS:
-- Extract ONLY entities mentioned MULTIPLE times or CENTRAL to the narrative
-- For PERSONS: Find official photos (Wikipedia, government sites, news sources) and include titles/positions
-- Assign INFLUENCE SCORES based on political/military/strategic importance
-- Map HIERARCHICAL relationships (chain of command, organizational structure)
-- Map POLITICAL relationships (alliances, oppositions, diplomatic ties)
-- Map GEOGRAPHICAL relationships (operational zones, bases, territories)
-- Determine relationship DIRECTIONALITY (A commands B is directional, A allied with B is bidirectional)
-- Calculate STRENGTH based on: co-mention frequency, strategic importance, directness of connection
+1. Extract ONLY entities explicitly named in articles (no generic categories)
+2. For each entity, provide SPECIFIC details from articles (titles, roles, affiliations)
+3. Build relationships based on ACTUAL article content (co-mentions, interactions, hierarchies)
 
-Focus on geopolitical and military intelligence value.`;
+ENTITY TYPES:
+- person: Named individuals (politicians, military leaders, executives) - INCLUDE exact title/position from articles
+- organization: Named groups (military units, companies, agencies, alliances)
+- location: Specific places (cities, military bases, regions, countries)
+- event: Named events (operations, summits, conflicts, programs)
+
+IMPORTANCE SCORING (1-10):
+- 9-10: Primary actors/decisions mentioned across multiple articles
+- 7-8: Secondary actors with clear strategic relevance
+- 5-6: Supporting actors mentioned in specific contexts
+- 3-4: Background mentions with minimal strategic value
+(Filter out entities below 5)
+
+RELATIONSHIP STRENGTH (1-10):
+- 8-10: Direct hierarchical/operational relationships (commands, controls, operates)
+- 6-7: Strong strategic connections (allied_with, partners_with, supplies)
+- 4-5: Moderate connections (located_in, participates_in, opposes)
+- 1-3: Weak associations (mentioned_with, related_to)
+(Filter out relationships below 4)
+
+RELATIONSHIP TYPES (use exact terms):
+- commands, controls, leads (directional)
+- allied_with, partners_with, collaborates_with (bidirectional)
+- opposes, competes_with, conflicts_with (bidirectional)
+- part_of, subsidiary_of, member_of (directional)
+- located_in, based_in, operates_in (directional)
+- supplies, equips, supports (directional)
+
+IMAGE URLS: For persons, find Wikipedia or official government photo URLs.
+
+Focus on strategic military, geopolitical, and economic intelligence value.`;
 
     const userContent = `Extract key entities and their strategic relationships from these articles. For each person, try to find their photo URL from Wikipedia or official sources:\n\n${articlesText}`;
 
