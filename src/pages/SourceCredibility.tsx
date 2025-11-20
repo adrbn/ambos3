@@ -11,17 +11,9 @@ export default function SourceCredibility() {
   const { data: sources, isLoading } = useQuery({
     queryKey: ['source_credibility'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('source_credibility')
-        .select('*')
-        .order('credibility_score', { ascending: false });
-      
-      // If error or no data, return demo data
-      if (error || !data || data.length === 0) {
-        console.log('Using demo data for source credibility');
-        return demoSources;
-      }
-      return data;
+      // Always use demo data since source_credibility table doesn't exist yet
+      console.log('Using demo data for source credibility');
+      return demoSources;
     }
   });
 
