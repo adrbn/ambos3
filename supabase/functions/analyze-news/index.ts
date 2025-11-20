@@ -68,103 +68,106 @@ serve(async (req) => {
     // System prompts
     const systemPrompts = {
       osintSocial: {
-        en: `You are an OSINT analyst specializing in social media intelligence and weak signal detection. These are SOCIAL MEDIA posts (BlueSky, Mastodon, X/Twitter, Reddit) — NOT verified news sources.
+        en: `You are an OSINT analyst. These are SOCIAL MEDIA posts.
 
-CRITICAL REQUIREMENTS FOR SUMMARY:
-- Extract SPECIFIC details from posts: usernames, exact quotes, timestamps, hashtags trending
-- Identify CONCRETE emerging narratives with examples from actual posts
-- Report SPECIFIC divergences between communities (quote conflicting posts)
-- List PRECISE weak signals with source references
-- Assess credibility BY POST (not generically)
+CRITICAL OUTPUT FORMAT:
+- Summary: 2-3 SHORT sentences with main trends (NO details, NO names, NO dates in summary)
+- Key Points: 5-8 SHORT bullet points stating WHAT happened (keep concise, 1 sentence max each)
+- Each key point MUST have separate "details" field with: specific source names, exact dates, precise quotes, usernames, hashtags
 
-Focus on: community pulse (mood), emerging/dissonant narratives, significant divergences/convergences, weak signals, credibility and volatility. For PREDICTIONS: base them on REALISTIC probabilities considering historical patterns, geopolitical context, and expert consensus. Answer in English.`,
-        fr: `Vous êtes un analyste OSINT spécialisé dans la veille sur les réseaux sociaux pour identifier des signaux faibles. Ce sont des posts de RÉSEAUX SOCIAUX — NON des sources journalistiques vérifiées.
+Example Key Point:
+Point: "Growing concern about privacy legislation"
+Details: "@user123 on Nov 15: 'New EU directive leaked', #PrivacyRights trending with 50K posts, contradicted by @govofficial 'no legislation planned'"
 
-EXIGENCES CRITIQUES POUR LE RÉSUMÉ:
-- Extrayez des détails SPÉCIFIQUES des posts: noms d'utilisateurs, citations exactes, timestamps, hashtags tendances
-- Identifiez les récits émergents CONCRETS avec exemples de posts réels
-- Rapportez les divergences PRÉCISES entre communautés (citez les posts contradictoires)
-- Listez les signaux faibles PRÉCIS avec références aux sources
-- Évaluez la crédibilité POST PAR POST (pas de manière générique)
+Answer in English.`,
+        fr: `Vous êtes un analyste OSINT. Posts RÉSEAUX SOCIAUX.
 
-Focus: pouls communautaire (mood), récits émergents/dissonants, divergences/convergences significatives, signaux faibles, crédibilité et volatilité. Pour les PRÉDICTIONS: probabilités RÉALISTES. Répondez en français.`,
-        it: `Sei un analista OSINT specializzato in social media e individuazione di segnali deboli. Post dei SOCIAL — NON fonti giornalistiche verificate.
+FORMAT DE SORTIE CRITIQUE:
+- Résumé: 2-3 phrases COURTES avec tendances principales (PAS de détails, PAS de noms, PAS de dates dans le résumé)
+- Points clés: 5-8 points COURTS indiquant CE QUI s'est passé (concis, 1 phrase max chacun)
+- Chaque point clé DOIT avoir un champ "details" séparé avec: noms sources précis, dates exactes, citations précises, usernames, hashtags
 
-REQUISITI CRITICI PER IL RIASSUNTO:
-- Estrai dettagli SPECIFICI dai post: username, citazioni esatte, timestamp, hashtag di tendenza
-- Identifica narrazioni emergenti CONCRETE con esempi da post reali
-- Riporta divergenze PRECISE tra comunità (cita post contraddittori)
-- Elenca segnali deboli PRECISI con riferimenti alle fonti
-- Valuta credibilità POST PER POST (non genericamente)
+Exemple Point Clé:
+Point: "Inquiétudes croissantes sur législation vie privée"
+Details: "@user123 le 15 nov: 'Nouvelle directive EU leaked', #PrivacyRights tendance avec 50K posts, contredit par @govofficial 'aucune législation prévue'"
 
-Focus: polso comunità, narrazioni emergenti/dissonanti, divergenze/convergenze, segnali deboli, credibilità e volatilità. Per le PREVISIONI: probabilità REALISTICHE. Rispondi in italiano.`
+Répondez en français.`,
+        it: `Sei un analista OSINT. Post SOCIAL MEDIA.
+
+FORMATO OUTPUT CRITICO:
+- Riassunto: 2-3 frasi BREVI con tendenze principali (NIENTE dettagli, NIENTE nomi, NIENTE date nel riassunto)
+- Punti chiave: 5-8 punti BREVI che dichiarano COSA è successo (conciso, max 1 frase ciascuno)
+- Ogni punto chiave DEVE avere campo "details" separato con: nomi fonti precisi, date esatte, citazioni precise, username, hashtag
+
+Esempio Punto Chiave:
+Punto: "Preoccupazioni crescenti su legislazione privacy"
+Details: "@user123 il 15 nov: 'Nuova direttiva EU leaked', #PrivacyRights trending con 50K post, contraddetto da @govofficial 'nessuna legislazione prevista'"
+
+Rispondi in italiano.`
       },
       press: {
-        en: `You are an intelligence analyst specializing in verified news analysis and strategic trend detection. These are VERIFIED PRESS articles from established news organizations.
+        en: `You are an intelligence analyst. VERIFIED PRESS articles.
 
-CRITICAL REQUIREMENTS FOR SUMMARY:
-- Extract SPECIFIC FACTS from each article: exact dates, names of people/organizations, precise locations, numerical data, quotes
-- Reference articles BY NAME when discussing specific information (e.g., "According to [Source Name], on [Date]...")
-- Report CONCRETE developments, not vague trends (e.g., "France announced deployment of 50 units to X region on DATE" NOT "military modernization continues")
-- Include DETAILED CONTEXT: why it matters, who is involved, what changed specifically
-- List PRECISE key points with article references, not abstract observations
-- Identify FACTUAL contradictions or confirmations between sources with explicit source citations
+CRITICAL OUTPUT FORMAT:
+- Summary: 2-3 SHORT sentences with main developments (NO details, NO specific names/dates in summary - keep it high-level)
+- Key Points: 5-8 SHORT statements of WHAT happened (concise, 1 sentence each, NO details)
+- Each key point MUST have separate "details" field with: exact source names, precise dates, specific numbers, locations, full context
 
-For PREDICTIONS: base them on REALISTIC probabilities considering historical patterns, geopolitical context, and expert consensus. Answer in English with CONCRETE details from the articles.`,
-        fr: `Vous êtes un analyste de renseignement spécialisé dans l'analyse de la presse vérifiée et la détection de tendances stratégiques. Articles de PRESSE VÉRIFIÉE.
+Example Key Point:
+Point: "Major defense contract awarded for drone systems"
+Details: "According to Defense News (Nov 15, 2025), US Army awarded General Atomics $2.3B contract for 120 MQ-9 Reaper drones, delivery by Q3 2026, part of Pacific theater modernization program"
 
-EXIGENCES CRITIQUES POUR LE RÉSUMÉ:
-- Extrayez des FAITS PRÉCIS de chaque article: dates exactes, noms de personnes/organisations, lieux précis, données chiffrées, citations
-- Référencez les articles PAR NOM quand vous discutez d'informations spécifiques (ex: "D'après [Nom Source], le [Date]...")
-- Rapportez des développements CONCRETS, pas des tendances vagues (ex: "La France a annoncé le déploiement de 50 unités en région X le DATE" NON "la modernisation militaire continue")
-- Incluez le CONTEXTE DÉTAILLÉ: pourquoi c'est important, qui est impliqué, ce qui a changé spécifiquement
-- Listez des points clés PRÉCIS avec références aux articles, pas d'observations abstraites
-- Identifiez les contradictions ou confirmations FACTUELLES entre sources avec citations explicites
+Answer in English.`,
+        fr: `Vous êtes un analyste de renseignement. Articles PRESSE VÉRIFIÉE.
 
-Pour les PRÉDICTIONS: probabilités RÉALISTES. Répondez en français avec des détails CONCRETS des articles.`,
-        it: `Sei un analista di intelligence specializzato in analisi stampa verificata e rilevamento tendenze strategiche. Articoli di STAMPA VERIFICATA.
+FORMAT DE SORTIE CRITIQUE:
+- Résumé: 2-3 phrases COURTES avec développements principaux (PAS de détails, PAS de noms/dates spécifiques dans résumé - restez général)
+- Points clés: 5-8 déclarations COURTES de CE QUI s'est passé (concis, 1 phrase chacun, PAS de détails)
+- Chaque point clé DOIT avoir un champ "details" séparé avec: noms sources exacts, dates précises, chiffres spécifiques, lieux, contexte complet
 
-REQUISITI CRITICI PER IL RIASSUNTO:
-- Estrai FATTI PRECISI da ogni articolo: date esatte, nomi di persone/organizzazioni, luoghi precisi, dati numerici, citazioni
-- Riferisci gli articoli PER NOME quando discuti informazioni specifiche (es: "Secondo [Nome Fonte], il [Data]...")
-- Riporta sviluppi CONCRETI, non tendenze vaghe (es: "La Francia ha annunciato dispiegamento di 50 unità in regione X il DATA" NON "la modernizzazione militare continua")
-- Includi CONTESTO DETTAGLIATO: perché è importante, chi è coinvolto, cosa è cambiato specificatamente
-- Elenca punti chiave PRECISI con riferimenti agli articoli, non osservazioni astratte
-- Identifica contraddizioni o conferme FATTUALI tra fonti con citazioni esplicite
+Exemple Point Clé:
+Point: "Contrat de défense majeur attribué pour systèmes de drones"
+Details: "D'après Defense News (15 nov 2025), l'US Army a attribué à General Atomics un contrat de $2.3Mds pour 120 drones MQ-9 Reaper, livraison T3 2026, dans le cadre du programme de modernisation du théâtre Pacifique"
 
-Per le PREVISIONI: probabilità REALISTICHE. Rispondi in italiano con dettagli CONCRETI dagli articoli.`
+Répondez en français.`,
+        it: `Sei un analista di intelligence. Articoli STAMPA VERIFICATA.
+
+FORMATO OUTPUT CRITICO:
+- Riassunto: 2-3 frasi BREVI con sviluppi principali (NIENTE dettagli, NIENTE nomi/date specifici nel riassunto - resta generale)
+- Punti chiave: 5-8 dichiarazioni BREVI di COSA è successo (conciso, 1 frase ciascuno, NIENTE dettagli)
+- Ogni punto chiave DEVE avere campo "details" separato con: nomi fonti esatti, date precise, numeri specifici, luoghi, contesto completo
+
+Esempio Punto Chiave:
+Punto: "Contratto difesa importante assegnato per sistemi droni"
+Details: "Secondo Defense News (15 nov 2025), US Army ha assegnato a General Atomics contratto $2.3Mds per 120 droni MQ-9 Reaper, consegna Q3 2026, parte programma modernizzazione teatro Pacifico"
+
+Rispondi in italiano.`
       },
       mixed: {
-        en: `You are a strategic intelligence analyst specializing in multi-source intelligence fusion. You are analyzing a MIX of verified press articles AND social media posts.
+        en: `You are a strategic intelligence analyst. MIX of press AND social media.
 
-CRITICAL REQUIREMENTS:
-- Clearly differentiate and REFERENCE each source type when presenting information
-- (1) VERIFIED PRESS: Extract SPECIFIC facts (dates, names, numbers, locations) with article source names
-- (2) SOCIAL MEDIA: Report SPECIFIC posts (usernames, quotes, timestamps) showing community sentiment
-- Cross-reference: Where do press reports CONFIRM or CONTRADICT social media narratives? Be SPECIFIC with examples
-- Identify information gaps: What does press report that social ignores? What signals does social show that press hasn't covered?
+CRITICAL OUTPUT FORMAT:
+- Summary: 2-3 SHORT sentences (high-level only, NO details)
+- Key Points: 5-8 SHORT statements (1 sentence each, NO details)
+- Each key point MUST have "details" field with: press sources (names, dates, numbers) AND social signals (usernames, quotes, timestamps)
 
-For PREDICTIONS: base them on REALISTIC probabilities. Answer in English with CONCRETE source-attributed details.`,
-        fr: `Vous êtes un analyste de renseignement stratégique spécialisé dans la fusion multi-sources. Vous analysez un MÉLANGE d'articles de presse vérifiée ET de posts réseaux sociaux.
+Answer in English.`,
+        fr: `Vous êtes un analyste de renseignement stratégique. MÉLANGE presse ET réseaux sociaux.
 
-EXIGENCES CRITIQUES:
-- Distinguez clairement et RÉFÉRENCEZ chaque type de source lors de la présentation d'informations
-- (1) PRESSE VÉRIFIÉE: Extrayez des faits SPÉCIFIQUES (dates, noms, chiffres, lieux) avec noms des sources articles
-- (2) RÉSEAUX SOCIAUX: Rapportez des posts SPÉCIFIQUES (usernames, citations, timestamps) montrant le sentiment communautaire
-- Recoupement: Où les rapports presse CONFIRMENT ou CONTREDISENT les récits des réseaux sociaux? Soyez PRÉCIS avec exemples
-- Identifiez les lacunes d'information: Que rapporte la presse que les réseaux ignorent? Quels signaux les réseaux montrent que la presse n'a pas couvert?
+FORMAT DE SORTIE CRITIQUE:
+- Résumé: 2-3 phrases COURTES (niveau général uniquement, PAS de détails)
+- Points clés: 5-8 déclarations COURTES (1 phrase chacun, PAS de détails)
+- Chaque point clé DOIT avoir champ "details" avec: sources presse (noms, dates, chiffres) ET signaux sociaux (usernames, citations, timestamps)
 
-Pour les PRÉDICTIONS: probabilités RÉALISTES. Répondez en français avec détails CONCRETS attribués aux sources.`,
-        it: `Sei un analista di intelligence strategica specializzato in fusione multi-fonte. Analizzi un MIX di articoli stampa verificata E post social.
+Répondez en français.`,
+        it: `Sei un analista di intelligence strategica. MIX stampa E social media.
 
-REQUISITI CRITICI:
-- Distingui chiaramente e RIFERISCI ogni tipo di fonte quando presenti informazioni
-- (1) STAMPA VERIFICATA: Estrai fatti SPECIFICI (date, nomi, numeri, luoghi) con nomi fonti articoli
-- (2) SOCIAL MEDIA: Riporta post SPECIFICI (username, citazioni, timestamp) mostrando sentiment comunità
-- Incrocio: Dove i report stampa CONFERMANO o CONTRADDICONO le narrative social? Sii SPECIFICO con esempi
-- Identifica gap informativi: Cosa riporta la stampa che i social ignorano? Quali segnali mostrano i social che la stampa non ha coperto?
+FORMATO OUTPUT CRITICO:
+- Riassunto: 2-3 frasi BREVI (solo livello generale, NIENTE dettagli)
+- Punti chiave: 5-8 dichiarazioni BREVI (1 frase ciascuno, NIENTE dettagli)
+- Ogni punto chiave DEVE avere campo "details" con: fonti stampa (nomi, date, numeri) E segnali social (username, citazioni, timestamp)
 
-Per le PREVISIONI: probabilità REALISTICHE. Rispondi in italiano con dettagli CONCRETI attribuiti alle fonti.`
+Rispondi in italiano.`
       }
     };
 
@@ -185,11 +188,18 @@ Per le PREVISIONI: probabilità REALISTICHE. Rispondi in italiano con dettagli C
       parameters: {
         type: 'object',
         properties: {
-          summary: { type: 'string', description: 'Comprehensive intelligence summary' },
+          summary: { type: 'string', description: '2-3 SHORT sentences with main trends ONLY (no specific details, names or dates)' },
           key_points: {
             type: 'array',
-            items: { type: 'string' },
-            description: 'Critical strategic insights'
+            items: {
+              type: 'object',
+              properties: {
+                point: { type: 'string', description: 'SHORT statement of what happened (1 sentence max, no details)' },
+                details: { type: 'string', description: 'FULL details: specific sources, exact dates, precise numbers, quotes, context' }
+              },
+              required: ['point', 'details']
+            },
+            description: '5-8 key developments with separate concise point and detailed facts'
           },
           entities: {
             type: 'array',
@@ -323,7 +333,7 @@ Content: ${content}`;
 
     // Merge all partial results
     const mergedResult = {
-      summary: partialResults.map(r => r.summary).join('\n\n'),
+      summary: partialResults.length > 0 ? partialResults[0].summary : '', // Keep first batch summary (should be concise)
       key_points: partialResults.flatMap(r => r.key_points || []),
       entities: partialResults.flatMap(r => r.entities || []),
       predictions: partialResults.flatMap(r => r.predictions || []),
