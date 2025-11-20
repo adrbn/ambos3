@@ -21,9 +21,9 @@ serve(async (req) => {
       );
     }
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not configured');
+    const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
+    if (!GROQ_API_KEY) {
+      throw new Error('GROQ_API_KEY is not configured');
     }
 
     // If translateOnly mode, just translate to target language
@@ -32,14 +32,14 @@ serve(async (req) => {
       
       const translatePrompt = `Traduis cette requête de recherche en ${language === 'it' ? 'italien' : language === 'fr' ? 'français' : 'anglais'}. Retourne UNIQUEMENT la traduction, sans explications.\n\nRequête: "${query}"`;
       
-      const translateResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      const translateResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'llama-3.3-70b-versatile',
           messages: [
             { role: 'system', content: 'Tu es un traducteur professionnel. Tu traduis uniquement sans ajouter de commentaires.' },
             { role: 'user', content: translatePrompt }
@@ -141,14 +141,14 @@ Exemples:
       userPrompt = `Transforme cette requête simple en requête booléenne complexe (langue: ${language}):\n\n"${query}"\n\nRéponds UNIQUEMENT avec la requête enrichie, sans explications.`;
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -159,8 +159,8 @@ Exemples:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', response.status, errorText);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error('Groq API error:', response.status, errorText);
+      throw new Error(`Groq API error: ${response.status}`);
     }
 
     const data = await response.json();
