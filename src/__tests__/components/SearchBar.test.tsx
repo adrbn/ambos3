@@ -14,10 +14,12 @@ describe('SearchBar', () => {
     currentQuery: '',
     searchTrigger: 0,
     selectedApi: 'mixed' as const,
-    sourceType: 'news' as const,
-    onSourceTypeChange: vi.fn(),
+    sourceMode: 'news' as const,
+    onSourceModeChange: vi.fn(),
     osintSources: [],
     onOsintSourcesChange: vi.fn(),
+    pressSources: ['newsapi', 'mediastack', 'gnews'],
+    onPressSourcesChange: vi.fn(),
     enableQueryEnrichment: false,
   };
 
