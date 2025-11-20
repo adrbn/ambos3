@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Search, Settings2 } from "lucide-react";
+import { Loader2, Search, Settings2, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -104,119 +104,84 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
       }
       
       if (sourceMode === 'military') {
-        // Filtrer uniquement les sources activées
         const enabledSources = militarySources.filter(s => s.enabled);
-        
         if (enabledSources.length === 0) {
-          toast.error("Aucune source militaire activée");
+          toast.error("Veuillez activer au moins une source RSS militaire.");
           setIsLoading(false);
           return;
         }
-        
-        const { data, error } = await supabase.functions.invoke('fetch-military-rss', {
-          body: { 
-            query: finalQuery, 
-            language: 'it',
-            limit: 50,
-            customSources: enabledSources 
-          }
+
+        const { data: militaryData, error: militaryError } = await supabase.functions.invoke('fetch-military-rss', {
+          body: { query: finalQuery, customSources: enabledSources }
         });
         
-        if (error) {
-          console.error('Error fetching military RSS:', error);
-          toast.error("Erreur lors de la récupération des flux militaires");
-          setIsLoading(false);
-          return;
+        if (militaryError) {
+          console.error('Military RSS error:', militaryError);
+          toast.error("Échec de la récupération des flux RSS militaires.");
+        } else if (militaryData?.articles) {
+          allArticles = militaryData.articles.map((article: any) => ({
+            ...article,
+            source: { ...article.source, type: 'military' }
+          }));
         }
-        
-        allArticles = data?.articles || [];
       } else if (sourceMode === 'osint') {
-        const fetchPromises = osintSources.map(async (source) => {
-          const functionMap: Record<string, string> = {
-            'mastodon': 'fetch-bluesky',
-            'bluesky': 'fetch-bluesky-real',
-            'gopher': 'fetch-gopher',
-            'google': 'fetch-google',
-            'military-rss': 'fetch-military-rss',
-          };
-          
-          const functionName = functionMap[source];
-          if (!functionName) return { articles: [] };
-          
-          try {
-            const { data, error } = await supabase.functions.invoke(functionName, {
-              body: { query: finalQuery, language, limit: 50 }
-            });
-            
-            if (error || data?.error) {
-              return { articles: [] };
-            }
-            
-            return data || { articles: [] };
-          } catch {
-            return { articles: [] };
+        const promises = osintSources.map(source => {
+          switch (source) {
+            case 'bluesky':
+              return supabase.functions.invoke('fetch-bluesky', { body: { query: finalQuery } });
+            case 'mastodon':
+              return supabase.functions.invoke('fetch-bluesky-real', { body: { query: finalQuery } });
+            case 'gopher':
+              return supabase.functions.invoke('fetch-gopher', { body: { query: finalQuery } });
+            case 'google':
+              return supabase.functions.invoke('fetch-google', { body: { query: finalQuery } });
+            default:
+              return Promise.resolve({ data: { articles: [] }, error: null });
           }
         });
-        
-        const results = await Promise.all(fetchPromises);
-        allArticles = results.flatMap(result => result.articles || []);
-        
-        if (allArticles.length === 0) {
-          toast.error("Aucun article trouvé sur les sources sélectionnées.");
-          setIsLoading(false);
-          return;
-        }
-      } else {
-        const sourcesToFetch = pressSources.filter(s => s !== 'military-rss');
-        const newsPromises = sourcesToFetch.map(async (api) => {
-          try {
-            const { data, error } = await supabase.functions.invoke('fetch-news', {
-              body: { query: finalQuery, language, api }
-            });
-            
-            if (error || data?.error) {
-              return [];
-            }
-            
-            return data?.articles || [];
-          } catch {
-            return [];
+
+        const results = await Promise.all(promises);
+        results.forEach((result, index) => {
+          if (!result.error && result.data?.articles) {
+            allArticles = [...allArticles, ...result.data.articles];
+          } else if (result.error) {
+            console.error(`Error from ${osintSources[index]}:`, result.error);
           }
         });
-        
-        if (pressSources.includes('military-rss')) {
-          const militaryPromise = supabase.functions.invoke('fetch-military-rss', {
-            body: { query: finalQuery, language, limit: 50 }
-          }).then(({ data, error }) => {
-            if (error || !data?.articles) return [];
-            return data.articles;
-          });
-          newsPromises.push(militaryPromise);
-        }
-        
-        const results = await Promise.all(newsPromises);
-        allArticles = results.flat();
-      }
-      
-      if (allArticles.length === 0) {
-        toast.error(`Aucun post trouvé. Essayez d'autres mots-clés ou sources.`, { duration: 6000 });
-        setIsLoading(false);
-        return;
-      }
-
-      const modeLabel = sourceMode === 'military' ? 'flux militaires' : sourceMode === 'osint' ? osintSources.join(', ') : 'presse';
-      toast.success(`Trouvé ${allArticles.length} post${allArticles.length > 1 ? 's' : ''} sur ${modeLabel}`);
-
-      const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-news', {
-        body: { articles: allArticles, query: queryToUse, language, sourceType: sourceMode === 'military' ? 'news' : sourceMode }
-      });
-
-      if (analysisError) {
-        toast.error("Échec de l'analyse des articles.");
-        onSearch(queryToUse, allArticles, null);
       } else {
-        toast.success("Analyse IA terminée.");
+        const selectedPressSources = pressSources.filter(s => s !== 'military-rss');
+        const apis = selectedPressSources.length > 0 ? selectedPressSources : ['newsapi'];
+
+        const promises = apis.map(api =>
+          supabase.functions.invoke('fetch-news', {
+            body: { query: finalQuery, language, api }
+          })
+        );
+
+        const results = await Promise.all(promises);
+        results.forEach((result, index) => {
+          if (!result.error && result.data?.articles) {
+            allArticles = [...allArticles, ...result.data.articles];
+          } else if (result.error) {
+            console.error(`Error from ${apis[index]}:`, result.error);
+          }
+        });
+      }
+
+      if (allArticles.length > 0) {
+        const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-news', {
+          body: { articles: allArticles, query: finalQuery, language, sourceType: sourceMode }
+        });
+
+        if (analysisError) {
+          console.error('Analysis error:', analysisError);
+          toast.error("L'analyse IA a échoué, mais les articles sont disponibles.");
+        }
+
         onSearch(queryToUse, allArticles, analysisData);
+      } else {
+        toast.error("Aucun article trouvé pour cette requête.");
+        onSearch(queryToUse, [], null);
       }
     } catch (error: any) {
       toast.error(error.message || "La recherche a échoué.");
@@ -225,168 +190,179 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
     }
   };
 
-  const showModeSelector = sourceMode !== 'military';
-  const showMilitaryConfig = sourceMode === 'military';
-
   return (
     <div className="w-full space-y-3">
-      {/* Military sources config - only in military mode */}
-      {showMilitaryConfig && (
-        <div className="p-3 bg-card/30 rounded-lg border border-primary/20">
+      {/* Source Mode Selector - avec les 3 modes */}
+      <div className="flex gap-2 p-1 bg-card/30 rounded-lg border border-primary/20">
+        {/* Press Mode */}
+        <div className="flex flex-1 gap-1">
+          <button
+            onClick={() => onSourceModeChange('news')}
+            className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all ${
+              sourceMode === 'news'
+                ? 'bg-primary text-primary-foreground shadow-lg'
+                : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
+            }`}
+          >
+            📰 {t('newsApis')}
+          </button>
+          
           <Popover>
             <PopoverTrigger asChild>
-              <button className="w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-mono transition-all bg-card/50 hover:bg-card/70 border border-primary/30">
-                <span>⚙️ Configuration des sources RSS</span>
+              <button
+                className={`px-2 py-2 rounded-md text-xs transition-all border border-primary/30 ${
+                  sourceMode === 'news'
+                    ? 'bg-primary/20 text-primary hover:bg-primary/30'
+                    : 'bg-card/50 text-muted-foreground hover:text-foreground hover:bg-card/70'
+                }`}
+              >
                 <Settings2 className="w-3 h-3" />
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 bg-card border-primary/30 p-3" align="start">
-              <MilitarySourcesConfig 
-                sources={militarySources}
-                onSourcesChange={onMilitarySourcesChange}
-              />
+            <PopoverContent className="w-72 bg-card border-primary/30 p-3" align="end">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-mono mb-2">Sources presse actives:</p>
+                <div className="flex flex-col gap-2">
+                  {['newsapi', 'mediastack', 'gnews', 'military-rss'].map((source) => {
+                    const sourceLabels: Record<string, string> = {
+                      'newsapi': 'NewsAPI',
+                      'mediastack': 'Mediastack',
+                      'gnews': 'GNews',
+                      'military-rss': '🇮🇹 Military RSS (IT)'
+                    };
+                    
+                    return (
+                      <label
+                        key={source}
+                        className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={pressSources.includes(source)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              onPressSourcesChange([...pressSources, source]);
+                            } else {
+                              onPressSourcesChange(pressSources.filter(s => s !== source));
+                            }
+                          }}
+                          className="w-3 h-3"
+                        />
+                        <span className="text-xs font-mono flex-1">
+                          {sourceLabels[source]}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
             </PopoverContent>
           </Popover>
         </div>
-      )}
-      
-      {showModeSelector && (
-        <div className="flex gap-2 p-1 bg-card/30 rounded-lg border border-primary/20">
-          <div className="flex flex-1 gap-1">
-            <button
-              onClick={() => onSourceModeChange('news')}
-              className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all ${
-                sourceMode === 'news'
-                  ? 'bg-primary text-primary-foreground shadow-lg'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
-              }`}
-            >
-              📰 {t('newsApis')}
-            </button>
-            
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  className={`px-2 py-2 rounded-md text-xs transition-all border border-primary/30 ${
-                    sourceMode === 'news'
-                      ? 'bg-primary/20 text-primary hover:bg-primary/30'
-                      : 'bg-card/50 text-muted-foreground hover:text-foreground hover:bg-card/70'
-                  }`}
-                >
-                  <Settings2 className="w-3 h-3" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-72 bg-card border-primary/30 p-3" align="end">
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground font-mono mb-2">Sources presse actives:</p>
-                  <div className="flex flex-col gap-2">
-                    {['newsapi', 'mediastack', 'gnews', 'military-rss'].map((source) => {
-                      const sourceLabels: Record<string, string> = {
-                        'newsapi': 'NewsAPI',
-                        'mediastack': 'Mediastack',
-                        'gnews': 'GNews',
-                        'military-rss': '🇮🇹 Military RSS (IT)'
-                      };
-                      
-                      return (
-                        <label
-                          key={source}
-                          className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={pressSources.includes(source)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                onPressSourcesChange([...pressSources, source]);
-                              } else {
-                                onPressSourcesChange(pressSources.filter(s => s !== source));
-                              }
-                            }}
-                            className="w-3 h-3"
-                          />
-                          <span className="text-xs font-mono flex-1">
-                            {sourceLabels[source]}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
+        
+        {/* OSINT Mode */}
+        <div className="flex flex-1 gap-1">
+          <button
+            onClick={() => onSourceModeChange('osint')}
+            className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all ${
+              sourceMode === 'osint'
+                ? 'bg-primary text-primary-foreground shadow-lg'
+                : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
+            }`}
+          >
+            🔍 OSINT
+          </button>
           
-          <div className="flex flex-1 gap-1">
-            <button
-              onClick={() => onSourceModeChange('osint')}
-              className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all ${
-                sourceMode === 'osint'
-                  ? 'bg-primary text-primary-foreground shadow-lg'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
-              }`}
-            >
-              🔍 OSINT
-            </button>
-            
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className={`px-2 py-2 rounded-md text-xs transition-all border border-primary/30 ${
+                  sourceMode === 'osint'
+                    ? 'bg-primary/20 text-primary hover:bg-primary/30'
+                    : 'bg-card/50 text-muted-foreground hover:text-foreground hover:bg-card/70'
+                }`}
+              >
+                <Settings2 className="w-3 h-3" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 bg-card border-primary/30 p-3" align="end">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-mono mb-2">Sources OSINT actives:</p>
+                <div className="flex flex-col gap-2">
+                  {['mastodon', 'bluesky', 'gopher', 'google', 'military-rss'].map((source) => {
+                    const sourceLabels: Record<string, string> = {
+                      'mastodon': 'Mastodon',
+                      'bluesky': 'BlueSky',
+                      'gopher': 'X/Twitter',
+                      'google': 'Google',
+                      'military-rss': '🇮🇹 Military RSS (IT)'
+                    };
+                    
+                    return (
+                      <label
+                        key={source}
+                        className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={osintSources.includes(source)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              onOsintSourcesChange([...osintSources, source]);
+                            } else {
+                              onOsintSourcesChange(osintSources.filter(s => s !== source));
+                            }
+                          }}
+                          className="w-3 h-3"
+                        />
+                        <span className="text-xs font-mono flex-1">
+                          {sourceLabels[source]}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-muted-foreground/70 mt-2">
+                  ⚠️ Threads nécessite OAuth (non disponible)
+                </p>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+        
+        {/* Military Mode */}
+        <div className="flex flex-1 gap-1">
+          <button
+            onClick={() => onSourceModeChange('military')}
+            className={`flex-1 px-3 py-2 rounded-md text-xs font-mono transition-all flex items-center justify-center gap-1 ${
+              sourceMode === 'military'
+                ? 'bg-primary text-primary-foreground shadow-lg'
+                : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
+            }`}
+          >
+            <Shield className="w-3 h-3" />
+            <span>Military</span>
+          </button>
+          
+          {sourceMode === 'military' && (
             <Popover>
               <PopoverTrigger asChild>
                 <button
-                  className={`px-2 py-2 rounded-md text-xs transition-all border border-primary/30 ${
-                    sourceMode === 'osint'
-                      ? 'bg-primary/20 text-primary hover:bg-primary/30'
-                      : 'bg-card/50 text-muted-foreground hover:text-foreground hover:bg-card/70'
-                  }`}
+                  className="px-2 py-2 rounded-md text-xs transition-all border border-primary/30 bg-primary/20 text-primary hover:bg-primary/30"
                 >
                   <Settings2 className="w-3 h-3" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-72 bg-card border-primary/30 p-3" align="end">
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground font-mono mb-2">Sources OSINT actives:</p>
-                  <div className="flex flex-col gap-2">
-                    {['mastodon', 'bluesky', 'gopher', 'google', 'military-rss'].map((source) => {
-                      const sourceLabels: Record<string, string> = {
-                        'mastodon': 'Mastodon',
-                        'bluesky': 'BlueSky',
-                        'gopher': 'X/Twitter',
-                        'google': 'Google',
-                        'military-rss': '🇮🇹 Military RSS (IT)'
-                      };
-                      
-                      return (
-                        <label
-                          key={source}
-                          className="flex items-center gap-2 px-3 py-2 rounded bg-card/30 border border-primary/20 cursor-pointer hover:bg-card/50 transition-all"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={osintSources.includes(source)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                onOsintSourcesChange([...osintSources, source]);
-                              } else {
-                                onOsintSourcesChange(osintSources.filter(s => s !== source));
-                              }
-                            }}
-                            className="w-3 h-3"
-                          />
-                          <span className="text-xs font-mono flex-1">
-                            {sourceLabels[source]}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground/70 mt-2">
-                    ⚠️ Threads nécessite OAuth (non disponible)
-                  </p>
-                </div>
+              <PopoverContent className="w-80 bg-card border-primary/30 p-3" align="end">
+                <MilitarySourcesConfig 
+                  sources={militarySources}
+                  onSourcesChange={onMilitarySourcesChange}
+                />
               </PopoverContent>
             </Popover>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       <div className="flex gap-2">
         <Input

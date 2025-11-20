@@ -404,16 +404,11 @@ const Index = () => {
       {/* Tabs: Search and Sector Watches */}
       <div className="px-2 sm:px-4 py-2 sm:py-3">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-3">
+          <TabsList className="grid w-full grid-cols-2 mb-3">
             <TabsTrigger value="search" className="flex items-center gap-2 text-xs sm:text-sm">
               <Search className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">{t('classicSearch')}</span>
               <span className="sm:hidden">{t('search')}</span>
-            </TabsTrigger>
-            <TabsTrigger value="military" className="flex items-center gap-2 text-xs sm:text-sm">
-              <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">{t('militaryRss')}</span>
-              <span className="sm:hidden">Mil.</span>
             </TabsTrigger>
             <TabsTrigger value="watches" className="flex items-center gap-2 text-xs sm:text-sm">
               <BookmarkPlus className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -432,24 +427,6 @@ const Index = () => {
               onSourceModeChange={setSourceMode}
               osintSources={osintSources}
               onOsintSourcesChange={setOsintSources}
-              pressSources={pressSources}
-              onPressSourcesChange={setPressSources}
-              militarySources={militarySources}
-              onMilitarySourcesChange={setMilitarySources}
-              enableQueryEnrichment={enableQueryEnrichment}
-            />
-          </TabsContent>
-          <TabsContent value="military" className="mt-0">
-            <SearchBar 
-              onSearch={handleSearch} 
-              language={language} 
-              currentQuery={currentQuery} 
-              searchTrigger={searchTrigger}
-              selectedApi={selectedApi}
-              sourceMode={'military'}
-              onSourceModeChange={setSourceMode}
-              osintSources={['military-rss']}
-              onOsintSourcesChange={() => {}}
               pressSources={pressSources}
               onPressSourcesChange={setPressSources}
               militarySources={militarySources}
