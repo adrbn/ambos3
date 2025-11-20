@@ -72,7 +72,7 @@ await fetch('https://vvzlzrhowdubpyxspdyi.supabase.co/functions/v1/test-alert', 
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' // Votre anon key
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2emx6cmhvd2R1YnB5eHNwZHlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyNDExMzgsImV4cCI6MjA3ODgxNzEzOH0.hqlFrXDTGkbMVEJM4EjN5NZ5FhH7YVCJh-Zh-YNlZbg' // Votre anon key
   },
   body: JSON.stringify({
     alert_id: 'ALERT_ID_FROM_SUPABASE',
