@@ -67,16 +67,13 @@ serve(async (req) => {
       }
     }
 
-    // Limit to first 15 articles and truncate content to reduce token usage
-    const articlesText = (Array.isArray(articles) ? articles.slice(0, 15) : []).map((a: any, i: number) => {
-      const title = (a.title || 'No title').slice(0, 200);
-      const description = (a.description || 'No description').slice(0, 400);
-      const baseInfo = `[${i+1}] ${title}\n${description}\nSource: ${a.source?.name || 'Unknown'}`;
+    const articlesText = (Array.isArray(articles) ? articles : []).map((a: any, i: number) => {
+      const baseInfo = `[${i+1}] ${a.title}\n${a.description}\nSource: ${a.source?.name || 'Unknown'}\nPublished: ${a.publishedAt}\nURL: ${a.url}`;
       const platform = toLower(a.platform) || toLower((a as any).osint?.platform) || toLower(a.source?.platform) || 'unknown';
       const engagement = (a as any).osint?.engagement || (a as any).engagement || {};
       const cred = (a as any).osint?.credibilityScore ?? (a as any).credibilityScore;
       if ((a as any).osint || platform !== 'unknown') {
-        const osintInfo = `\nPlatform: ${platform}${cred !== undefined ? `\nCredibility: ${cred}/100` : ''}\nEngagement: ${engagement.likes || 0} likes, ${engagement.reposts || engagement.shares || 0} reposts`;
+        const osintInfo = `\nPlatform: ${platform}${cred !== undefined ? `\nCredibility Score: ${cred}/100` : ''}\nEngagement: ${engagement.likes || 0} likes, ${engagement.reposts || engagement.shares || 0} reposts, ${engagement.replies || engagement.comments || 0} replies`;
         return baseInfo + osintInfo;
       }
       return baseInfo;
@@ -160,7 +157,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama-3.1-70b-versatile',
         messages: [
           { role: 'system', content: selectedSystem[language as keyof typeof selectedSystem] || selectedSystem.en },
           { role: 'user', content: userContent }
