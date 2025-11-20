@@ -217,95 +217,52 @@ serve(async (req) => {
       console.log(`Batch ${i + 1} analyzed successfully`);
     }
 
-    // Synthesize all batch results into final analysis
-    console.log('Synthesizing final analysis from all batches...');
+    // Merge batch results directly instead of asking AI to synthesize
+    console.log('Merging batch results...');
 
-    const synthesisPrompt = language === 'fr' 
-      ? `Voici ${batchResults.length} analyses partielles d'articles sur "${query}". Synthétisez-les en une analyse finale cohérente et complète.\n\n${batchResults.map((r, i) => `Batch ${i + 1}:\nPoints clés: ${r.key_points.join(', ')}\nEntités: ${r.entities.map((e: any) => e.name).join(', ')}\nSentiment: ${r.sentiment}\nPrédictions: ${r.predictions.map((p: any) => p.event).join('; ')}`).join('\n\n')}`
-      : language === 'it'
-      ? `Ecco ${batchResults.length} analisi parziali di articoli su "${query}". Sintetizzale in un'analisi finale coerente e completa.\n\n${batchResults.map((r, i) => `Batch ${i + 1}:\nPunti chiave: ${r.key_points.join(', ')}\nEntità: ${r.entities.map((e: any) => e.name).join(', ')}\nSentiment: ${r.sentiment}\nPrevisioni: ${r.predictions.map((p: any) => p.event).join('; ')}`).join('\n\n')}`
-      : `Here are ${batchResults.length} partial analyses of articles about "${query}". Synthesize them into a coherent and complete final analysis.\n\n${batchResults.map((r, i) => `Batch ${i + 1}:\nKey points: ${r.key_points.join(', ')}\nEntities: ${r.entities.map((e: any) => e.name).join(', ')}\nSentiment: ${r.sentiment}\nPredictions: ${r.predictions.map((p: any) => p.event).join('; ')}`).join('\n\n')}`;
-
-    const finalAnalysisTool = {
-      type: "function",
-      function: {
-        name: "provide_analysis",
-        description: "Provide final synthesized analysis",
-        parameters: {
-          type: "object",
-          properties: {
-            entities: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  name: { type: "string" },
-                  type: { type: "string" },
-                  role: { type: "string" }
-                }
-              }
-            },
-            summary: { type: "string" },
-            predictions: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  event: { type: "string" },
-                  probability: { type: "string" },
-                  timeframe: { type: "string" },
-                  confidence_factors: { type: "array", items: { type: "string" } },
-                  risk_level: { type: "string" }
-                }
-              }
-            },
-            sentiment: { type: "string" }
-          },
-          required: ["entities", "summary", "predictions", "sentiment"]
+    // Deduplicate and merge entities
+    const entitiesMap = new Map<string, any>();
+    batchResults.forEach(batch => {
+      batch.entities.forEach((entity: any) => {
+        if (!entitiesMap.has(entity.name)) {
+          entitiesMap.set(entity.name, entity);
         }
-      }
-    };
-
-    const finalResponse = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: selectedSystem[language as keyof typeof selectedSystem] || selectedSystem.en },
-          { role: 'user', content: synthesisPrompt }
-        ],
-        tools: [finalAnalysisTool],
-        tool_choice: { type: "function", function: { name: "provide_analysis" } }
-      }),
+      });
     });
 
-    if (!finalResponse.ok) {
-      const errorText = await finalResponse.text();
-      console.error('Groq API error on final synthesis:', finalResponse.status, errorText);
-      
-      if (finalResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'Groq rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      throw new Error(`Groq API error on synthesis: ${finalResponse.status} - ${errorText}`);
-    }
+    // Merge predictions (keep all unique predictions)
+    const allPredictions: any[] = [];
+    batchResults.forEach(batch => {
+      batch.predictions.forEach((pred: any) => {
+        // Avoid duplicates based on event text
+        if (!allPredictions.some(p => p.event === pred.event)) {
+          allPredictions.push(pred);
+        }
+      });
+    });
 
-    const finalData = await finalResponse.json();
-    const finalToolCall = finalData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!finalToolCall || finalToolCall.function.name !== 'provide_analysis') {
-      console.error('No valid tool call in final response');
-      throw new Error('AI did not use the expected tool for final synthesis');
-    }
+    // Combine key points into a summary
+    const allKeyPoints = batchResults.flatMap((r: any) => r.key_points);
+    const summary = allKeyPoints.join('. ') + '.';
 
-    const analysis = JSON.parse(finalToolCall.function.arguments);
-    console.log('Final analysis completed successfully');
+    // Aggregate sentiment (majority vote)
+    const sentiments = batchResults.map((r: any) => r.sentiment);
+    const sentimentCounts: Record<string, number> = {};
+    sentiments.forEach(s => {
+      sentimentCounts[s] = (sentimentCounts[s] || 0) + 1;
+    });
+    const dominantSentiment = Object.entries(sentimentCounts)
+      .sort(([,a], [,b]) => b - a)[0][0];
+
+    const analysis = {
+      entities: Array.from(entitiesMap.values()),
+      summary,
+      predictions: allPredictions,
+      sentiment: dominantSentiment
+    };
+
+    console.log('Final analysis merged successfully');
+
 
     return new Response(JSON.stringify(analysis), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
