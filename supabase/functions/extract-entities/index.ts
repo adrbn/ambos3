@@ -6,15 +6,15 @@ const corsHeaders = {
 };
 
 
-// Retry utility with exponential backoff  
-async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+// Enhanced retry with exponential backoff for 503 and 429 errors
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 5): Promise<Response> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const response = await fetch(url, options);
       
-      if (response.status === 429 && attempt < maxRetries) {
-        const waitTime = Math.pow(2, attempt) * 1000;
-        console.log(`Rate limited, waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}`);
+      if ((response.status === 503 || response.status === 429) && attempt < maxRetries) {
+        const waitTime = Math.pow(2, attempt) * 2000;
+        console.log(`API ${response.status} error, waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         continue;
       }
@@ -22,7 +22,7 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3)
       return response;
     } catch (error) {
       if (attempt === maxRetries) throw error;
-      const waitTime = Math.pow(2, attempt) * 1000;
+      const waitTime = Math.pow(2, attempt) * 2000;
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
   }

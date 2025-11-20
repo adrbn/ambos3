@@ -6,6 +6,31 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Enhanced retry with exponential backoff for 503 errors
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 5): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      // If overloaded (503) or rate limited (429), wait and retry with exponential backoff
+      if ((response.status === 503 || response.status === 429) && attempt < maxRetries) {
+        const waitTime = Math.pow(2, attempt) * 2000; // 2s, 4s, 8s, 16s, 32s
+        console.log(`API ${response.status} error, waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      const waitTime = Math.pow(2, attempt) * 2000;
+      console.log(`Request failed, retrying in ${waitTime}ms...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -21,9 +46,9 @@ serve(async (req) => {
       );
     }
 
-    const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
-    if (!GROQ_API_KEY) {
-      throw new Error('GROQ_API_KEY is not configured');
+    const GEMINI_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
+      throw new Error('GOOGLE_GEMINI_API_KEY is not configured');
     }
 
     // If translateOnly mode, just translate to target language
@@ -32,23 +57,30 @@ serve(async (req) => {
       
       const translatePrompt = `Traduis cette requête de recherche en ${language === 'it' ? 'italien' : language === 'fr' ? 'français' : 'anglais'}. Retourne UNIQUEMENT la traduction, sans explications.\n\nRequête: "${query}"`;
       
-      const translateResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            { role: 'system', content: 'Tu es un traducteur professionnel. Tu traduis uniquement sans ajouter de commentaires.' },
-            { role: 'user', content: translatePrompt }
-          ],
-        }),
-      });
+      const translateResponse = await fetchWithRetry(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: 'Tu es un traducteur professionnel. Tu traduis uniquement sans ajouter de commentaires.\n\n' + translatePrompt }]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 100,
+            }
+          }),
+        }
+      );
 
       const translateData = await translateResponse.json();
-      const translatedQuery = translateData.choices?.[0]?.message?.content?.trim() || query;
+      const translatedQuery = translateData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || query;
       
       console.log(`Translated query: "${translatedQuery}"`);
       
@@ -94,9 +126,8 @@ Ta tâche est de transformer une requête simple en une liste de hashtags pertin
 Règles CRITIQUES:
 - Retourne UNIQUEMENT des hashtags séparés par des espaces
 - Chaque hashtag commence par #
-- Maximum 3-5 hashtags les plus pertinents
+- Maximum 5-7 hashtags les plus pertinents
 - Inclus des variantes en anglais ET dans la langue demandée
-- Pas de parenthèses, pas d'opérateurs booléens
 - Hashtags simples sans espaces (utilise CamelCase si nécessaire)
 
 Exemples:
@@ -141,30 +172,36 @@ Exemples:
       userPrompt = `Transforme cette requête simple en requête booléenne complexe (langue: ${language}):\n\n"${query}"\n\nRéponds UNIQUEMENT avec la requête enrichie, sans explications.`;
     }
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: 200,
-      }),
-    });
+    const response = await fetchWithRetry(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: systemPrompt + '\n\n' + userPrompt }]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.5,
+            maxOutputTokens: 200,
+          }
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Groq API error:', response.status, errorText);
-      throw new Error(`Groq API error: ${response.status}`);
+      console.error('Gemini API error:', response.status, errorText);
+      throw new Error(`Gemini API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const enrichedQuery = data.choices[0].message.content.trim();
+    const enrichedQuery = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || query;
     
     // Remove any potential quotes around the response
     const cleanedQuery = enrichedQuery.replace(/^["']|["']$/g, '');
