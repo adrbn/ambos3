@@ -3,7 +3,7 @@ import ForceGraph2D from 'react-force-graph-2d';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { X, RefreshCw } from 'lucide-react';
+import { X, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
 
 interface Node {
   id: string;
@@ -35,6 +35,7 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [activeTab, setActiveTab] = useState<string>('person');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<any>(null);
   const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -61,11 +62,9 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
 
         const data = await response.json();
         
-        // Filter out unimportant entities (keep only importance >= 6)
         const filteredNodes = data.nodes.filter((node: Node) => node.importance >= 6);
         const nodeIds = new Set(filteredNodes.map((n: Node) => n.id));
         
-        // Filter out weak links and links with filtered nodes
         const filteredLinks = data.links.filter((link: Link) => 
           link.strength >= 3 && nodeIds.has(link.source) && nodeIds.has(link.target)
         );
@@ -83,49 +82,77 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
     };
 
     extractEntities();
-  }, [articles, isEnabled]);
+  }, [isEnabled, articles]);
 
-  const getNodeColor = (type: string) => {
-    switch (type) {
-      case 'person': return '#00D9FF';      // Cyan
-      case 'organization': return '#FF6B9D'; // Pink
-      case 'location': return '#00FF9F';     // Green
-      case 'event': return '#FFD700';        // Gold
-      case 'date': return '#9D4EDD';         // Purple
-      default: return '#FFFFFF';
-    }
+  if (!isEnabled) return null;
+
+  const filteredData = {
+    nodes: graphData.nodes.filter(node => {
+      if (activeTab === 'person') return node.type === 'person';
+      if (activeTab === 'location') return node.type === 'location';
+      if (activeTab === 'organization') return node.type === 'organization';
+      return false;
+    }),
+    links: graphData.links.filter(link => {
+      const sourceNode = graphData.nodes.find(n => n.id === link.source);
+      const targetNode = graphData.nodes.find(n => n.id === link.target);
+      
+      if (activeTab === 'person') {
+        return sourceNode?.type === 'person' && targetNode?.type === 'person';
+      }
+      if (activeTab === 'location') {
+        return sourceNode?.type === 'location' && targetNode?.type === 'location';
+      }
+      if (activeTab === 'organization') {
+        return sourceNode?.type === 'organization' && targetNode?.type === 'organization';
+      }
+      return false;
+    })
   };
 
-  // Always enabled - removed toggle, just show refresh if needed
+  const containerClasses = isFullscreen
+    ? "fixed inset-0 z-50 bg-background p-4 flex flex-col"
+    : "flex flex-col h-full";
 
-  // Filtrer les données selon l'onglet actif
-  const getFilteredData = () => {
-    const filteredNodes = graphData.nodes.filter(node => node.type === activeTab);
-    const nodeIds = new Set(filteredNodes.map(n => n.id));
-    const filteredLinks = graphData.links.filter(link => 
-      nodeIds.has(link.source.toString()) && nodeIds.has(link.target.toString())
-    );
-    return { nodes: filteredNodes, links: filteredLinks };
+  const graphWidth = isFullscreen 
+    ? window.innerWidth - 32 
+    : containerRef.current?.offsetWidth || 600;
+  const graphHeight = isFullscreen 
+    ? window.innerHeight - 180 
+    : containerRef.current?.offsetHeight || 300;
+
+  const getNodeColor = (node: Node): string => {
+    const baseColors = {
+      person: '#3b82f6',
+      organization: '#8b5cf6',
+      location: '#10b981',
+      event: '#f59e0b',
+      date: '#6366f1'
+    };
+    
+    return baseColors[node.type] || '#6b7280';
   };
-
-  const filteredData = getFilteredData();
 
   return (
-    <div className="hud-panel h-full flex flex-col">
+    <Card className={containerClasses}>
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xs font-bold text-primary uppercase tracking-wider">
-          GRAPHE RELATIONNEL
-        </h2>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => {
-            setGraphData({ nodes: [], links: [] });
-            setIsLoading(true);
-            setTimeout(() => {
-              setIsEnabled(true);
-              // Force re-extraction
-              const extractEntities = async () => {
+        <h3 className="text-sm font-mono text-primary">🕸️ Graphe Relationnel</h3>
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="h-7 w-7"
+            title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
+          >
+            {isFullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setTimeout(async () => {
+                setIsLoading(true);
                 try {
                   const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-entities`, {
                     method: 'POST',
@@ -147,15 +174,22 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
                 } finally {
                   setIsLoading(false);
                 }
-              };
-              extractEntities();
-            }, 100);
-          }}
-          className="h-7 w-7"
-          title="Recharger le graphe"
-        >
-          <RefreshCw className="w-3 h-3" />
-        </Button>
+              }, 100);
+            }}
+            className="h-7 w-7"
+            title="Recharger le graphe"
+          >
+            <RefreshCw className="w-3 h-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsEnabled(false)}
+            className="h-7 w-7"
+          >
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-2">
@@ -186,13 +220,27 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
           <ForceGraph2D
             ref={graphRef}
             graphData={filteredData}
-            width={containerRef.current?.offsetWidth || 600}
-            height={containerRef.current?.offsetHeight || 300}
+            width={graphWidth}
+            height={graphHeight}
             nodeLabel={(node: any) => `${node.name} (${node.type})`}
             onNodeClick={(node: any, event: MouseEvent) => {
               event.stopPropagation();
               setSelectedNode(node);
             }}
+            linkLabel={(link: any) => `${link.relationship} (force: ${link.strength})`}
+            linkDirectionalArrowLength={3}
+            linkDirectionalArrowRelPos={1}
+            linkWidth={(link: any) => Math.max(0.5, link.strength * 0.3)}
+            linkColor={(link: any) => {
+              const strength = link.strength || 5;
+              if (strength >= 8) return 'rgba(239, 68, 68, 0.8)';
+              if (strength >= 6) return 'rgba(249, 115, 22, 0.7)';
+              if (strength >= 4) return 'rgba(59, 130, 246, 0.6)';
+              return 'rgba(107, 114, 128, 0.4)';
+            }}
+            linkDirectionalParticles={(link: any) => link.strength >= 7 ? 2 : 0}
+            linkDirectionalParticleSpeed={0.005}
+            linkDirectionalParticleWidth={2}
             nodeCanvasObject={(node: any, ctx, globalScale) => {
               const label = node.name;
               const fontSize = 12 / globalScale;
@@ -200,18 +248,15 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
               
               ctx.save();
               
-              // Try to draw image if available
               if (node.image_url && node.type === 'person') {
                 let img = imageCache.current.get(node.image_url);
                 
                 if (!img) {
-                  // Create and cache image
                   img = new Image();
                   img.crossOrigin = 'anonymous';
                   img.src = node.image_url;
                   imageCache.current.set(node.image_url, img);
                   
-                  // Redraw when image loads
                   img.onload = () => {
                     if (graphRef.current) {
                       graphRef.current.refresh();
@@ -219,215 +264,101 @@ const NetworkGraph3D = ({ articles }: NetworkGraph3DProps) => {
                   };
                 }
                 
-                // If image is loaded, draw it in circle
                 if (img.complete && img.naturalWidth > 0) {
                   ctx.beginPath();
                   ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI);
                   ctx.closePath();
                   ctx.clip();
-                  ctx.drawImage(img, node.x - nodeSize, node.y - nodeSize, nodeSize * 2, nodeSize * 2);
+                  
+                  ctx.drawImage(
+                    img,
+                    node.x - nodeSize,
+                    node.y - nodeSize,
+                    nodeSize * 2,
+                    nodeSize * 2
+                  );
+                  
                   ctx.restore();
                   ctx.save();
                   
-                  // Border around image
                   ctx.beginPath();
                   ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI);
-                  ctx.strokeStyle = node.influence_score > 7 ? '#FFD700' : '#00D9FF';
+                  ctx.strokeStyle = getNodeColor(node);
                   ctx.lineWidth = 2 / globalScale;
                   ctx.stroke();
                 } else {
-                  // Fallback: draw colored circle
                   ctx.beginPath();
                   ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI);
-                  ctx.closePath();
-                  ctx.fillStyle = getNodeColor(node.type);
+                  ctx.fillStyle = getNodeColor(node);
                   ctx.fill();
-                  ctx.strokeStyle = node.influence_score > 7 ? '#FFD700' : '#fff';
-                  ctx.lineWidth = node.influence_score > 7 ? 2 / globalScale : 1 / globalScale;
+                  ctx.strokeStyle = '#fff';
+                  ctx.lineWidth = 1.5 / globalScale;
                   ctx.stroke();
                 }
               } else {
-                // Regular circle for non-person nodes
                 ctx.beginPath();
                 ctx.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI);
-                ctx.closePath();
-                ctx.fillStyle = getNodeColor(node.type);
+                ctx.fillStyle = getNodeColor(node);
                 ctx.fill();
                 ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 1 / globalScale;
+                ctx.lineWidth = 1.5 / globalScale;
                 ctx.stroke();
               }
               
-              ctx.restore();
-              
-              // Draw label
-              ctx.save();
-              ctx.font = `${fontSize}px Orbitron, sans-serif`;
+              ctx.font = `${fontSize}px Inter, system-ui, sans-serif`;
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
               ctx.fillStyle = '#fff';
-              ctx.strokeStyle = 'rgba(0,0,0,0.8)';
-              ctx.lineWidth = 3;
-              ctx.strokeText(label, node.x, node.y + nodeSize + fontSize);
-              ctx.fillText(label, node.x, node.y + nodeSize + fontSize);
-              
-              if (node.title && globalScale > 2) {
-                ctx.font = `${fontSize * 0.8}px Orbitron, sans-serif`;
-                ctx.fillStyle = '#aaa';
-                ctx.strokeText(node.title, node.x, node.y + nodeSize + fontSize * 2);
-                ctx.fillText(node.title, node.x, node.y + nodeSize + fontSize * 2);
-              }
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+              ctx.shadowBlur = 4;
+              ctx.fillText(label, node.x, node.y + nodeSize + fontSize + 2);
               
               ctx.restore();
             }}
-            nodePointerAreaPaint={(node: any, color, ctx) => {
-              const nodeSize = Math.max(4, (node.importance || 5) + (node.influence_score || 0) * 0.5);
-              const clickableRadius = nodeSize * 1.5;
-              ctx.fillStyle = color;
-              ctx.beginPath();
-              ctx.arc(node.x, node.y, clickableRadius, 0, 2 * Math.PI, false);
-              ctx.fill();
-            }}
-            linkLabel={(link: any) => link.relationship}
-            linkDirectionalParticles={(link: any) => link.direction === 'directional' ? 3 : 0}
-            linkDirectionalParticleWidth={2}
-            linkDirectionalArrowLength={(link: any) => link.direction === 'directional' ? 4 : 0}
-            linkDirectionalArrowRelPos={1}
-            linkColor={(link: any) => {
-              const strength = link.strength || 1;
-              const opacity = Math.min(1, strength / 10);
-              // Different colors based on relationship type
-              if (link.relationship?.includes('commands') || link.relationship?.includes('reports_to')) {
-                return `rgba(255, 107, 157, ${opacity})`; // Pink for hierarchy
-              } else if (link.relationship?.includes('opposes')) {
-                return `rgba(255, 69, 58, ${opacity})`; // Red for opposition
-              } else if (link.relationship?.includes('allied') || link.relationship?.includes('supports')) {
-                return `rgba(0, 255, 159, ${opacity})`; // Green for alliance
-              }
-              return `rgba(0, 217, 255, ${opacity})`; // Cyan default
-            }}
-            linkWidth={(link: any) => Math.max(1, (link.strength || 1) / 2)}
-            linkDirectionalParticleColor={() => '#00D9FF'}
-            backgroundColor="transparent"
-            enableZoomInteraction={true}
-            enablePanInteraction={true}
-            cooldownTime={3000}
-            onEngineStop={() => {
-              if (graphRef.current) {
-                // Much tighter zoom with minimal padding
-                const nodeCount = filteredData.nodes.length;
-                const basePadding = 40;
-                const additionalPadding = Math.min(nodeCount * 2, 50);
-                const totalPadding = basePadding + additionalPadding;
-                graphRef.current.zoomToFit(400, totalPadding);
-              }
-            }}
+            nodeCanvasObjectMode={() => 'replace'}
+            cooldownTicks={100}
+            onEngineStop={() => graphRef.current?.zoomToFit(400)}
           />
         )}
       </div>
 
-      {filteredData.nodes.length > 0 && (
-        <div className="mt-2 text-[10px] text-muted-foreground text-center">
-          {filteredData.nodes.length} entité{filteredData.nodes.length > 1 ? 's' : ''} • {filteredData.links.length} relation{filteredData.links.length > 1 ? 's' : ''}
+      {selectedNode && (
+        <div className="mt-2 p-2 bg-card/50 rounded border border-primary/30 text-xs space-y-1">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="font-mono text-primary font-semibold">{selectedNode.name}</p>
+              {selectedNode.title && <p className="text-muted-foreground text-[10px]">{selectedNode.title}</p>}
+              {selectedNode.description && <p className="text-muted-foreground mt-1">{selectedNode.description}</p>}
+              {selectedNode.country && <p className="text-[10px] text-muted-foreground mt-1">📍 {selectedNode.country}</p>}
+              <div className="flex gap-2 mt-1">
+                <span className="text-[10px] px-2 py-0.5 bg-primary/20 text-primary rounded">
+                  Importance: {selectedNode.importance}/10
+                </span>
+                {selectedNode.influence_score && (
+                  <span className="text-[10px] px-2 py-0.5 bg-accent/20 text-accent rounded">
+                    Influence: {selectedNode.influence_score}/10
+                  </span>
+                )}
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedNode(null)}
+              className="h-6 w-6 ml-2"
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
         </div>
       )}
-      
-      {/* Node Info Card */}
-      {selectedNode && (
-        <Card className="absolute top-4 right-4 p-4 max-w-sm bg-card/95 border-primary/50 shadow-lg overflow-y-auto max-h-[80vh]">
-          <div className="flex items-start justify-between mb-3">
-            <h3 className="text-sm font-bold text-primary uppercase">{selectedNode.name}</h3>
-            <button
-              onClick={() => setSelectedNode(null)}
-              className="text-muted-foreground hover:text-primary transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          
-            <div className="space-y-2">
-              {selectedNode.image_url && (
-                <div className="flex justify-center mb-2">
-                  <img 
-                    src={selectedNode.image_url} 
-                    alt={selectedNode.name}
-                    className="w-20 h-20 rounded-full object-cover border-2 border-primary"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
-                </div>
-              )}
-              
-              {selectedNode.title && (
-                <div>
-                  <span className="text-xs text-muted-foreground">Title:</span>
-                  <span className="text-xs ml-2 font-semibold">{selectedNode.title}</span>
-                </div>
-              )}
-              
-              {selectedNode.country && (
-                <div>
-                  <span className="text-xs text-muted-foreground">Country:</span>
-                  <span className="text-xs ml-2">{selectedNode.country}</span>
-                </div>
-              )}
-              
-              <div>
-                <span className="text-xs text-muted-foreground">Type:</span>
-                <span className="text-xs ml-2 px-2 py-0.5 rounded" style={{ backgroundColor: getNodeColor(selectedNode.type) }}>
-                  {selectedNode.type}
-                </span>
-            </div>
 
-            {/* Connected Entities */}
-            {(() => {
-              const connections = graphData.links.filter(
-                link => link.source === selectedNode.id || link.target === selectedNode.id
-              );
-              
-              if (connections.length === 0) return null;
-              
-              return (
-                <div className="pt-2 border-t border-primary/20">
-                  <span className="text-muted-foreground font-semibold">
-                    Connexions ({connections.length})
-                  </span>
-                  <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
-                    {connections.map((link, idx) => {
-                      const isSource = link.source === selectedNode.id;
-                      const otherId = isSource ? link.target : link.source;
-                      const otherNode = graphData.nodes.find(n => n.id === otherId);
-                      
-                      if (!otherNode) return null;
-                      
-                      return (
-                        <div 
-                          key={idx}
-                          className="p-2 rounded bg-card/50 border border-primary/20 hover:border-primary/40 transition-all cursor-pointer"
-                          onClick={() => setSelectedNode(otherNode)}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1">
-                              <div className="font-semibold text-foreground">{otherNode.name}</div>
-                              <div className="text-[10px] text-muted-foreground capitalize">{otherNode.type}</div>
-                            </div>
-                            <div className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary">
-                              {link.strength}/10
-                            </div>
-                          </div>
-                          <div className="mt-1 text-[10px] italic text-primary/70">
-                            {isSource ? '→' : '←'} {link.relationship}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </Card>
+      {isFullscreen && (
+        <div className="mt-2 text-xs text-muted-foreground text-center">
+          💡 Cliquez et glissez pour déplacer • Molette pour zoomer • Cliquez sur un nœud pour plus d'infos
+        </div>
       )}
-    </div>
+    </Card>
   );
 };
 
