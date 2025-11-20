@@ -39,10 +39,10 @@ serve(async (req) => {
 
   try {
     const { articles, query, language = 'en', sourceType = 'news' } = await req.json();
-    const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
+    const GEMINI_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY');
 
-    if (!GROQ_API_KEY) {
-      throw new Error('GROQ_API_KEY not configured');
+    if (!GEMINI_API_KEY) {
+      throw new Error('GOOGLE_GEMINI_API_KEY not configured');
     }
 
     console.log(`Analyzing ${articles.length} articles for query: ${query} (sourceType: ${sourceType})`);
@@ -73,76 +73,75 @@ serve(async (req) => {
         it: `Sei un analista OSINT specializzato in social media e individuazione di segnali deboli. Post dei SOCIAL — NON fonti giornalistiche verificate. Focus: polso comunità, narrazioni emergenti/dissonanti, divergenze/convergenze, segnali deboli, credibilità e volatilità. Per le PREVISIONI: probabilità REALISTICHE. Rispondi in italiano.`
       },
       press: {
-        en: 'You are an intelligence analyst for verified press/media articles. Provide factual, concise, comprehensive synthesis. Focus on key facts, recent developments, main actors, and context. Answer in English.',
-        fr: 'Vous êtes analyste de renseignement pour articles de presse vérifiés. Fournissez une synthèse factuelle, concise et complète. Focus sur faits clés, développements récents, acteurs principaux et contexte. Répondez en français.',
-        it: 'Sei un analista di intelligence per articoli di stampa verificati. Fornisci sintesi fattuale, concisa e completa. Focus su fatti chiave, sviluppi recenti, attori principali e contesto. Rispondi in italiano.'
-      },
-      webSerp: {
-        en: 'You are an analyst for WEB SEARCH results (NOT social media). Provide objective structured analysis. NO human sentiment inference. Focus on facts, mechanisms, milestones, and central themes. Answer in English.',
-        fr: 'Vous êtes analyste de résultats de RECHERCHE WEB (NON réseaux sociaux). Fournissez analyse structurée objective. AUCUNE inférence de sentiment humain. Focus sur faits, mécanismes, jalons et thèmes centraux. Répondez en français.',
-        it: 'Sei un analista di risultati di RICERCA WEB (NON social media). Fornisci analisi strutturata oggettiva. NESSUNA inferenza di sentiment umano. Focus su fatti, meccanismi, pietre miliari e temi centrali. Rispondi in italiano.'
+        en: `You are an intelligence analyst specializing in verified news analysis and strategic trend detection. These are VERIFIED PRESS articles from established news organizations. Focus on: factual assessment, verified source credibility, editorial orientation, analytical depth, established patterns. For PREDICTIONS: base them on REALISTIC probabilities considering historical patterns, geopolitical context, and expert consensus. Answer in English.`,
+        fr: `Vous êtes un analyste de renseignement spécialisé dans l'analyse de la presse vérifiée et la détection de tendances stratégiques. Articles de PRESSE VÉRIFIÉE. Focus: évaluation factuelle, crédibilité des sources vérifiées, orientation éditoriale, profondeur analytique, schémas établis. Pour les PRÉDICTIONS: probabilités RÉALISTES. Répondez en français.`,
+        it: `Sei un analista di intelligence specializzato in analisi stampa verificata e rilevamento tendenze strategiche. Articoli di STAMPA VERIFICATA. Focus: valutazione fattuale, credibilità fonti verificate, orientamento editoriale, profondità analitica, schemi consolidati. Per le PREVISIONI: probabilità REALISTICHE. Rispondi in italiano.`
       },
       mixed: {
-        en: 'You are an analyst for MIXED results (web search + social media). Web results are fact-based; social posts show community sentiment. NO human sentiment inference for web sources. Distinguish source types clearly. Answer in English.',
-        fr: 'Vous êtes analyste de résultats MIXTES (recherche web + réseaux sociaux). Résultats web factuels ; posts sociaux montrent sentiment communautaire. AUCUNE inférence de sentiment humain pour sources web. Distinguez clairement types de sources. Répondez en français.',
-        it: 'Sei un analista di risultati MISTI (ricerca web + social media). Risultati web fattuali; post social mostrano sentiment comunitario. NESSUNA inferenza di sentiment umano per fonti web. Distingui chiaramente i tipi di fonte. Rispondi in italiano.'
+        en: `You are a strategic intelligence analyst specializing in multi-source intelligence fusion. You are analyzing a MIX of verified press articles AND social media posts. Clearly differentiate: (1) VERIFIED PRESS: factual reporting, editorial orientation, credibility assessment (2) SOCIAL MEDIA: community sentiment, emerging narratives, weak signals, volatility. For PREDICTIONS: base them on REALISTIC probabilities. Answer in English.`,
+        fr: `Vous êtes un analyste de renseignement stratégique spécialisé dans la fusion multi-sources. Vous analysez un MÉLANGE d'articles de presse vérifiée ET de posts réseaux sociaux. Distinguez: (1) PRESSE VÉRIFIÉE: reporting factuel, orientation éditoriale, évaluation crédibilité (2) RÉSEAUX SOCIAUX: sentiment communautaire, récits émergents, signaux faibles, volatilité. Pour les PRÉDICTIONS: probabilités RÉALISTES. Répondez en français.`,
+        it: `Sei un analista di intelligence strategica specializzato in fusione multi-fonte. Analizzi un MIX di articoli stampa verificata E post social. Distingui: (1) STAMPA VERIFICATA: reporting fattuale, orientamento editoriale, valutazione credibilità (2) SOCIAL MEDIA: sentiment comunità, narrazioni emergenti, segnali deboli, volatilità. Per le PREVISIONI: probabilità REALISTICHE. Rispondi in italiano.`
       }
     };
 
-    let selectedSystem = systemPrompts.press;
-    if (sourceType === 'osint' || sourceType === 'social') {
-      if (hasMixedSources) {
-        selectedSystem = systemPrompts.mixed;
-      } else if (hasOnlyWeb) {
-        selectedSystem = systemPrompts.webSerp;
-      } else if (hasSocial) {
-        selectedSystem = systemPrompts.osintSocial;
-      }
-    } else if (sourceType === 'military') {
-      selectedSystem = systemPrompts.press;
+    // Determine prompt based on mixed analysis
+    let systemPrompt: string;
+    if (hasMixedSources) {
+      systemPrompt = systemPrompts.mixed[language as keyof typeof systemPrompts.mixed] || systemPrompts.mixed.en;
+    } else if (hasSocial || sourceType === 'osint') {
+      systemPrompt = systemPrompts.osintSocial[language as keyof typeof systemPrompts.osintSocial] || systemPrompts.osintSocial.en;
+    } else {
+      systemPrompt = systemPrompts.press[language as keyof typeof systemPrompts.press] || systemPrompts.press.en;
     }
 
-    // Tool definition for batch analysis
+    // Define the batch analysis tool with enhanced predictions structure
     const batchAnalysisTool = {
-      type: "function",
-      function: {
-        name: "analyze_batch",
-        description: "Analyze a batch of articles",
-        parameters: {
-          type: "object",
-          properties: {
-            entities: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  name: { type: "string" },
-                  type: { type: "string" },
-                  role: { type: "string" }
-                }
-              }
-            },
-            key_points: { 
-              type: "array",
-              items: { type: "string" }
-            },
-            predictions: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  event: { type: "string" },
-                  probability: { type: "string" },
-                  timeframe: { type: "string" },
-                  confidence_factors: { type: "array", items: { type: "string" } },
-                  risk_level: { type: "string" }
-                }
-              }
-            },
-            sentiment: { type: "string" }
+      name: 'batch_news_analysis',
+      description: 'Analyze a batch of articles and provide comprehensive intelligence assessment',
+      parameters: {
+        type: 'object',
+        properties: {
+          summary: { type: 'string', description: 'Comprehensive intelligence summary' },
+          key_points: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Critical strategic insights'
           },
-          required: ["entities", "key_points", "predictions", "sentiment"]
-        }
+          entities: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                type: { type: 'string', enum: ['person', 'organization', 'location', 'event'] },
+                relevance: { type: 'string' }
+              },
+              required: ['name', 'type', 'relevance']
+            },
+            description: 'Key entities identified'
+          },
+          predictions: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                prediction: { type: 'string', description: 'Specific prediction statement' },
+                probability: { type: 'number', description: 'Realistic probability (0-100) based on analysis' },
+                timeframe: { type: 'string', description: 'Realistic timeframe (e.g., "1-3 months", "6-12 months")' },
+                confidence_factors: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Factors affecting confidence in this prediction'
+                },
+                risk_level: { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: 'Risk assessment level' }
+              },
+              required: ['prediction', 'probability', 'timeframe', 'confidence_factors', 'risk_level']
+            },
+            description: 'Strategic predictions with realistic probability assessment'
+          },
+          sentiment: { type: 'string', enum: ['positive', 'negative', 'neutral', 'mixed'], description: 'Dominant sentiment' }
+        },
+        required: ['summary', 'key_points', 'entities', 'predictions', 'sentiment']
       }
     };
 
@@ -153,128 +152,122 @@ serve(async (req) => {
       articleBatches.push(articles.slice(i, i + BATCH_SIZE));
     }
 
-    console.log(`Processing in ${articleBatches.length} batches of max ${BATCH_SIZE} articles`);
+    console.log(`Processing ${articleBatches.length} batches of ${BATCH_SIZE} articles each...`);
 
-    // Analyze each batch with delay to respect rate limits
-    const batchResults = [];
+    const partialResults: any[] = [];
+
     for (let i = 0; i < articleBatches.length; i++) {
       const batch = articleBatches[i];
-      console.log(`Analyzing batch ${i + 1}/${articleBatches.length} (${batch.length} articles)`);
+      console.log(`Processing batch ${i + 1}/${articleBatches.length} (${batch.length} articles)...`);
 
-      // Add delay between batches to respect Groq rate limits (except for first batch)
+      // Add delay between batches to respect Gemini rate limits (except for first batch)
       if (i > 0) {
-        console.log('Waiting 5 seconds before next batch to respect rate limits...');
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        console.log('Waiting 3 seconds before next batch to respect rate limits...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
 
       const userContent = `Query: "${query}"\n\nArticles:\n${batch.map((article: any, idx: number) => {
-        const title = article.title || 'No title';
-        const source = article.source?.name || article.platform || 'Unknown';
-        const description = article.description || article.content || 'No description';
-        return `${idx + 1}. [${source}] ${title}\n${description}`;
+        const platform = getPlatform(article);
+        const sourceLabel = platform ? ` [${platform.toUpperCase()}]` : '';
+        return `Article ${idx + 1}${sourceLabel}:\nTitle: ${article.title}\nDescription: ${article.description || 'N/A'}\nSource: ${article.source?.name || 'Unknown'}`;
       }).join('\n\n')}`;
 
-      const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            { role: 'system', content: selectedSystem[language as keyof typeof selectedSystem] || selectedSystem.en },
-            { role: 'user', content: userContent }
-          ],
-          tools: [batchAnalysisTool],
-          tool_choice: { type: "function", function: { name: "analyze_batch" } }
-        }),
-      });
+      const response = await fetchWithRetry(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: systemPrompt + '\n\n' + userContent }]
+              }
+            ],
+            tools: [
+              {
+                functionDeclarations: [batchAnalysisTool]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 4000,
+            }
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Groq API error on batch ${i + 1}:`, response.status, errorText);
+        console.error('Gemini API error:', response.status, errorText);
         
         if (response.status === 429) {
           return new Response(
-            JSON.stringify({ error: 'Groq rate limit exceeded. Please try again later.' }),
+            JSON.stringify({ error: 'Gemini rate limit exceeded. Please try again later.' }),
             { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
         
-        throw new Error(`Groq API error: ${response.status} - ${errorText}`);
+        return new Response(
+          JSON.stringify({ error: `Gemini API error: ${response.status}`, details: errorText }),
+          { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       const data = await response.json();
-      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-      if (!toolCall || toolCall.function.name !== 'analyze_batch') {
-        console.error('No valid tool call in batch response');
-        throw new Error('AI did not use the expected tool for batch analysis');
-      }
+      console.log(`Batch ${i + 1} response received`);
 
-      const batchAnalysis = JSON.parse(toolCall.function.arguments);
-      batchResults.push(batchAnalysis);
-      console.log(`Batch ${i + 1} analyzed successfully`);
+      // Extract analysis from function call
+      if (data.candidates?.[0]?.content?.parts?.[0]?.functionCall) {
+        const functionCall = data.candidates[0].content.parts[0].functionCall;
+        if (functionCall.name === 'batch_news_analysis' && functionCall.args) {
+          partialResults.push(functionCall.args);
+        }
+      }
     }
 
-    // Merge batch results directly instead of asking AI to synthesize
-    console.log('Merging batch results...');
+    console.log(`All batches processed. Synthesizing ${partialResults.length} partial results...`);
 
-    // Deduplicate and merge entities
-    const entitiesMap = new Map<string, any>();
-    batchResults.forEach(batch => {
-      batch.entities.forEach((entity: any) => {
-        if (!entitiesMap.has(entity.name)) {
-          entitiesMap.set(entity.name, entity);
-        }
-      });
-    });
-
-    // Merge predictions (keep all unique predictions)
-    const allPredictions: any[] = [];
-    batchResults.forEach(batch => {
-      batch.predictions.forEach((pred: any) => {
-        // Avoid duplicates based on event text
-        if (!allPredictions.some(p => p.event === pred.event)) {
-          allPredictions.push(pred);
-        }
-      });
-    });
-
-    // Combine key points into a summary
-    const allKeyPoints = batchResults.flatMap((r: any) => r.key_points);
-    const summary = allKeyPoints.join('. ') + '.';
-
-    // Aggregate sentiment (majority vote)
-    const sentiments = batchResults.map((r: any) => r.sentiment);
-    const sentimentCounts: Record<string, number> = {};
-    sentiments.forEach(s => {
-      sentimentCounts[s] = (sentimentCounts[s] || 0) + 1;
-    });
-    const dominantSentiment = Object.entries(sentimentCounts)
-      .sort(([,a], [,b]) => b - a)[0][0];
-
-    const analysis = {
-      entities: Array.from(entitiesMap.values()),
-      summary,
-      predictions: allPredictions,
-      sentiment: dominantSentiment
+    // Merge all partial results
+    const mergedResult = {
+      summary: partialResults.map(r => r.summary).join('\n\n'),
+      key_points: partialResults.flatMap(r => r.key_points || []),
+      entities: partialResults.flatMap(r => r.entities || []),
+      predictions: partialResults.flatMap(r => r.predictions || []),
+      sentiment: determineDominantSentiment(partialResults.map(r => r.sentiment))
     };
 
-    console.log('Final analysis merged successfully');
-
-
-    return new Response(JSON.stringify(analysis), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('Error in analyze-news function:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
+      JSON.stringify(mergedResult),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('Error analyzing articles:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(
+      JSON.stringify({ error: errorMessage }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
+
+function determineDominantSentiment(sentiments: string[]): string {
+  const counts: Record<string, number> = {};
+  sentiments.forEach(s => {
+    counts[s] = (counts[s] || 0) + 1;
+  });
+  
+  let maxCount = 0;
+  let dominant = 'neutral';
+  for (const [sentiment, count] of Object.entries(counts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      dominant = sentiment;
+    }
+  }
+  
+  return dominant;
+}

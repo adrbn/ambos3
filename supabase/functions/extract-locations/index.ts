@@ -44,9 +44,9 @@ serve(async (req) => {
       );
     }
 
-    const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
-    if (!GROQ_API_KEY) {
-      throw new Error('GROQ_API_KEY not configured');
+    const GEMINI_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
+      throw new Error('GOOGLE_GEMINI_API_KEY not configured');
     }
 
     // Préparer le contenu des articles pour l'analyse - SEULEMENT les métadonnées de source
@@ -69,19 +69,7 @@ serve(async (req) => {
 
     console.log('Extracting locations from articles...');
 
-    // Call OpenAI to extract locations
-    const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a geographic source location extraction expert. Your task is to identify ONLY the geographic origin of the SOURCE (publication, journal, author, organization) - NOT locations mentioned in content.
+    const systemPrompt = `You are a geographic source location extraction expert. Your task is to identify ONLY the geographic origin of the SOURCE (publication, journal, author, organization) - NOT locations mentioned in content.
 
 IMPORTANT RULES:
 - Extract ONLY the location where the source/author/publication is based
@@ -91,72 +79,89 @@ IMPORTANT RULES:
 - If source location cannot be determined, skip that article
 - One location per source maximum
 
-Provide accurate coordinates for source locations only.`
-          },
-          {
-            role: 'user',
-            content: `Extract ONLY the geographic location of the SOURCE (publisher/author) for each article/post - NOT locations mentioned in content:\n\n${articlesText}`
-          }
-        ],
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'extract_locations',
-              description: 'Extract ONLY source locations (where publisher/author is based) - NOT content locations',
-              parameters: {
-                type: 'object',
-                properties: {
-                  locations: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        name: { type: 'string', description: 'Name of the source location (city, country)' },
-                        lat: { type: 'number', description: 'Latitude coordinate' },
-                        lng: { type: 'number', description: 'Longitude coordinate' },
-                        relevance: { type: 'string', description: 'The name of the source (publisher/author/organization)' }
-                      },
-                      required: ['name', 'lat', 'lng', 'relevance'],
-                      additionalProperties: false
-                    }
-                  }
-                },
-                required: ['locations'],
-                additionalProperties: false
-              }
+Provide accurate coordinates for source locations only.`;
+
+    const userContent = `Extract ONLY the geographic location of the SOURCE (publisher/author) for each article/post - NOT locations mentioned in content:\n\n${articlesText}`;
+
+    // Call Gemini to extract locations
+    const response = await fetchWithRetry(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: systemPrompt + '\n\n' + userContent }]
             }
+          ],
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: 'extract_locations',
+                  description: 'Extract ONLY source locations (where publisher/author is based) - NOT content locations',
+                  parameters: {
+                    type: 'object',
+                    properties: {
+                      locations: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            name: { type: 'string', description: 'Name of the source location (city, country)' },
+                            lat: { type: 'number', description: 'Latitude coordinate' },
+                            lng: { type: 'number', description: 'Longitude coordinate' },
+                            relevance: { type: 'string', description: 'The name of the source (publisher/author/organization)' }
+                          },
+                          required: ['name', 'lat', 'lng', 'relevance']
+                        }
+                      }
+                    },
+                    required: ['locations']
+                  }
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 2000,
           }
-        ],
-        tool_choice: { type: 'function', function: { name: 'extract_locations' } }
-      }),
-    });
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Groq API error:', response.status, errorText);
+      console.error('Gemini API error:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: 'Groq rate limit exceeded. Please try again later.' }),
+          JSON.stringify({ error: 'Gemini rate limit exceeded. Please try again later.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
       return new Response(
-        JSON.stringify({ error: `Groq API error: ${response.status}`, details: errorText }),
+        JSON.stringify({ error: `Gemini API error: ${response.status}`, details: errorText }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const data = await response.json();
-    console.log('AI Response:', JSON.stringify(data, null, 2));
+    console.log('Gemini Response received');
 
-    // Extraire les localisations du tool call
+    // Extract locations from function call
     let locations = [];
-    if (data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments) {
-      const args = JSON.parse(data.choices[0].message.tool_calls[0].function.arguments);
-      locations = args.locations || [];
+    if (data.candidates?.[0]?.content?.parts?.[0]?.functionCall) {
+      const functionCall = data.candidates[0].content.parts[0].functionCall;
+      if (functionCall.name === 'extract_locations' && functionCall.args) {
+        locations = functionCall.args.locations || [];
+      }
     }
 
     console.log(`Extracted ${locations.length} locations`);
