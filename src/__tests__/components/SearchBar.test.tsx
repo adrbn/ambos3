@@ -20,6 +20,8 @@ describe('SearchBar', () => {
     onOsintSourcesChange: vi.fn(),
     pressSources: ['newsapi', 'mediastack', 'gnews'],
     onPressSourcesChange: vi.fn(),
+    militarySources: [],
+    onMilitarySourcesChange: vi.fn(),
     enableQueryEnrichment: false,
   };
 

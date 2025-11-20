@@ -58,6 +58,20 @@ const Index = () => {
   const [sourceMode, setSourceMode] = useState<SourceMode>('news');
   const [osintSources, setOsintSources] = useState<string[]>(['mastodon', 'bluesky', 'gopher', 'google']);
   const [pressSources, setPressSources] = useState<string[]>(['newsapi', 'mediastack', 'gnews']);
+  const [militarySources, setMilitarySources] = useState<{name: string, url: string, language: string, enabled: boolean}[]>([
+    { name: 'Analisi Difesa', url: 'https://www.analisidifesa.it/feed/', language: 'it', enabled: true },
+    { name: 'Ares Difesa', url: 'https://aresdifesa.it/feed/', language: 'it', enabled: true },
+    { name: 'Aviation Report', url: 'https://www.aviation-report.com/feed/', language: 'it', enabled: true },
+    { name: 'Difesa Online', url: 'https://www.difesaonline.it/feed', language: 'it', enabled: true },
+    { name: 'Report Difesa', url: 'https://www.reportdifesa.it/feed/', language: 'it', enabled: true },
+    { name: 'Rivista Italiana Difesa', url: 'https://www.rid.it/feed/', language: 'it', enabled: true },
+    { name: 'Ministero della Difesa', url: 'https://www.difesa.it/RSS/Pagine/default.aspx', language: 'it', enabled: true },
+    { name: 'Stato Maggiore della Difesa', url: 'https://www.difesa.it/SMD_/Comunicati/Pagine/default.aspx?tipo=Notizia&Rss=1', language: 'it', enabled: true },
+    { name: 'Esercito Italiano', url: 'https://www.esercito.difesa.it/comunicazione/Pagine/default.aspx?Rss=1', language: 'it', enabled: true },
+    { name: 'Marina Militare', url: 'https://www.marina.difesa.it/media-cultura/Notiziario-online/Pagine/default.aspx?Rss=1', language: 'it', enabled: true },
+    { name: 'Aeronautica Militare', url: 'https://www.aeronautica.difesa.it/home/media-e-comunicazione/notizie/Pagine/default.aspx?Rss=1', language: 'it', enabled: true },
+    { name: 'Direzione Nazionale degli Armamenti', url: 'https://www.difesa.it/SGD-DNA/Notizie/Pagine/default.aspx?tipo=Notizia&Rss=1', language: 'it', enabled: true },
+  ]);
   const [theme, setTheme] = useState<'default' | 'light' | 'girly'>('default');
   const { user, isAdmin, isLoading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -420,6 +434,8 @@ const Index = () => {
               onOsintSourcesChange={setOsintSources}
               pressSources={pressSources}
               onPressSourcesChange={setPressSources}
+              militarySources={militarySources}
+              onMilitarySourcesChange={setMilitarySources}
               enableQueryEnrichment={enableQueryEnrichment}
             />
           </TabsContent>
@@ -436,7 +452,9 @@ const Index = () => {
               onOsintSourcesChange={() => {}}
               pressSources={pressSources}
               onPressSourcesChange={setPressSources}
-              enableQueryEnrichment={false}
+              militarySources={militarySources}
+              onMilitarySourcesChange={setMilitarySources}
+              enableQueryEnrichment={enableQueryEnrichment}
             />
           </TabsContent>
           <TabsContent value="watches" className="mt-0">

@@ -140,11 +140,18 @@ serve(async (req) => {
   }
 
   try {
-    const { query } = await req.json();
+    const { query, customSources } = await req.json();
     console.log('Fetching from Italian military RSS feeds with query:', query);
 
+    // Use custom sources if provided, otherwise use default feeds
+    const feedsToFetch = customSources && customSources.length > 0 
+      ? customSources.map((s: any) => ({ name: s.name, url: s.url, language: s.language || 'it' }))
+      : MILITARY_RSS_FEEDS;
+
+    console.log(`Using ${feedsToFetch.length} RSS feeds`);
+
     // Fetch from all RSS feeds in parallel
-    const fetchPromises = MILITARY_RSS_FEEDS.map(feed => 
+    const fetchPromises = feedsToFetch.map((feed: any) => 
       parseRSSFeed(feed.url, feed.name)
     );
 

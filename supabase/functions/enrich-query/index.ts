@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, language, sourceType = 'news', osintPlatforms = [] } = await req.json();
+    const { query, language, sourceType = 'news', osintPlatforms = [], translateOnly = false } = await req.json();
     
     if (!query) {
       return new Response(
@@ -24,6 +24,38 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
+    }
+
+    // If translateOnly mode, just translate to target language
+    if (translateOnly) {
+      console.log(`Translating query "${query}" to ${language}`);
+      
+      const translatePrompt = `Traduis cette requête de recherche en ${language === 'it' ? 'italien' : language === 'fr' ? 'français' : 'anglais'}. Retourne UNIQUEMENT la traduction, sans explications.\n\nRequête: "${query}"`;
+      
+      const translateResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: 'Tu es un traducteur professionnel. Tu traduis uniquement sans ajouter de commentaires.' },
+            { role: 'user', content: translatePrompt }
+          ],
+        }),
+      });
+
+      const translateData = await translateResponse.json();
+      const translatedQuery = translateData.choices?.[0]?.message?.content?.trim() || query;
+      
+      console.log(`Translated query: "${translatedQuery}"`);
+      
+      return new Response(
+        JSON.stringify({ translatedQuery }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log(`Enriching query: "${query}" (language: ${language}, sourceType: ${sourceType}, platforms: ${osintPlatforms.join(', ')})`);

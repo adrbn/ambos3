@@ -8,6 +8,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Language } from "@/i18n/translations";
 import SearchLoadingAnimation from "@/components/SearchLoadingAnimation";
+import { MilitarySourcesConfig } from "@/components/MilitarySourcesConfig";
+
+interface MilitarySource {
+  name: string;
+  url: string;
+  language: string;
+  enabled: boolean;
+}
 
 interface SearchBarProps {
   onSearch: (query: string, articles: any[], analysis: any) => void;
@@ -21,10 +29,12 @@ interface SearchBarProps {
   onOsintSourcesChange: (sources: string[]) => void;
   pressSources: string[];
   onPressSourcesChange: (sources: string[]) => void;
+  militarySources: MilitarySource[];
+  onMilitarySourcesChange: (sources: MilitarySource[]) => void;
   enableQueryEnrichment: boolean;
 }
 
-const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi, sourceMode, onSourceModeChange, osintSources, onOsintSourcesChange, pressSources, onPressSourcesChange, enableQueryEnrichment }: SearchBarProps) => {
+const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedApi, sourceMode, onSourceModeChange, osintSources, onOsintSourcesChange, pressSources, onPressSourcesChange, militarySources, onMilitarySourcesChange, enableQueryEnrichment }: SearchBarProps) => {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation(language);
@@ -53,9 +63,31 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
     try {
       let finalQuery = queryToUse;
       
-      if (enableQueryEnrichment && sourceMode === 'news') {
+      // Traduction automatique vers l'italien pour les flux militaires si la langue n'est pas IT
+      if (sourceMode === 'military' && language !== 'it') {
+        try {
+          const { data: translateData, error: translateError } = await supabase.functions.invoke('enrich-query', {
+            body: { 
+              query: queryToUse, 
+              language: 'it', 
+              sourceType: 'news',
+              translateOnly: true
+            }
+          });
+          
+          if (!translateError && translateData?.translatedQuery) {
+            finalQuery = translateData.translatedQuery;
+            toast.info(`Requête traduite en italien: "${finalQuery}"`, { duration: 3000 });
+          }
+        } catch (err) {
+          console.error('Translation error:', err);
+        }
+      }
+      
+      // Enrichissement optionnel (tous modes si activé)
+      if (enableQueryEnrichment) {
         const { data: enrichData, error: enrichError } = await supabase.functions.invoke('enrich-query', {
-          body: { query: queryToUse, language, sourceType: 'news', osintPlatforms: osintSources }
+          body: { query: finalQuery, language: sourceMode === 'military' ? 'it' : language, sourceType: sourceMode === 'military' ? 'news' : sourceMode, osintPlatforms: osintSources }
         });
 
         if (!enrichError && enrichData?.enrichedQuery) {
@@ -72,8 +104,22 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
       }
       
       if (sourceMode === 'military') {
+        // Filtrer uniquement les sources activées
+        const enabledSources = militarySources.filter(s => s.enabled);
+        
+        if (enabledSources.length === 0) {
+          toast.error("Aucune source militaire activée");
+          setIsLoading(false);
+          return;
+        }
+        
         const { data, error } = await supabase.functions.invoke('fetch-military-rss', {
-          body: { query: finalQuery, language, limit: 50 }
+          body: { 
+            query: finalQuery, 
+            language: 'it',
+            limit: 50,
+            customSources: enabledSources 
+          }
         });
         
         if (error) {
@@ -180,9 +226,30 @@ const SearchBar = ({ onSearch, language, currentQuery, searchTrigger, selectedAp
   };
 
   const showModeSelector = sourceMode !== 'military';
+  const showMilitaryConfig = sourceMode === 'military';
 
   return (
     <div className="w-full space-y-3">
+      {/* Military sources config - only in military mode */}
+      {showMilitaryConfig && (
+        <div className="p-3 bg-card/30 rounded-lg border border-primary/20">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-mono transition-all bg-card/50 hover:bg-card/70 border border-primary/30">
+                <span>⚙️ Configuration des sources RSS</span>
+                <Settings2 className="w-3 h-3" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 bg-card border-primary/30 p-3" align="start">
+              <MilitarySourcesConfig 
+                sources={militarySources}
+                onSourcesChange={onMilitarySourcesChange}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
+      
       {showModeSelector && (
         <div className="flex gap-2 p-1 bg-card/30 rounded-lg border border-primary/20">
           <div className="flex flex-1 gap-1">
