@@ -157,7 +157,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'mixtral-8x7b-32768',
+        model: 'openai/gpt-oss-120b',
         messages: [
           { role: 'system', content: selectedSystem[language as keyof typeof selectedSystem] || selectedSystem.en },
           { role: 'user', content: userContent }
