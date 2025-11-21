@@ -6,32 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-
-// Enhanced retry with exponential backoff for 503 and 429 errors
-async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 5): Promise<Response> {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const response = await fetch(url, options);
-      
-      // If overloaded (503) or rate limited (429), wait and retry with exponential backoff
-      if ((response.status === 503 || response.status === 429) && attempt < maxRetries) {
-        const waitTime = Math.pow(2, attempt) * 2000; // 2s, 4s, 8s, 16s, 32s
-        console.log(`API ${response.status} error, waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        continue;
-      }
-      
-      return response;
-    } catch (error) {
-      if (attempt === maxRetries) throw error;
-      const waitTime = Math.pow(2, attempt) * 2000;
-      console.log(`Request failed, retrying in ${waitTime}ms...`);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
-    }
-  }
-  throw new Error('Max retries exceeded');
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -39,10 +13,10 @@ serve(async (req) => {
 
   try {
     const { articles, query, language = 'en', sourceType = 'news' } = await req.json();
-    const GEMINI_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!GEMINI_API_KEY) {
-      throw new Error('GOOGLE_GEMINI_API_KEY not configured');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY not configured');
     }
 
     console.log(`Analyzing ${articles.length} articles for query: ${query} (sourceType: ${sourceType})`);
@@ -327,7 +301,7 @@ Rispondi in italiano.`
       const batch = articleBatches[i];
       console.log(`Processing batch ${i + 1}/${articleBatches.length} (${batch.length} articles)...`);
 
-      // Add delay between batches to respect Gemini rate limits (except for first batch)
+      // Add delay between batches to respect rate limits (except for first batch)
       if (i > 0) {
         console.log('Waiting 1 second before next batch to respect rate limits...');
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -336,7 +310,7 @@ Rispondi in italiano.`
       const userContent = `Query: "${query}"\n\nArticles:\n${batch.map((article: any, idx: number) => {
         const platform = getPlatform(article);
         const sourceLabel = platform ? ` [${platform.toUpperCase()}]` : '';
-        const date = article.publishedAt ? new Date(article.publishedAt).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Date inconnue';
+        const date = article.publishedAt || article.published_at || article.created_at || 'Unknown date';
         const content = article.content ? article.content.substring(0, 800) : article.description || '';
         return `Article ${idx + 1}${sourceLabel}:
 Title: ${article.title}
@@ -346,84 +320,50 @@ URL: ${article.url || 'N/A'}
 Content: ${content}`;
       }).join('\n\n')}`;
 
-      const response = await fetchWithRetry(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      const response = await fetch(
+        'https://ai.gateway.lovable.dev/v1/chat/completions',
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            contents: [
-              {
-                role: 'user',
-                parts: [{ text: systemPrompt + '\n\n' + userContent }]
-              }
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userContent }
             ],
-            tools: [
-              {
-                functionDeclarations: [batchAnalysisTool]
-              }
-            ],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 4000,
-            }
-          }),
+            tools: [{
+              type: 'function',
+              function: batchAnalysisTool
+            }],
+            tool_choice: { type: 'function', function: { name: 'batch_news_analysis' } }
+          })
         }
       );
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Gemini API error:', response.status, errorText);
-        
-        if (response.status === 429) {
-          return new Response(
-            JSON.stringify({ error: 'Gemini rate limit exceeded. Please try again later.' }),
-            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        
-        return new Response(
-          JSON.stringify({ error: `Gemini API error: ${response.status}`, details: errorText }),
-          { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        console.error('Lovable AI error:', response.status, errorText);
+        throw new Error(`Lovable AI error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log(`Batch ${i + 1} response received`);
+      console.log('Batch response received');
 
-      // Extract analysis from function call
-      if (data.candidates?.[0]?.content?.parts?.[0]?.functionCall) {
-        const functionCall = data.candidates[0].content.parts[0].functionCall;
-        if (functionCall.name === 'batch_news_analysis' && functionCall.args) {
-          partialResults.push(functionCall.args);
-        } else {
-          console.error(`Unexpected function call name: ${functionCall.name || 'none'}`);
-        }
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (toolCall?.function?.name === 'batch_news_analysis') {
+        const args = JSON.parse(toolCall.function.arguments);
+        partialResults.push({
+          summary: args.summary || '',
+          key_points: args.key_points || [],
+          entities: args.entities || [],
+          predictions: args.predictions || [],
+          sentiment: args.sentiment || 'neutral'
+        });
       } else {
-        // Log what we actually received to debug
-        console.error('No function call in response. Response structure:', JSON.stringify(data, null, 2).substring(0, 500));
-        
-        // Try to extract text response as fallback
-        const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (textContent) {
-          console.log('Attempting to parse text response as JSON fallback');
-          try {
-            // Try to parse as JSON if it's wrapped in ```json code blocks
-            let jsonText = textContent.trim();
-            if (jsonText.startsWith('```json')) {
-              jsonText = jsonText.replace(/```json\n?/g, '').replace(/\n?```$/g, '');
-            } else if (jsonText.startsWith('```')) {
-              jsonText = jsonText.replace(/```\n?/g, '').replace(/\n?```$/g, '');
-            }
-            const parsedResult = JSON.parse(jsonText);
-            partialResults.push(parsedResult);
-            console.log('Successfully parsed text response as JSON');
-          } catch (parseError) {
-            console.error('Failed to parse text response as JSON:', parseError);
-          }
-        }
+        console.error('No tool call in response:', JSON.stringify(data, null, 2));
       }
     }
 
@@ -431,10 +371,10 @@ Content: ${content}`;
 
     // If no results were obtained, return an error
     if (partialResults.length === 0) {
-      console.error('No analysis results obtained from Gemini API');
+      console.error('No analysis results obtained from Lovable AI');
       return new Response(
         JSON.stringify({ 
-          error: 'Analysis failed: Gemini did not return valid results. Check function logs for details.',
+          error: 'Analysis failed: Lovable AI did not return valid results. Check function logs for details.',
           summary: '',
           key_points: [],
           entities: [],
@@ -446,43 +386,36 @@ Content: ${content}`;
     }
 
     // Merge all partial results
-    const mergedResult = {
-      summary: partialResults.length > 0 ? partialResults[0].summary : '',
-      key_points: partialResults.flatMap(r => r.key_points || []),
-      entities: partialResults.flatMap(r => r.entities || []),
-      predictions: partialResults.flatMap(r => r.predictions || []),
-      sentiment: determineDominantSentiment(partialResults.map(r => r.sentiment))
-    };
+    const finalSummary = partialResults.map(r => r.summary).join(' ');
+    const allKeyPoints = partialResults.flatMap(r => r.key_points || []);
+    const allEntities = partialResults.flatMap(r => r.entities || []);
+    const allPredictions = partialResults.flatMap(r => r.predictions || []);
+    const sentiments = partialResults.map(r => r.sentiment).filter(Boolean);
+    const dominantSentiment = sentiments.length > 0 ? sentiments[0] : 'neutral';
 
     return new Response(
-      JSON.stringify(mergedResult),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        summary: finalSummary.trim() || 'No synthesis generated',
+        key_points: allKeyPoints.slice(0, 10),
+        entities: allEntities.slice(0, 15),
+        predictions: allPredictions.slice(0, 8),
+        sentiment: dominantSentiment
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error analyzing articles:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error in analyze-news function:', error);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        summary: '',
+        key_points: [],
+        entities: [],
+        predictions: [],
+        sentiment: 'neutral'
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
-
-function determineDominantSentiment(sentiments: string[]): string {
-  const counts: Record<string, number> = {};
-  sentiments.forEach(s => {
-    counts[s] = (counts[s] || 0) + 1;
-  });
-  
-  let maxCount = 0;
-  let dominant = 'neutral';
-  for (const [sentiment, count] of Object.entries(counts)) {
-    if (count > maxCount) {
-      maxCount = count;
-      dominant = sentiment;
-    }
-  }
-  
-  return dominant;
-}
